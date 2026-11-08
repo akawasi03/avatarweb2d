@@ -7,7 +7,8 @@
     "packages/*"
   ],
   "scripts": {
-    "build": "npm run build --workspaces",
+    "build": "npm run build --workspaces && npm run bundle",
+    "bundle": "esbuild packages/game-client/src/web-entry.ts --bundle --outfile=public/game/app.js --sourcemap --format=iife",
     "gateway": "npm run start --workspace=@avatar/web-gateway",
     "client": "npm run dev --workspace=@avatar/game-client",
     "test": "npm run test --workspaces"

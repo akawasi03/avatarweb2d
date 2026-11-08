@@ -112,6 +112,19 @@ export class NetworkSession {
     });
   }
 
+  public disconnect(): void {
+    if (this.ws) {
+      try {
+        this.ws.close();
+      } catch (e) {
+        // ignore
+      }
+      this.ws = null;
+    }
+    this.isConnected = false;
+    this.isHandshakeDone = false;
+  }
+
   private onRawDataReceived(data: Uint8Array): void {
     const messages = this.decoder.push(data);
     for (const msg of messages) {
@@ -204,6 +217,15 @@ export class NetworkSession {
       const info = r.readUTF();
       console.log(`[Network] Server Info: "${info}"`);
       this.emit('server_info', info);
+      return;
+    }
+
+    // Command -1: GET_HANDLER
+    if (cmd === Cmd.GET_HANDLER) {
+      const r = msg.reader();
+      const handlerId = r.readByte();
+      console.log(`[Network] Server Switched Handler to ID: ${handlerId}`);
+      this.emit('get_handler', handlerId);
       return;
     }
 
@@ -446,6 +468,152 @@ export class NetworkSession {
       return;
     }
 
+    // Command 61: FARM JOIN
+    if (cmd === Cmd.JOIN) {
+      const r = msg.reader();
+      const userId = r.readInt();
+      const landSize = r.readByte();
+      const landItems: Array<{
+        type: number;
+        plantedMinutes?: number;
+        sucKhoe?: number;
+        isWatered?: boolean;
+        isFertilized?: boolean;
+        isHarvestable?: boolean;
+      }> = [];
+
+      for (let i = 0; i < landSize; i++) {
+        const type = r.readByte();
+        if (type >= 0) {
+          const plantedMinutes = r.readShort();
+          const sucKhoe = r.readByte();
+          const heo = r.readByte();
+          const isWatered = r.readBoolean();
+          const isFertilized = r.readBoolean();
+          const isHarvestable = r.readBoolean();
+          landItems.push({ type, plantedMinutes, sucKhoe, isWatered, isFertilized, isHarvestable });
+        } else {
+          landItems.push({ type: -1 });
+        }
+      }
+
+      const animalSize = r.readByte();
+      const animals: Array<{
+        id: number;
+        health: number;
+        level: number;
+        resourceCount: number;
+        nextProductionTime: number;
+        isAlive: boolean;
+        isReadyForBreeding: boolean;
+        isHarvestable: boolean;
+      }> = [];
+      for (let i = 0; i < animalSize; i++) {
+        const id = r.readByte();
+        const health = r.readInt();
+        const level = r.readByte();
+        const resourceCount = r.readByte();
+        const nextProductionTime = r.readByte();
+        const isAlive = r.readBoolean();
+        const isReadyForBreeding = r.readBoolean();
+        const isHarvestable = r.readBoolean();
+        animals.push({ id, health, level, resourceCount, nextProductionTime, isAlive, isReadyForBreeding, isHarvestable });
+      }
+
+      const barnSize = r.available() > 0 ? r.readByte() : 0;
+      const fishPondSize = r.available() > 0 ? r.readByte() : 0;
+      let starFruitLevel = 0;
+      let starFruitFruit = 0;
+      if (r.available() >= 8) {
+        starFruitLevel = r.readShort();
+        r.readShort();
+        r.readShort();
+        starFruitFruit = r.readShort();
+      }
+
+      console.log(`[Network] Joined Farm: User=${userId}, Lands=${landSize}, Animals=${animalSize}`);
+      this.emit('farm_join', {
+        userId,
+        landItems,
+        animals,
+        barnSize,
+        fishPondSize,
+        starFruit: { level: starFruitLevel, fruit: starFruitFruit }
+      });
+      return;
+    }
+
+    // Command 60: FARM INVENTORY
+    if (cmd === Cmd.INVENTORY) {
+      const r = msg.reader();
+      const numSeeds = r.readByte();
+      const seeds: Array<{ id: number; quantity: number }> = [];
+      for (let i = 0; i < numSeeds; i++) {
+        seeds.push({ id: r.readByte(), quantity: r.readShort() });
+      }
+
+      const numCrops = r.readByte();
+      const crops: Array<{ id: number; quantity: number }> = [];
+      for (let i = 0; i < numCrops; i++) {
+        crops.push({ id: r.readByte(), quantity: r.readShort() });
+      }
+
+      const xu = r.readInt();
+      const farmLevel = r.readByte();
+      const farmPercent = r.readByte();
+
+      const numFertilizers = r.readByte();
+      const fertilizers: Array<{ id: number; quantity: number }> = [];
+      for (let i = 0; i < numFertilizers; i++) {
+        fertilizers.push({ id: r.readByte(), quantity: r.readShort() });
+      }
+
+      const numSpecial = r.available() > 0 ? r.readByte() : 0;
+      const specialCrops: Array<{ id: number; quantity: number }> = [];
+      for (let i = 0; i < numSpecial; i++) {
+        specialCrops.push({ id: r.readShort(), quantity: r.readInt() });
+      }
+
+      console.log(`[Network] Farm Inventory: Seeds=${seeds.length}, Crops=${crops.length}, Fertilizers=${fertilizers.length}`);
+      this.emit('farm_inventory', { seeds, crops, xu, farmLevel, farmPercent, fertilizers, specialCrops });
+      return;
+    }
+
+    // Command 64: PLANT_SEED
+    if (cmd === Cmd.PLANT_SEED) {
+      const r = msg.reader();
+      const userId = r.readInt();
+      const cellIndex = r.readByte();
+      const seedId = r.readByte();
+      console.log(`[Network] Plant Seed: User=${userId}, Cell=${cellIndex}, Seed=${seedId}`);
+      this.emit('plant_seed', { userId, cellIndex, seedId });
+      return;
+    }
+
+    // Command 66: TREE_HARVEST
+    if (cmd === Cmd.TREE_HARVEST) {
+      const r = msg.reader();
+      const cellIndex = r.readByte();
+      const yieldCount = r.available() > 0 ? r.readShort() : 0;
+      console.log(`[Network] Harvest Crop: Cell=${cellIndex}, Yield=${yieldCount}`);
+      this.emit('tree_harvest', { cellIndex, yieldCount });
+      return;
+    }
+
+    // Command 70: OPEN_LAND
+    if (cmd === Cmd.OPEN_LAND) {
+      const r = msg.reader();
+      const farmId = r.readInt();
+      const slot = r.readInt();
+      const typeBuy = r.readByte();
+      const msgText = r.readUTF();
+      const xu = r.available() > 0 ? r.readInt() : 0;
+      const luong = r.available() > 0 ? r.readInt() : 0;
+      console.log(`[Network] Open Land: Farm=${farmId}, Slot=${slot}, Message="${msgText}"`);
+      this.emit('open_land', { farmId, slot, typeBuy, msg: msgText, xu, luong });
+      return;
+    }
+
     // Default message handler
     this.emit('message', msg);
   }
@@ -483,6 +651,7 @@ export class NetworkSession {
   }
 
   public sendJoinPark(mapId = 11, areaId = 0, x = 200, y = 150): void {
+    this.sendGetHandler(9);
     const msg = new Message(Cmd.AVATAR_JOIN_PARK);
     msg.writer().writeByte(mapId);
     msg.writer().writeByte(areaId);
@@ -590,11 +759,115 @@ export class NetworkSession {
     this.sendMessage(msg);
   }
 
+  public sendGetHandler(handlerId: number): void {
+    const msg = new Message(Cmd.GET_HANDLER);
+    msg.writer().writeByte(handlerId);
+    console.log(`[Network] Requesting Switch Handler: ${handlerId}`);
+    this.sendMessage(msg);
+  }
+
   public sendJoinHouse(userId: number): void {
+    this.sendGetHandler(13);
     const msg = new Message(Cmd.JOIN_HOUSE);
     msg.writer().writeInt(userId);
 
     console.log(`[Network] Sending Join House: UserID=${userId}`);
+    this.sendMessage(msg);
+  }
+
+  // --- Farm System (Nông trại) ---
+
+  public sendJoinFarm(userId: number): void {
+    this.sendGetHandler(10);
+    const msg = new Message(Cmd.JOIN);
+    msg.writer().writeInt(userId);
+    console.log(`[Network] Sending Join Farm: UserID=${userId}`);
+    this.sendMessage(msg);
+  }
+
+  public sendGetFarmInventory(): void {
+    const msg = new Message(Cmd.INVENTORY);
+    console.log('[Network] Sending Request Farm Inventory');
+    this.sendMessage(msg);
+  }
+
+  public sendPlantSeed(userId: number, cellIndex: number, seedId: number): void {
+    const msg = new Message(Cmd.PLANT_SEED);
+    msg.writer().writeInt(userId);
+    msg.writer().writeByte(cellIndex);
+    msg.writer().writeByte(seedId);
+    console.log(`[Network] Sending Plant Seed: User=${userId}, Cell=${cellIndex}, Seed=${seedId}`);
+    this.sendMessage(msg);
+  }
+
+  public sendTreeHarvest(userId: number, cellIndex: number): void {
+    const msg = new Message(Cmd.TREE_HARVEST);
+    msg.writer().writeInt(userId);
+    msg.writer().writeByte(cellIndex);
+    console.log(`[Network] Sending Tree Harvest: User=${userId}, Cell=${cellIndex}`);
+    this.sendMessage(msg);
+  }
+
+  public sendOpenLand(farmId: number, typeBuy = 1): void {
+    const msg = new Message(Cmd.OPEN_LAND);
+    msg.writer().writeInt(farmId);
+    msg.writer().writeByte(typeBuy);
+    console.log(`[Network] Sending Open Land: FarmID=${farmId}, Type=${typeBuy}`);
+    this.sendMessage(msg);
+  }
+
+  public sendBuyFarmItem(itemId: number, quantity: number, currencyType = 1): void {
+    const msg = new Message(Cmd.BUY_ITEM);
+    msg.writer().writeShort(itemId);
+    msg.writer().writeByte(quantity);
+    msg.writer().writeByte(currencyType);
+    console.log(`[Network] Sending Buy Farm Item: Item=${itemId}, Qty=${quantity}, Type=${currencyType}`);
+    this.sendMessage(msg);
+  }
+
+  public sendBuyAnimal(animalType: number, quantity = 1): void {
+    const msg = new Message(Cmd.BUY_ANIMAL);
+    msg.writer().writeByte(animalType);
+    msg.writer().writeShort(quantity);
+    console.log(`[Network] Sending Buy Animal: Type=${animalType}, Qty=${quantity}`);
+    this.sendMessage(msg);
+  }
+
+  // --- House & Furniture System (Nhà ở & Nội thất) ---
+
+  public sendBuyItemHouse(itemId: number, x: number, y: number, type = 0): void {
+    const msg = new Message(Cmd.BUY_ITEM_HOUSE);
+    msg.writer().writeShort(itemId);
+    msg.writer().writeByte(x);
+    msg.writer().writeByte(y);
+    msg.writer().writeByte(type);
+    console.log(`[Network] Sending Buy House Item: Item=${itemId}, Pos=(${x}, ${y}), Type=${type}`);
+    this.sendMessage(msg);
+  }
+
+  public sendSortItemHouse(anchor: number, x: number, y: number, x2: number, y2: number, rotate = 0): void {
+    const msg = new Message(Cmd.SORT_ITEM_HOUSE);
+    msg.writer().writeShort(anchor);
+    msg.writer().writeByte(x);
+    msg.writer().writeByte(y);
+    msg.writer().writeByte(x2);
+    msg.writer().writeByte(y2);
+    msg.writer().writeByte(rotate);
+    console.log(`[Network] Sending Sort House Item: Anchor=${anchor}, (${x},${y}) -> (${x2},${y2})`);
+    this.sendMessage(msg);
+  }
+
+  public sendGetTypeHouse(typeHouse: number): void {
+    const msg = new Message(Cmd.GET_TYPE_HOUSE);
+    msg.writer().writeByte(typeHouse);
+    console.log(`[Network] Requesting Type House: ${typeHouse}`);
+    this.sendMessage(msg);
+  }
+
+  public sendDelItemHouse(itemId: number): void {
+    const msg = new Message(Cmd.DEL_ITEM_HOUSE);
+    msg.writer().writeShort(itemId);
+    console.log(`[Network] Sending Delete House Item: ${itemId}`);
     this.sendMessage(msg);
   }
 }
