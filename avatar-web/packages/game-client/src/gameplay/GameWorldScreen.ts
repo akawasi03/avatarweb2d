@@ -809,35 +809,53 @@ export class GameWorldScreen extends GameScreen {
       feelId: this.localPlayer.feelId
     });
 
-    // Remote players
+    const seenIds = new Set<number>();
+    seenIds.add(this.localPlayer.id);
+
+    // Remote players from Java Server (Deduplicated)
     for (const rp of this.remotePlayers.values()) {
-      entities.push({
-        id: rp.id,
-        name: rp.name,
-        x: rp.x,
-        y: rp.y,
-        wearing: rp.wearing,
-        direct: rp.direct,
-        frame: rp.frame || 0,
-        isLocal: false,
-        chatMessage: rp.chatMessage,
-        feelId: rp.feelId
-      });
+      if (!seenIds.has(rp.id)) {
+        seenIds.add(rp.id);
+        let displayName = rp.name;
+        if (displayName.includes('Lovanga')) {
+          displayName = 'Tiên tri Lovanga';
+        }
+        entities.push({
+          id: rp.id,
+          name: displayName,
+          x: rp.x,
+          y: rp.y,
+          wearing: rp.wearing,
+          direct: rp.direct,
+          frame: rp.frame || 0,
+          isLocal: false,
+          chatMessage: rp.chatMessage,
+          feelId: rp.feelId
+        });
+      }
     }
 
-    // Map NPCs (Map 11 Công viên)
+    // Map NPCs: Only add if not already sent by server
     for (const npc of this.mapNpcs) {
-      entities.push({
-        id: npc.id,
-        name: npc.name,
-        x: npc.x,
-        y: npc.y,
-        wearing: npc.wearing,
-        direct: 0,
-        frame: 0,
-        isLocal: false,
-        chatMessage: npc.chatMessage
-      });
+      if (!seenIds.has(npc.id) && !seenIds.has(npc.targetId)) {
+        const alreadyPresent = entities.some(
+          e => e.name.toLowerCase().replace(/[^a-z0-9]/g, '') === npc.name.toLowerCase().replace(/[^a-z0-9]/g, '')
+        );
+        if (!alreadyPresent) {
+          seenIds.add(npc.id);
+          entities.push({
+            id: npc.id,
+            name: npc.name,
+            x: npc.x,
+            y: npc.y,
+            wearing: npc.wearing,
+            direct: 0,
+            frame: 0,
+            isLocal: false,
+            chatMessage: npc.chatMessage
+          });
+        }
+      }
     }
 
     entities.sort((a, b) => a.y - b.y);
@@ -880,76 +898,90 @@ export class GameWorldScreen extends GameScreen {
     }
 
     // 6. Top Bar matching the user's reference screenshot
-    g.setColor(0x1B3F47);
-    g.fillRect(0, 0, screenW, 25);
-    g.setColor(0x2E6875);
-    g.drawLine(0, 25, screenW, 25);
+    g.setColor(0x0f172a); // Slate 900
+    g.fillRect(0, 0, screenW, 26);
+    g.setColor(0x1e293b);
+    g.drawLine(0, 26, screenW, 26);
 
     // Left Buttons:
     // [ MENU ] button
     g.setColor(0x1565C0);
-    g.fillRoundRect(6, 3, 44, 19, 4);
+    g.fillRoundRect(6, 3, 44, 20, 4);
     g.setColor(0x90CAF9);
-    g.drawRoundRect(6, 3, 44, 19, 4);
+    g.drawRoundRect(6, 3, 44, 20, 4);
     if (this.font) {
-      this.font.drawString(g, 'MENU', 28, 6, 2);
+      this.font.drawString(g, 'MENU', 28, 7, 2);
     }
 
     // [ ✉ ] Mail button
-    g.setColor(0xE0F7FA);
-    g.fillRoundRect(54, 3, 22, 19, 4);
-    g.setColor(0x00838F);
-    g.drawRoundRect(54, 3, 22, 19, 4);
+    g.setColor(0x0284c7);
+    g.fillRoundRect(54, 3, 22, 20, 4);
+    g.setColor(0x7dd3fc);
+    g.drawRoundRect(54, 3, 22, 20, 4);
     if (this.font) {
-      this.font.drawString(g, '✉', 65, 5, 2);
+      this.font.drawString(g, '✉', 65, 6, 2);
     }
     // Notification red badge
-    g.setColor(0xD32F2F);
+    g.setColor(0xef4444);
     g.fillArc(70, 2, 6, 6, 0, 360);
 
     // [ 💬 ] Chat button
     g.setColor(0x1E88E5);
-    g.fillRoundRect(80, 3, 22, 19, 4);
+    g.fillRoundRect(80, 3, 22, 20, 4);
     g.setColor(0xBBDEFB);
-    g.drawRoundRect(80, 3, 22, 19, 4);
+    g.drawRoundRect(80, 3, 22, 20, 4);
     if (this.font) {
-      this.font.drawString(g, '💬', 91, 5, 2);
+      this.font.drawString(g, '💬', 91, 6, 2);
     }
 
     // Right Buttons:
     // [ 🧭 ] Area/Map button
-    g.setColor(0x00897B);
-    g.fillRoundRect(screenW - 80, 3, 22, 19, 4);
-    g.setColor(0x80CBC4);
-    g.drawRoundRect(screenW - 80, 3, 22, 19, 4);
+    g.setColor(0x0f766e);
+    g.fillRoundRect(screenW - 80, 3, 22, 20, 4);
+    g.setColor(0x5eead4);
+    g.drawRoundRect(screenW - 80, 3, 22, 20, 4);
     if (this.font) {
-      this.font.drawString(g, '🧭', screenW - 69, 5, 2);
+      this.font.drawString(g, '🧭', screenW - 69, 6, 2);
     }
 
     // [ 🏃 ] Speed run button
-    g.setColor(this.isRunningFast ? 0xF57C00 : 0x455A64);
-    g.fillRoundRect(screenW - 54, 3, 22, 19, 4);
-    g.setColor(this.isRunningFast ? 0xFFE082 : 0x90A4AE);
-    g.drawRoundRect(screenW - 54, 3, 22, 19, 4);
+    g.setColor(this.isRunningFast ? 0xF57C00 : 0x334155);
+    g.fillRoundRect(screenW - 54, 3, 22, 20, 4);
+    g.setColor(this.isRunningFast ? 0xFFE082 : 0x64748b);
+    g.drawRoundRect(screenW - 54, 3, 22, 20, 4);
     if (this.font) {
-      this.font.drawString(g, '🏃', screenW - 43, 5, 2);
+      this.font.drawString(g, '🏃', screenW - 43, 6, 2);
     }
 
     // [ 😊 ] Emote button
-    g.setColor(0xFBC02D);
-    g.fillRoundRect(screenW - 28, 3, 22, 19, 4);
-    g.setColor(0xFFF9C4);
-    g.drawRoundRect(screenW - 28, 3, 22, 19, 4);
+    g.setColor(0xd97706);
+    g.fillRoundRect(screenW - 28, 3, 22, 20, 4);
+    g.setColor(0xfde68a);
+    g.drawRoundRect(screenW - 28, 3, 22, 20, 4);
     if (this.font) {
-      this.font.drawString(g, '😊', screenW - 17, 5, 2);
+      this.font.drawString(g, '😊', screenW - 17, 6, 2);
     }
 
-    // Center Marquee News Ticker
-    g.setClip(106, 0, Math.max(20, screenW - 192), 25);
-    if (this.font) {
-      this.font.drawString(g, this.tickerText, this.tickerX, 6, 0);
+    // Center Marquee News Ticker - Inset Dark Slot with High Contrast Gold Text
+    const tickerClipX = 108;
+    const tickerClipW = Math.max(40, screenW - 196);
+    g.setColor(0x020617);
+    g.fillRect(tickerClipX, 3, tickerClipW, 20);
+    g.setColor(0x1e293b);
+    g.drawRect(tickerClipX, 3, tickerClipW, 20);
+
+    const ctx = g.ctx as CanvasRenderingContext2D | undefined;
+    if (ctx) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(tickerClipX + 2, 3, tickerClipW - 4, 20);
+      ctx.clip();
+      ctx.font = 'bold 11px Arial, sans-serif';
+      ctx.fillStyle = '#fde047'; // Bright gold for 100% readability
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.tickerText, this.tickerX, 13);
+      ctx.restore();
     }
-    g.setClip(0, 0, screenW, screenH);
 
     // 7. Bottom-Left 12+ Badge
     if (this.img12Plus) {
@@ -965,16 +997,35 @@ export class GameWorldScreen extends GameScreen {
     }
 
     // 8. Bottom Bar & Softkeys
-    g.setColor(0x111111);
-    g.fillRect(40, screenH - 22, screenW - 40, 22);
-    g.setColor(0x333333);
-    g.drawLine(0, screenH - 22, screenW, screenH - 22);
+    g.setColor(0x0f172a);
+    g.fillRect(40, screenH - 24, screenW - 40, 24);
+    g.setColor(0x1e293b);
+    g.drawLine(0, screenH - 24, screenW, screenH - 24);
 
-    if (this.font) {
-      this.font.drawString(g, 'Chat (C)', 45, screenH - 18, 0);
-      this.font.drawString(g, `Khu ${this.currentAreaId} | ${this.remotePlayers.size + 1} online`, Math.floor(screenW / 2), screenH - 18, 2);
-      this.font.drawString(g, 'Rời khu', screenW - 85, screenH - 18, 0);
-      this.font.drawString(g, '⛶', screenW - 18, screenH - 18, 0);
+    if (ctx) {
+      ctx.save();
+      ctx.font = 'bold 11px Arial, sans-serif';
+      ctx.textBaseline = 'middle';
+
+      // Chat (C)
+      ctx.textAlign = 'left';
+      ctx.fillStyle = '#38bdf8';
+      ctx.fillText('Chat (C)', 46, screenH - 12);
+
+      // Area & online counter
+      ctx.textAlign = 'center';
+      ctx.fillStyle = '#94a3b8';
+      ctx.fillText(`Khu ${this.currentAreaId} | ${this.remotePlayers.size + 1} online`, Math.floor(screenW / 2), screenH - 12);
+
+      // Rời khu
+      ctx.textAlign = 'right';
+      ctx.fillStyle = '#f87171';
+      ctx.fillText('Rời khu', screenW - 32, screenH - 12);
+
+      // Fullscreen ⛶
+      ctx.fillStyle = '#e2e8f0';
+      ctx.fillText('⛶', screenW - 12, screenH - 12);
+      ctx.restore();
     }
 
     // 9. In-game Menu Popup

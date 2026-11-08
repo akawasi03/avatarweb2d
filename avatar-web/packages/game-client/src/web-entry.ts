@@ -70,6 +70,8 @@ async function startWebClient() {
     const chatBar = document.getElementById('in-game-chat-bar');
     if (chatBar) chatBar.style.display = 'none';
 
+    resizeCanvas();
+
     const statusEl = document.getElementById('login-status') || document.getElementById('gamePlayerInfo');
     if (statusEl) {
       statusEl.textContent = `Người chơi: ${worldScreen.localPlayer.name} | Vui lòng chọn 1 trong 8 khu vực trên bản đồ`;
@@ -85,9 +87,11 @@ async function startWebClient() {
     midlet.canvas.setCurrentScreen(worldScreen);
     window.__SCENE = 'world';
 
-    // Show in-game chat bar
+    // Show in-game docked chat bar
     const chatBar = document.getElementById('in-game-chat-bar');
     if (chatBar) chatBar.style.display = 'flex';
+
+    resizeCanvas();
 
     // Update UI status
     const statusEl = document.getElementById('login-status') || document.getElementById('gamePlayerInfo');
@@ -214,13 +218,15 @@ async function startWebClient() {
 
   // Responsive Fullscreen Canvas Sizing
   function resizeCanvas() {
-    const winW = window.innerWidth;
-    const winH = window.innerHeight;
+    const parent = canvas.parentElement || document.body;
+    const rect = parent.getBoundingClientRect();
+    const winW = Math.floor(rect.width > 0 ? rect.width : window.innerWidth);
+    const winH = Math.floor(rect.height > 0 ? rect.height : window.innerHeight);
 
     // Authentic retro pixel art density: target logical height ~320-360px
     const scale = Math.max(1, Math.round(winH / 340));
-    const logicalW = Math.round(winW / scale);
-    const logicalH = Math.round(winH / scale);
+    const logicalW = Math.max(320, Math.round(winW / scale));
+    const logicalH = Math.max(240, Math.round(winH / scale));
 
     canvas.width = logicalW;
     canvas.height = logicalH;
@@ -317,6 +323,14 @@ async function startWebClient() {
         break;
       case 'c':
       case 'C':
+        if (window.__SCENE === 'world') {
+          const chatInput = document.getElementById('in-game-chat-input') as HTMLInputElement | null;
+          if (chatInput) {
+            e.preventDefault();
+            chatInput.focus();
+            return;
+          }
+        }
         keyCode = 67; // CHAT
         break;
       case 'q':

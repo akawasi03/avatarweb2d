@@ -98,8 +98,8 @@ export const WORLD_REGIONS: WorldRegion[] = [
     mapId: 17,
     spawnX: 120,
     spawnY: 200,
-    box: { x: 20, y: 700, w: 440, h: 180 },
-    pin: { x: 240, y: 790 },
+    box: { x: 20, y: 660, w: 460, h: 220 },
+    pin: { x: 220, y: 760 },
     badgeColor: '#84cc16'
   },
   {
@@ -110,8 +110,8 @@ export const WORLD_REGIONS: WorldRegion[] = [
     mapId: 18,
     spawnX: 120,
     spawnY: 200,
-    box: { x: 700, y: 700, w: 850, h: 190 },
-    pin: { x: 1125, y: 795 },
+    box: { x: 680, y: 660, w: 900, h: 220 },
+    pin: { x: 1100, y: 760 },
     badgeColor: '#eab308'
   }
 ];
@@ -178,24 +178,31 @@ export class WorldMapScreen extends GameScreen {
     this.screenW = width;
     this.screenH = height;
 
-    const baseW = 1600;
-    const baseH = 900;
-    const mapAspect = baseW / baseH;
-    const screenAspect = width / height;
-
-    if (screenAspect > mapAspect) {
-      this.drawH = height;
-      this.drawW = Math.round(height * mapAspect);
-      this.offsetX = Math.round((width - this.drawW) / 2);
-      this.offsetY = 0;
+    if (width < 450) {
+      this.backButton.w = 65;
     } else {
-      this.drawW = width;
-      this.drawH = Math.round(width / mapAspect);
-      this.offsetX = 0;
-      this.offsetY = Math.round((height - this.drawH) / 2);
+      this.backButton.w = 110;
     }
 
-    this.scale = this.drawW / baseW;
+    // Define explicit safe bounds so the 1600x900 minimap is NEVER obscured by header or footer
+    const topSafe = 44;     // Top navigation bar + margin
+    const bottomSafe = 36;  // Bottom instruction footer + margin
+    const sideMargin = 12;  // Left & right border cushions
+
+    const availW = Math.max(100, width - sideMargin * 2);
+    const availH = Math.max(100, height - topSafe - bottomSafe);
+
+    const baseW = 1600;
+    const baseH = 900;
+    const scale = Math.min(availW / baseW, availH / baseH);
+
+    this.scale = scale;
+    this.drawW = Math.round(baseW * scale);
+    this.drawH = Math.round(baseH * scale);
+
+    // Perfectly centered within the safe visible area
+    this.offsetX = Math.round(sideMargin + (availW - this.drawW) / 2);
+    this.offsetY = Math.round(topSafe + (availH - this.drawH) / 2);
   }
 
   public update(): void {
@@ -368,7 +375,7 @@ export class WorldMapScreen extends GameScreen {
         ctx.fill();
         ctx.restore();
 
-        // Region name pill below pin
+        // Region name pill: For bottom regions (pin.y > 650), draw pill ABOVE pin to avoid overlap
         ctx.save();
         ctx.font = 'bold 11px Arial, sans-serif';
         const nameText = r.name;
@@ -376,7 +383,8 @@ export class WorldMapScreen extends GameScreen {
         const pillW = textMetrics.width + 16;
         const pillH = 20;
         const pillX = pinS.x - Math.floor(pillW / 2);
-        const pillY = pinS.y + 14;
+        const isBottomRegion = r.pin.y > 650;
+        const pillY = isBottomRegion ? (pinS.y - pillH - 12) : (pinS.y + 12);
 
         // Pill background
         ctx.fillStyle = isHovered ? 'rgba(15, 23, 42, 0.95)' : 'rgba(15, 23, 42, 0.8)';
@@ -406,12 +414,13 @@ export class WorldMapScreen extends GameScreen {
       const pinS = this.mapToScreen(activeRegion.pin.x, activeRegion.pin.y);
       const bannerW = 200;
       const bannerH = 56;
+      const isBottom = activeRegion.pin.y > 650;
       let bx = pinS.x - Math.floor(bannerW / 2);
-      let by = pinS.y - 75;
+      let by = isBottom ? (pinS.y - bannerH - 35) : (pinS.y - 75);
 
       // Keep inside screen bounds
       bx = Math.max(10, Math.min(this.screenW - bannerW - 10, bx));
-      by = Math.max(45, by);
+      by = Math.max(48, Math.min(this.screenH - 36 - bannerH, by));
 
       ctx.save();
       // Drop shadow
@@ -472,12 +481,15 @@ export class WorldMapScreen extends GameScreen {
       ctx.lineTo(this.screenW, 42);
       ctx.stroke();
 
-      // Title in center
-      ctx.font = 'bold 14px Arial, sans-serif';
+      // Title in center (or adjusted for compact screens)
+      const isCompact = this.screenW < 450;
+      const titleText = isCompact ? 'CHỌN KHU VỰC' : 'BẢN ĐỒ THẾ GIỚI - CHỌN KHU VỰC';
+      const titleX = isCompact ? Math.round(this.backButton.x + this.backButton.w + (this.screenW - (this.backButton.x + this.backButton.w)) / 2) : Math.round(this.screenW / 2);
+      ctx.font = isCompact ? 'bold 12px Arial, sans-serif' : 'bold 14px Arial, sans-serif';
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('BẢN ĐỒ THẾ GIỚI - CHỌN KHU VỰC', this.screenW / 2, 21);
+      ctx.fillText(titleText, titleX, 21);
 
       // Back Button at Top-Left
       const bb = this.backButton;
@@ -498,7 +510,7 @@ export class WorldMapScreen extends GameScreen {
       ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText('◀ TRANG CHỦ', bb.x + bb.w / 2, bb.y + bb.h / 2);
+      ctx.fillText(isCompact ? '◀ VỀ' : '◀ TRANG CHỦ', bb.x + bb.w / 2, bb.y + bb.h / 2);
       ctx.restore();
     }
 
@@ -517,12 +529,16 @@ export class WorldMapScreen extends GameScreen {
       ctx.lineTo(this.screenW, footerY);
       ctx.stroke();
 
-      ctx.font = '11px Arial, sans-serif';
+      const isCompact = this.screenW < 450;
+      const hintText = isCompact
+        ? 'Chạm địa điểm trên bản đồ để di chuyển'
+        : 'Rê chuột hoặc chạm vào địa điểm trên bản đồ để di chuyển đến khu vực tương ứng';
+      ctx.font = isCompact ? '10px Arial, sans-serif' : '11px Arial, sans-serif';
       ctx.fillStyle = '#94a3b8';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
       ctx.fillText(
-        'Rê chuột hoặc chạm vào địa điểm trên bản đồ để di chuyển đến khu vực tương ứng',
+        hintText,
         this.screenW / 2,
         footerY + footerH / 2
       );

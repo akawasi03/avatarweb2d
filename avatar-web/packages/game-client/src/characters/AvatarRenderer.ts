@@ -212,35 +212,131 @@ export class AvatarRenderer {
       }
     }
 
-    // 5. Draw Name Tag (matching hn.java line 284)
-    if (name && font) {
+    // 5. Draw Name Tag with subtle dark backdrop pill for 100% contrast & readability
+    if (name) {
       const tagY = y - 46;
-      font.drawString(g, name, x, tagY, 2);
+      const ctx = g.ctx as CanvasRenderingContext2D | undefined;
+      const nameW = font ? font.stringWidth(name) : name.length * 6;
+      const tagX = x - Math.floor(nameW / 2);
+
+      if (ctx) {
+        ctx.save();
+        // Dark backdrop pill
+        ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(tagX - 4, tagY - 1, nameW + 8, 14, 3);
+        } else {
+          ctx.rect(tagX - 4, tagY - 1, nameW + 8, 14);
+        }
+        ctx.fill();
+
+        // 1px border
+        ctx.strokeStyle = isLocal ? '#facc15' : 'rgba(255, 255, 255, 0.2)';
+        ctx.lineWidth = 1;
+        ctx.stroke();
+
+        // High contrast text with 1px drop shadow
+        ctx.font = 'bold 11px Arial, sans-serif';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+
+        // Shadow
+        ctx.fillStyle = '#000000';
+        ctx.fillText(name, x + 1, tagY + 7);
+
+        // Foreground color
+        if (isLocal) {
+          ctx.fillStyle = '#fde047'; // Bright gold for local player
+        } else if (name.includes('Lovanga') || name.includes('Tài Xỉu') || name.includes('Vé số') || name.includes('đấu giá') || name.includes('quay số')) {
+          ctx.fillStyle = '#38bdf8'; // Bright cyan for NPCs
+        } else {
+          ctx.fillStyle = '#ffffff'; // Crisp white for other players
+        }
+        ctx.fillText(name, x, tagY + 6);
+        ctx.restore();
+      } else if (font) {
+        font.drawString(g, name, x, tagY, 2);
+      }
     }
 
-    // 6. Draw Chat Bubble
-    if (chatMessage && chatMessage.length > 0 && font) {
-      const msgW = Math.min(font.stringWidth(chatMessage), 140);
-      const bubbleW = msgW + 10;
-      const bubbleH = 15;
+    // 6. Draw Chat Bubble (bounded & multi-line wrapped to prevent covering players)
+    if (chatMessage && chatMessage.length > 0) {
+      const ctx = g.ctx as CanvasRenderingContext2D | undefined;
+      const maxBubbleW = 140;
+
+      // Wrap text into at most 2 lines
+      let lines: string[] = [];
+      if (font) {
+        lines = font.splitText(chatMessage, maxBubbleW - 14);
+      } else {
+        lines = [chatMessage];
+      }
+
+      if (lines.length > 2) {
+        lines = [lines[0], lines[1].slice(0, 16) + '...'];
+      }
+
+      let maxLineW = 30;
+      if (font) {
+        for (const l of lines) {
+          maxLineW = Math.max(maxLineW, font.stringWidth(l));
+        }
+      } else if (ctx) {
+        ctx.font = '11px Arial, sans-serif';
+        for (const l of lines) {
+          maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
+        }
+      }
+
+      const bubbleW = Math.min(maxBubbleW, Math.round(maxLineW + 14));
+      const bubbleH = lines.length * 13 + 6;
       const bx = x - Math.floor(bubbleW / 2);
-      const by = y - 65;
+      const by = y - 56 - bubbleH;
 
-      // Bubble background & 1px dark border
-      g.setColor(0xFFFFFF);
-      g.fillRect(bx, by, bubbleW, bubbleH);
-      g.setColor(0x1B3F47);
-      g.drawRect(bx, by, bubbleW - 1, bubbleH - 1);
+      if (ctx) {
+        ctx.save();
+        // Drop shadow
+        ctx.shadowColor = 'rgba(0, 0, 0, 0.4)';
+        ctx.shadowBlur = 4;
+        ctx.shadowOffsetY = 2;
 
-      // Bubble pointer down
-      g.setColor(0xFFFFFF);
-      g.fillRect(x - 2, by + bubbleH - 1, 4, 3);
-      g.setColor(0x1B3F47);
-      g.drawLine(x - 2, by + bubbleH + 1, x, by + bubbleH + 3);
-      g.drawLine(x + 2, by + bubbleH + 1, x, by + bubbleH + 3);
+        // Bubble white card
+        ctx.fillStyle = '#ffffff';
+        ctx.strokeStyle = '#1e293b';
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === 'function') {
+          ctx.roundRect(bx, by, bubbleW, bubbleH, 4);
+        } else {
+          ctx.rect(bx, by, bubbleW, bubbleH);
+        }
+        ctx.fill();
+        ctx.stroke();
 
-      // Text inside bubble
-      font.drawString(g, chatMessage, x, by + 3, 2);
+        // Pointer triangle down towards head
+        ctx.beginPath();
+        ctx.moveTo(x - 3, by + bubbleH);
+        ctx.lineTo(x, by + bubbleH + 4);
+        ctx.lineTo(x + 3, by + bubbleH);
+        ctx.fillStyle = '#ffffff';
+        ctx.fill();
+        ctx.strokeStyle = '#1e293b';
+        ctx.stroke();
+
+        ctx.restore();
+
+        // Text lines inside bubble
+        ctx.save();
+        ctx.font = '10px Arial, sans-serif';
+        ctx.fillStyle = '#0f172a';
+        ctx.textAlign = 'center';
+        ctx.textBaseline = 'middle';
+        for (let i = 0; i < lines.length; i++) {
+          ctx.fillText(lines[i], x, by + 7 + i * 13);
+        }
+        ctx.restore();
+      }
     }
   }
 }

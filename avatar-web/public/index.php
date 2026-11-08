@@ -843,20 +843,33 @@ if (!$view) {
     /* -------------------------------------------------------------
        Game Modal / Fullscreen WebGL Window
     ------------------------------------------------------------- */
+    html.game-active, body.game-active {
+      overflow: hidden !important;
+      height: 100% !important;
+      width: 100% !important;
+      margin: 0 !important;
+      padding: 0 !important;
+    }
+
     #game-modal {
       display: none;
       position: fixed;
       top: 0;
       left: 0;
-      width: 100vw;
-      height: 100vh;
+      width: 100%;
+      height: 100%;
       background: #000000;
       z-index: 9999;
       flex-direction: column;
+      overflow: hidden;
+      margin: 0;
+      padding: 0;
+      box-sizing: border-box;
     }
 
     .game-top-bar {
       height: 42px;
+      flex-shrink: 0;
       background: rgba(15, 23, 42, 0.95);
       border-bottom: 1px solid rgba(255,255,255,0.1);
       display: flex;
@@ -908,53 +921,101 @@ if (!$view) {
       background: #b91c1c;
     }
 
-    #gameCanvas {
+    @media (max-width: 640px) {
+      .game-top-bar {
+        padding: 0 8px;
+        font-size: 11px;
+      }
+      .game-bar-left span {
+        display: none;
+      }
+      #gamePlayerInfo {
+        display: none;
+      }
+      .btn-game-tool {
+        padding: 3px 6px;
+        font-size: 11px;
+      }
+      .btn-game-close {
+        padding: 3px 8px;
+        font-size: 11px;
+      }
+    }
+
+    .game-canvas-wrapper {
       flex: 1;
       width: 100%;
-      height: calc(100vh - 42px);
+      min-height: 0;
+      position: relative;
+      overflow: hidden;
+      display: flex;
+      align-items: center;
+      justify-content: center;
+      background: #000;
+    }
+
+    #gameCanvas {
+      width: 100%;
+      height: 100%;
       display: block;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       cursor: crosshair;
-      background: #000;
     }
 
     #in-game-chat-bar {
-      position: absolute;
-      bottom: 24px;
-      left: 50%;
-      transform: translateX(-50%);
-      background: rgba(15, 23, 42, 0.88);
-      backdrop-filter: blur(8px);
-      border: 1px solid rgba(56, 189, 248, 0.4);
-      border-radius: 20px;
-      padding: 4px 6px 4px 14px;
-      display: flex;
+      flex-shrink: 0;
+      height: 38px;
+      background: #0b1329;
+      border-top: 1px solid rgba(56, 189, 248, 0.25);
+      display: none; /* Managed by client: flex in world, none in worldmap */
       align-items: center;
-      gap: 8px;
-      width: min(92vw, 480px);
-      box-shadow: 0 4px 25px rgba(0,0,0,0.7);
+      padding: 0 16px;
+      gap: 10px;
+      box-sizing: border-box;
       z-index: 10;
+    }
+
+    .chat-label-badge {
+      display: inline-flex;
+      align-items: center;
+      gap: 4px;
+      font-size: 11px;
+      font-weight: 700;
+      color: #38bdf8;
+      background: rgba(56, 189, 248, 0.15);
+      padding: 3px 8px;
+      border-radius: 4px;
+      white-space: nowrap;
     }
 
     #in-game-chat-input {
       flex: 1;
-      background: transparent;
-      border: none;
+      background: rgba(255, 255, 255, 0.08);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      border-radius: 6px;
+      padding: 4px 12px;
       outline: none;
       color: #ffffff;
       font-size: 13px;
+    }
+    #in-game-chat-input:focus {
+      border-color: #38bdf8;
+      background: rgba(255, 255, 255, 0.12);
     }
 
     .btn-send-chat {
       background: var(--primary-blue);
       color: #ffffff;
       border: none;
-      padding: 6px 14px;
-      border-radius: 14px;
+      padding: 5px 14px;
+      border-radius: 6px;
       font-size: 12px;
       font-weight: bold;
       cursor: pointer;
+    }
+    .btn-send-chat:hover {
+      background: var(--primary-blue-hover);
     }
 
     /* -------------------------------------------------------------
@@ -1345,10 +1406,13 @@ if (!$view) {
       </div>
     </div>
 
-    <canvas id="gameCanvas" width="640" height="360"></canvas>
+    <div class="game-canvas-wrapper">
+      <canvas id="gameCanvas" width="640" height="360"></canvas>
+    </div>
 
     <!-- In-Game Chat Bar -->
     <div id="in-game-chat-bar">
+      <span class="chat-label-badge">💬 Chat</span>
       <input type="text" id="in-game-chat-input" placeholder="Nhập tin nhắn chat (Enter để gửi)..." onkeydown="if(event.key==='Enter') sendInGameChat()">
       <button class="btn-send-chat" onclick="sendInGameChat()">Gửi</button>
     </div>
@@ -1690,10 +1754,15 @@ if (!$view) {
     // Fullscreen WebGL Game Launch
     // ===========================================================
     function launchGame(autoUser, autoPass) {
+      document.documentElement.classList.add('game-active');
+      document.body.classList.add('game-active');
       const modal = document.getElementById('game-modal');
       modal.style.display = 'flex';
       const fab = document.getElementById('floatingPlayBtn');
       if (fab) fab.style.display = 'none';
+
+      // Trigger canvas resize to fit container exactly
+      window.dispatchEvent(new Event('resize'));
 
       const u = autoUser || currentUser?.username || 'admin';
       const p = autoPass || '123456';
@@ -1723,6 +1792,8 @@ if (!$view) {
     function closeGame() {
       const modal = document.getElementById('game-modal');
       modal.style.display = 'none';
+      document.documentElement.classList.remove('game-active');
+      document.body.classList.remove('game-active');
       const fab = document.getElementById('floatingPlayBtn');
       if (fab) fab.style.display = 'inline-flex';
       checkAuthStatus();

@@ -1681,8 +1681,8 @@
       mapId: 17,
       spawnX: 120,
       spawnY: 200,
-      box: { x: 20, y: 700, w: 440, h: 180 },
-      pin: { x: 240, y: 790 },
+      box: { x: 20, y: 660, w: 460, h: 220 },
+      pin: { x: 220, y: 760 },
       badgeColor: "#84cc16"
     },
     {
@@ -1693,8 +1693,8 @@
       mapId: 18,
       spawnX: 120,
       spawnY: 200,
-      box: { x: 700, y: 700, w: 850, h: 190 },
-      pin: { x: 1125, y: 795 },
+      box: { x: 680, y: 660, w: 900, h: 220 },
+      pin: { x: 1100, y: 760 },
       badgeColor: "#eab308"
     }
   ];
@@ -1749,22 +1749,24 @@
     onResize(width, height) {
       this.screenW = width;
       this.screenH = height;
+      if (width < 450) {
+        this.backButton.w = 65;
+      } else {
+        this.backButton.w = 110;
+      }
+      const topSafe = 44;
+      const bottomSafe = 36;
+      const sideMargin = 12;
+      const availW = Math.max(100, width - sideMargin * 2);
+      const availH = Math.max(100, height - topSafe - bottomSafe);
       const baseW = 1600;
       const baseH = 900;
-      const mapAspect = baseW / baseH;
-      const screenAspect = width / height;
-      if (screenAspect > mapAspect) {
-        this.drawH = height;
-        this.drawW = Math.round(height * mapAspect);
-        this.offsetX = Math.round((width - this.drawW) / 2);
-        this.offsetY = 0;
-      } else {
-        this.drawW = width;
-        this.drawH = Math.round(width / mapAspect);
-        this.offsetX = 0;
-        this.offsetY = Math.round((height - this.drawH) / 2);
-      }
-      this.scale = this.drawW / baseW;
+      const scale = Math.min(availW / baseW, availH / baseH);
+      this.scale = scale;
+      this.drawW = Math.round(baseW * scale);
+      this.drawH = Math.round(baseH * scale);
+      this.offsetX = Math.round(sideMargin + (availW - this.drawW) / 2);
+      this.offsetY = Math.round(topSafe + (availH - this.drawH) / 2);
     }
     update() {
       this.animTick++;
@@ -1893,7 +1895,8 @@
           const pillW = textMetrics.width + 16;
           const pillH = 20;
           const pillX = pinS.x - Math.floor(pillW / 2);
-          const pillY = pinS.y + 14;
+          const isBottomRegion = r.pin.y > 650;
+          const pillY = isBottomRegion ? pinS.y - pillH - 12 : pinS.y + 12;
           ctx.fillStyle = isHovered ? "rgba(15, 23, 42, 0.95)" : "rgba(15, 23, 42, 0.8)";
           ctx.strokeStyle = isHovered ? r.badgeColor : "#94a3b8";
           ctx.lineWidth = isHovered ? 2 : 1;
@@ -1917,10 +1920,11 @@
         const pinS = this.mapToScreen(activeRegion.pin.x, activeRegion.pin.y);
         const bannerW = 200;
         const bannerH = 56;
+        const isBottom = activeRegion.pin.y > 650;
         let bx = pinS.x - Math.floor(bannerW / 2);
-        let by = pinS.y - 75;
+        let by = isBottom ? pinS.y - bannerH - 35 : pinS.y - 75;
         bx = Math.max(10, Math.min(this.screenW - bannerW - 10, bx));
-        by = Math.max(45, by);
+        by = Math.max(48, Math.min(this.screenH - 36 - bannerH, by));
         ctx.save();
         ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
         ctx.shadowBlur = 10;
@@ -1963,11 +1967,14 @@
         ctx.moveTo(0, 42);
         ctx.lineTo(this.screenW, 42);
         ctx.stroke();
-        ctx.font = "bold 14px Arial, sans-serif";
+        const isCompact = this.screenW < 450;
+        const titleText = isCompact ? "CH\u1ECCN KHU V\u1EF0C" : "B\u1EA2N \u0110\u1ED2 TH\u1EBE GI\u1EDAI - CH\u1ECCN KHU V\u1EF0C";
+        const titleX = isCompact ? Math.round(this.backButton.x + this.backButton.w + (this.screenW - (this.backButton.x + this.backButton.w)) / 2) : Math.round(this.screenW / 2);
+        ctx.font = isCompact ? "bold 12px Arial, sans-serif" : "bold 14px Arial, sans-serif";
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("B\u1EA2N \u0110\u1ED2 TH\u1EBE GI\u1EDAI - CH\u1ECCN KHU V\u1EF0C", this.screenW / 2, 21);
+        ctx.fillText(titleText, titleX, 21);
         const bb = this.backButton;
         ctx.fillStyle = bb.isHovered ? "rgba(239, 68, 68, 0.85)" : "rgba(30, 41, 59, 0.9)";
         ctx.strokeStyle = bb.isHovered ? "#ffffff" : "#64748b";
@@ -1984,7 +1991,7 @@
         ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText("\u25C0 TRANG CH\u1EE6", bb.x + bb.w / 2, bb.y + bb.h / 2);
+        ctx.fillText(isCompact ? "\u25C0 V\u1EC0" : "\u25C0 TRANG CH\u1EE6", bb.x + bb.w / 2, bb.y + bb.h / 2);
         ctx.restore();
       }
       if (ctx) {
@@ -1998,12 +2005,14 @@
         ctx.moveTo(0, footerY);
         ctx.lineTo(this.screenW, footerY);
         ctx.stroke();
-        ctx.font = "11px Arial, sans-serif";
+        const isCompact = this.screenW < 450;
+        const hintText = isCompact ? "Ch\u1EA1m \u0111\u1ECBa \u0111i\u1EC3m tr\xEAn b\u1EA3n \u0111\u1ED3 \u0111\u1EC3 di chuy\u1EC3n" : "R\xEA chu\u1ED9t ho\u1EB7c ch\u1EA1m v\xE0o \u0111\u1ECBa \u0111i\u1EC3m tr\xEAn b\u1EA3n \u0111\u1ED3 \u0111\u1EC3 di chuy\u1EC3n \u0111\u1EBFn khu v\u1EF1c t\u01B0\u01A1ng \u1EE9ng";
+        ctx.font = isCompact ? "10px Arial, sans-serif" : "11px Arial, sans-serif";
         ctx.fillStyle = "#94a3b8";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
         ctx.fillText(
-          "R\xEA chu\u1ED9t ho\u1EB7c ch\u1EA1m v\xE0o \u0111\u1ECBa \u0111i\u1EC3m tr\xEAn b\u1EA3n \u0111\u1ED3 \u0111\u1EC3 di chuy\u1EC3n \u0111\u1EBFn khu v\u1EF1c t\u01B0\u01A1ng \u1EE9ng",
+          hintText,
           this.screenW / 2,
           footerY + footerH / 2
         );
@@ -3303,26 +3312,104 @@
           }
         }
       }
-      if (name && font) {
+      if (name) {
         const tagY = y - 46;
-        font.drawString(g, name, x, tagY, 2);
+        const ctx = g.ctx;
+        const nameW = font ? font.stringWidth(name) : name.length * 6;
+        const tagX = x - Math.floor(nameW / 2);
+        if (ctx) {
+          ctx.save();
+          ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(tagX - 4, tagY - 1, nameW + 8, 14, 3);
+          } else {
+            ctx.rect(tagX - 4, tagY - 1, nameW + 8, 14);
+          }
+          ctx.fill();
+          ctx.strokeStyle = isLocal ? "#facc15" : "rgba(255, 255, 255, 0.2)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.font = "bold 11px Arial, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#000000";
+          ctx.fillText(name, x + 1, tagY + 7);
+          if (isLocal) {
+            ctx.fillStyle = "#fde047";
+          } else if (name.includes("Lovanga") || name.includes("T\xE0i X\u1EC9u") || name.includes("V\xE9 s\u1ED1") || name.includes("\u0111\u1EA5u gi\xE1") || name.includes("quay s\u1ED1")) {
+            ctx.fillStyle = "#38bdf8";
+          } else {
+            ctx.fillStyle = "#ffffff";
+          }
+          ctx.fillText(name, x, tagY + 6);
+          ctx.restore();
+        } else if (font) {
+          font.drawString(g, name, x, tagY, 2);
+        }
       }
-      if (chatMessage && chatMessage.length > 0 && font) {
-        const msgW = Math.min(font.stringWidth(chatMessage), 140);
-        const bubbleW = msgW + 10;
-        const bubbleH = 15;
+      if (chatMessage && chatMessage.length > 0) {
+        const ctx = g.ctx;
+        const maxBubbleW = 140;
+        let lines = [];
+        if (font) {
+          lines = font.splitText(chatMessage, maxBubbleW - 14);
+        } else {
+          lines = [chatMessage];
+        }
+        if (lines.length > 2) {
+          lines = [lines[0], lines[1].slice(0, 16) + "..."];
+        }
+        let maxLineW = 30;
+        if (font) {
+          for (const l of lines) {
+            maxLineW = Math.max(maxLineW, font.stringWidth(l));
+          }
+        } else if (ctx) {
+          ctx.font = "11px Arial, sans-serif";
+          for (const l of lines) {
+            maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
+          }
+        }
+        const bubbleW = Math.min(maxBubbleW, Math.round(maxLineW + 14));
+        const bubbleH = lines.length * 13 + 6;
         const bx = x - Math.floor(bubbleW / 2);
-        const by = y - 65;
-        g.setColor(16777215);
-        g.fillRect(bx, by, bubbleW, bubbleH);
-        g.setColor(1785671);
-        g.drawRect(bx, by, bubbleW - 1, bubbleH - 1);
-        g.setColor(16777215);
-        g.fillRect(x - 2, by + bubbleH - 1, 4, 3);
-        g.setColor(1785671);
-        g.drawLine(x - 2, by + bubbleH + 1, x, by + bubbleH + 3);
-        g.drawLine(x + 2, by + bubbleH + 1, x, by + bubbleH + 3);
-        font.drawString(g, chatMessage, x, by + 3, 2);
+        const by = y - 56 - bubbleH;
+        if (ctx) {
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#1e293b";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(bx, by, bubbleW, bubbleH, 4);
+          } else {
+            ctx.rect(bx, by, bubbleW, bubbleH);
+          }
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - 3, by + bubbleH);
+          ctx.lineTo(x, by + bubbleH + 4);
+          ctx.lineTo(x + 3, by + bubbleH);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+          ctx.strokeStyle = "#1e293b";
+          ctx.stroke();
+          ctx.restore();
+          ctx.save();
+          ctx.font = "10px Arial, sans-serif";
+          ctx.fillStyle = "#0f172a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], x, by + 7 + i * 13);
+          }
+          ctx.restore();
+        }
       }
     }
   };
@@ -3970,32 +4057,49 @@
         chatMessage: this.localPlayer.chatMessage,
         feelId: this.localPlayer.feelId
       });
+      const seenIds = /* @__PURE__ */ new Set();
+      seenIds.add(this.localPlayer.id);
       for (const rp of this.remotePlayers.values()) {
-        entities.push({
-          id: rp.id,
-          name: rp.name,
-          x: rp.x,
-          y: rp.y,
-          wearing: rp.wearing,
-          direct: rp.direct,
-          frame: rp.frame || 0,
-          isLocal: false,
-          chatMessage: rp.chatMessage,
-          feelId: rp.feelId
-        });
+        if (!seenIds.has(rp.id)) {
+          seenIds.add(rp.id);
+          let displayName = rp.name;
+          if (displayName.includes("Lovanga")) {
+            displayName = "Ti\xEAn tri Lovanga";
+          }
+          entities.push({
+            id: rp.id,
+            name: displayName,
+            x: rp.x,
+            y: rp.y,
+            wearing: rp.wearing,
+            direct: rp.direct,
+            frame: rp.frame || 0,
+            isLocal: false,
+            chatMessage: rp.chatMessage,
+            feelId: rp.feelId
+          });
+        }
       }
       for (const npc of this.mapNpcs) {
-        entities.push({
-          id: npc.id,
-          name: npc.name,
-          x: npc.x,
-          y: npc.y,
-          wearing: npc.wearing,
-          direct: 0,
-          frame: 0,
-          isLocal: false,
-          chatMessage: npc.chatMessage
-        });
+        if (!seenIds.has(npc.id) && !seenIds.has(npc.targetId)) {
+          const alreadyPresent = entities.some(
+            (e) => e.name.toLowerCase().replace(/[^a-z0-9]/g, "") === npc.name.toLowerCase().replace(/[^a-z0-9]/g, "")
+          );
+          if (!alreadyPresent) {
+            seenIds.add(npc.id);
+            entities.push({
+              id: npc.id,
+              name: npc.name,
+              x: npc.x,
+              y: npc.y,
+              wearing: npc.wearing,
+              direct: 0,
+              frame: 0,
+              isLocal: false,
+              chatMessage: npc.chatMessage
+            });
+          }
+        }
       }
       entities.sort((a, b) => a.y - b.y);
       for (const ent of entities) {
@@ -4028,59 +4132,72 @@
           }
         }
       }
-      g.setColor(1785671);
-      g.fillRect(0, 0, screenW, 25);
-      g.setColor(3041397);
-      g.drawLine(0, 25, screenW, 25);
+      g.setColor(988970);
+      g.fillRect(0, 0, screenW, 26);
+      g.setColor(1976635);
+      g.drawLine(0, 26, screenW, 26);
       g.setColor(1402304);
-      g.fillRoundRect(6, 3, 44, 19, 4);
+      g.fillRoundRect(6, 3, 44, 20, 4);
       g.setColor(9489145);
-      g.drawRoundRect(6, 3, 44, 19, 4);
+      g.drawRoundRect(6, 3, 44, 20, 4);
       if (this.font) {
-        this.font.drawString(g, "MENU", 28, 6, 2);
+        this.font.drawString(g, "MENU", 28, 7, 2);
       }
-      g.setColor(14743546);
-      g.fillRoundRect(54, 3, 22, 19, 4);
-      g.setColor(33679);
-      g.drawRoundRect(54, 3, 22, 19, 4);
+      g.setColor(165063);
+      g.fillRoundRect(54, 3, 22, 20, 4);
+      g.setColor(8246268);
+      g.drawRoundRect(54, 3, 22, 20, 4);
       if (this.font) {
-        this.font.drawString(g, "\u2709", 65, 5, 2);
+        this.font.drawString(g, "\u2709", 65, 6, 2);
       }
-      g.setColor(13840175);
+      g.setColor(15680580);
       g.fillArc(70, 2, 6, 6, 0, 360);
       g.setColor(2001125);
-      g.fillRoundRect(80, 3, 22, 19, 4);
+      g.fillRoundRect(80, 3, 22, 20, 4);
       g.setColor(12312315);
-      g.drawRoundRect(80, 3, 22, 19, 4);
+      g.drawRoundRect(80, 3, 22, 20, 4);
       if (this.font) {
-        this.font.drawString(g, "\u{1F4AC}", 91, 5, 2);
+        this.font.drawString(g, "\u{1F4AC}", 91, 6, 2);
       }
-      g.setColor(35195);
-      g.fillRoundRect(screenW - 80, 3, 22, 19, 4);
-      g.setColor(8440772);
-      g.drawRoundRect(screenW - 80, 3, 22, 19, 4);
+      g.setColor(1013358);
+      g.fillRoundRect(screenW - 80, 3, 22, 20, 4);
+      g.setColor(6220500);
+      g.drawRoundRect(screenW - 80, 3, 22, 20, 4);
       if (this.font) {
-        this.font.drawString(g, "\u{1F9ED}", screenW - 69, 5, 2);
+        this.font.drawString(g, "\u{1F9ED}", screenW - 69, 6, 2);
       }
-      g.setColor(this.isRunningFast ? 16088064 : 4545124);
-      g.fillRoundRect(screenW - 54, 3, 22, 19, 4);
-      g.setColor(this.isRunningFast ? 16769154 : 9479342);
-      g.drawRoundRect(screenW - 54, 3, 22, 19, 4);
+      g.setColor(this.isRunningFast ? 16088064 : 3359061);
+      g.fillRoundRect(screenW - 54, 3, 22, 20, 4);
+      g.setColor(this.isRunningFast ? 16769154 : 6583435);
+      g.drawRoundRect(screenW - 54, 3, 22, 20, 4);
       if (this.font) {
-        this.font.drawString(g, "\u{1F3C3}", screenW - 43, 5, 2);
+        this.font.drawString(g, "\u{1F3C3}", screenW - 43, 6, 2);
       }
-      g.setColor(16498733);
-      g.fillRoundRect(screenW - 28, 3, 22, 19, 4);
-      g.setColor(16775620);
-      g.drawRoundRect(screenW - 28, 3, 22, 19, 4);
+      g.setColor(14251782);
+      g.fillRoundRect(screenW - 28, 3, 22, 20, 4);
+      g.setColor(16639626);
+      g.drawRoundRect(screenW - 28, 3, 22, 20, 4);
       if (this.font) {
-        this.font.drawString(g, "\u{1F60A}", screenW - 17, 5, 2);
+        this.font.drawString(g, "\u{1F60A}", screenW - 17, 6, 2);
       }
-      g.setClip(106, 0, Math.max(20, screenW - 192), 25);
-      if (this.font) {
-        this.font.drawString(g, this.tickerText, this.tickerX, 6, 0);
+      const tickerClipX = 108;
+      const tickerClipW = Math.max(40, screenW - 196);
+      g.setColor(132631);
+      g.fillRect(tickerClipX, 3, tickerClipW, 20);
+      g.setColor(1976635);
+      g.drawRect(tickerClipX, 3, tickerClipW, 20);
+      const ctx = g.ctx;
+      if (ctx) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(tickerClipX + 2, 3, tickerClipW - 4, 20);
+        ctx.clip();
+        ctx.font = "bold 11px Arial, sans-serif";
+        ctx.fillStyle = "#fde047";
+        ctx.textBaseline = "middle";
+        ctx.fillText(this.tickerText, this.tickerX, 13);
+        ctx.restore();
       }
-      g.setClip(0, 0, screenW, screenH);
       if (this.img12Plus) {
         g.drawImage(this.img12Plus, 6, screenH - 24, 0);
       } else {
@@ -4092,15 +4209,26 @@
           this.font.drawString(g, "12+", 20, screenH - 19, 2);
         }
       }
-      g.setColor(1118481);
-      g.fillRect(40, screenH - 22, screenW - 40, 22);
-      g.setColor(3355443);
-      g.drawLine(0, screenH - 22, screenW, screenH - 22);
-      if (this.font) {
-        this.font.drawString(g, "Chat (C)", 45, screenH - 18, 0);
-        this.font.drawString(g, `Khu ${this.currentAreaId} | ${this.remotePlayers.size + 1} online`, Math.floor(screenW / 2), screenH - 18, 2);
-        this.font.drawString(g, "R\u1EDDi khu", screenW - 85, screenH - 18, 0);
-        this.font.drawString(g, "\u26F6", screenW - 18, screenH - 18, 0);
+      g.setColor(988970);
+      g.fillRect(40, screenH - 24, screenW - 40, 24);
+      g.setColor(1976635);
+      g.drawLine(0, screenH - 24, screenW, screenH - 24);
+      if (ctx) {
+        ctx.save();
+        ctx.font = "bold 11px Arial, sans-serif";
+        ctx.textBaseline = "middle";
+        ctx.textAlign = "left";
+        ctx.fillStyle = "#38bdf8";
+        ctx.fillText("Chat (C)", 46, screenH - 12);
+        ctx.textAlign = "center";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(`Khu ${this.currentAreaId} | ${this.remotePlayers.size + 1} online`, Math.floor(screenW / 2), screenH - 12);
+        ctx.textAlign = "right";
+        ctx.fillStyle = "#f87171";
+        ctx.fillText("R\u1EDDi khu", screenW - 32, screenH - 12);
+        ctx.fillStyle = "#e2e8f0";
+        ctx.fillText("\u26F6", screenW - 12, screenH - 12);
+        ctx.restore();
       }
       if (this.isMenuOpen) {
         const mw = 170;
@@ -4242,6 +4370,7 @@
       window.__SCENE = "worldmap";
       const chatBar = document.getElementById("in-game-chat-bar");
       if (chatBar) chatBar.style.display = "none";
+      resizeCanvas();
       const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
       if (statusEl) {
         statusEl.textContent = `Ng\u01B0\u1EDDi ch\u01A1i: ${worldScreen.localPlayer.name} | Vui l\xF2ng ch\u1ECDn 1 trong 8 khu v\u1EF1c tr\xEAn b\u1EA3n \u0111\u1ED3`;
@@ -4254,6 +4383,7 @@
       window.__SCENE = "world";
       const chatBar = document.getElementById("in-game-chat-bar");
       if (chatBar) chatBar.style.display = "flex";
+      resizeCanvas();
       const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
       if (statusEl) {
         const xuFormatted = Number(cachedUserData?.xu || 0).toLocaleString("vi-VN");
@@ -4356,11 +4486,13 @@
       doSend();
     };
     function resizeCanvas() {
-      const winW = window.innerWidth;
-      const winH = window.innerHeight;
+      const parent = canvas.parentElement || document.body;
+      const rect = parent.getBoundingClientRect();
+      const winW = Math.floor(rect.width > 0 ? rect.width : window.innerWidth);
+      const winH = Math.floor(rect.height > 0 ? rect.height : window.innerHeight);
       const scale = Math.max(1, Math.round(winH / 340));
-      const logicalW = Math.round(winW / scale);
-      const logicalH = Math.round(winH / scale);
+      const logicalW = Math.max(320, Math.round(winW / scale));
+      const logicalH = Math.max(240, Math.round(winH / scale));
       canvas.width = logicalW;
       canvas.height = logicalH;
       midlet.canvas.resize(logicalW, logicalH);
@@ -4445,6 +4577,14 @@
           break;
         case "c":
         case "C":
+          if (window.__SCENE === "world") {
+            const chatInput = document.getElementById("in-game-chat-input");
+            if (chatInput) {
+              e.preventDefault();
+              chatInput.focus();
+              return;
+            }
+          }
           keyCode = 67;
           break;
         case "q":

@@ -80,3 +80,17 @@ d:\avatarweb2d\avatar-web\
 - **Bước tiếp theo sẵn sàng thực hiện:**
   1. Kết nối Web Client thông qua Web Gateway vào Java Server đang chạy tại port 19128.
   2. Triển khai mở rộng các màn hình gameplay tiếp theo (Khu nông trại, Nông sản, Câu cá, Casino, Tương tác thế giới 26x34).
+
+---
+
+## 5. AUDIT & KIỂM TRA ĐỐI SOÁT VIEWPORT, BẢN ĐỒ THẾ GIỚI & GAMEPLAY UI (FIX ANH1 & ANH2)
+
+Đã hoàn tất khắc phục toàn diện các lỗi hiển thị được ghi nhận trong `anh1.png` và `anh2.png`:
+
+| Thành phần | Lỗi trước khi sửa (`anh1.png`, `anh2.png`) | Giải pháp kỹ thuật | Kết quả đối soát sau khi sửa |
+|---|---|---|---|
+| **Màn hình chọn bản đồ (World Map)** | Khu ngoại ô và Nông trại ở dưới cùng bị che/cắt bởi thanh hướng dẫn; thanh cuộn trang xuất hiện ở rìa phải. | Phân bổ safe bounds (`topSafe = 44px`, `bottomSafe = 36px`, `sideMargin = 12px`); tính toán scale giữ nguyên tỷ lệ 16:9 (`1600x900`); căn chỉnh pin `Khu ngoại ô` và `Nông trại`, đồng thời vẽ name pill của 2 khu vực này phía trên pin. | Cả 8/8 khu vực hiển thị đầy đủ 100%, không bị che khuất, tương tác click/hover chính xác trên mọi màn hình (desktop, tablet, mobile 375px). |
+| **Bong bóng chat & Văn bản gameplay** | Bong bóng thông báo tài xỉu kéo dài 400px che lấp đầu và tên các nhân vật lân cận; tên nhân vật và NPC trùng lặp hiển thị đè nhau; chữ marquee mờ khó đọc. | - Wrap dòng thông minh cho chat bubble (tối đa 2 dòng, max width 140px, thêm ellipsis `...`).<br>- Khử trùng lặp thực thể server-spawned và hardcoded trong `GameWorldScreen`.<br>- Bổ sung background pill tương phản cao (`rgba(15, 23, 42, 0.75)`) và đổ bóng 1px cho tên nhân vật.<br>- Tinh chỉnh thanh marquee với nền tối và chữ vàng kim `#fde047`. | Không còn hiện tượng tràn ngang màn hình, không trùng lặp NPC, tên nhân vật sắc nét rõ ràng trên mọi địa hình. |
+| **Thanh Chat In-Game & HUD** | Thanh chat HTML `#in-game-chat-bar` dùng `position: absolute; bottom: 24px` đè lên thanh phím chức năng softkey (`Chat (C)`, `12+`, `Khu X \| Y online`, `Rời khu`). | Đưa `#in-game-chat-bar` thành flex container dock riêng biệt ngay dưới canvas game, tách bạch hoàn toàn với vùng render canvas; ẩn trên World Map và tự động hiện khi vào World. | Thanh softkey và thanh chat đều hiển thị trọn vẹn, không chồng chéo nhau. |
+| **Viewport & Responsive** | Modal game gây thanh cuộn dọc không mong muốn trên `body` do chiều cao cổng thông tin 1800px. | Áp dụng class `.game-active` trên `html`, `body` với `overflow: hidden !important`, thiết lập `#game-modal` theo cấu trúc flex column `100% x 100%` với `overflow: hidden`. | Tuyệt đối không xuất hiện thanh cuộn trang ở bất kỳ kích thước màn hình nào. |
+
