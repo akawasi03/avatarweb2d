@@ -3,144 +3,197 @@ import { GameScreen } from '../ui/GameScreen.js';
 import { UISkinPainter } from '../ui/UISkinPainter.js';
 import { IFont } from '../renderer/BitmapFont.js';
 
+/**
+ * Authentic Avatar Teamobi 2.5.8 Region Definition
+ * Mapped 1:1 from ea.java (citiMap tile 69) and ae.java (t() & s())
+ */
 export interface WorldRegion {
   id: number;
+  index: number;
   key: string;
   name: string;
-  subtitle: string;
-  mapId: number;
+  col: number;      // a in kb.java
+  row: number;      // b in kb.java
+  partId: number;   // d in kb.java (n3 + 819)
+  mapId: number;    // server map id (from ae.java / p.java)
   spawnX: number;
   spawnY: number;
-  // Bounding box in original 1600 x 900 map coordinates
-  box: { x: number; y: number; w: number; h: number };
-  pin: { x: number; y: number };
-  badgeColor: string;
+  animTick: number; // e in kb.java (0..8 for bobbing)
+}
+
+export interface CloudEntry {
+  x: number;
+  y: number;
+  type: number; // 0 for cl0, 1 for cl1
 }
 
 export const WORLD_REGIONS: WorldRegion[] = [
   {
-    id: 1,
+    id: 0,
+    index: 0,
     key: 'residential',
     name: 'Khu nhà ở',
-    subtitle: 'Khu dân cư, biệt thự, nhà riêng',
-    mapId: 22,
-    spawnX: 120,
-    spawnY: 200,
-    box: { x: 25, y: 10, w: 440, h: 260 },
-    pin: { x: 240, y: 140 },
-    badgeColor: '#38bdf8'
-  },
-  {
-    id: 2,
-    key: 'airport',
-    name: 'Sân bay',
-    subtitle: 'Đường băng, phi trường Hawaii',
-    mapId: 25,
-    spawnX: 120,
-    spawnY: 200,
-    box: { x: 1140, y: 15, w: 440, h: 165 },
-    pin: { x: 1360, y: 95 },
-    badgeColor: '#f43f5e'
-  },
-  {
-    id: 3,
-    key: 'ecological',
-    name: 'Khu sinh thái',
-    subtitle: 'Hồ sinh thái, đảo ngọc, câu cá',
-    mapId: 13,
-    spawnX: 120,
-    spawnY: 200,
-    box: { x: 470, y: 10, w: 260, h: 260 },
-    pin: { x: 600, y: 140 },
-    badgeColor: '#10b981'
-  },
-  {
-    id: 4,
-    key: 'park',
-    name: 'Công viên',
-    subtitle: 'Vườn hoa trung tâm, tượng đài',
+    col: 8,
+    row: 5,
+    partId: 819,
     mapId: 11,
     spawnX: 120,
     spawnY: 200,
-    box: { x: 150, y: 390, w: 230, h: 300 },
-    pin: { x: 265, y: 540 },
-    badgeColor: '#22c55e'
+    animTick: 0
   },
   {
-    id: 5,
-    key: 'shopping',
-    name: 'Khu mua sắm',
-    subtitle: 'Phố thương mại, cửa hàng, ATM',
-    mapId: 23,
+    id: 1,
+    index: 1,
+    key: 'ecological',
+    name: 'Khu sinh thái',
+    col: 25,
+    row: 6,
+    partId: 820,
+    mapId: 13,
     spawnX: 120,
     spawnY: 200,
-    box: { x: 390, y: 280, w: 680, h: 310 },
-    pin: { x: 730, y: 435 },
-    badgeColor: '#f59e0b'
+    animTick: 0
   },
   {
-    id: 6,
+    id: 2,
+    index: 2,
+    key: 'airport',
+    name: 'Sân bay',
+    col: 30,
+    row: 8,
+    partId: 821,
+    mapId: 20,
+    spawnX: 120,
+    spawnY: 200,
+    animTick: 0
+  },
+  {
+    id: 3,
+    index: 3,
     key: 'entertainment',
     name: 'Khu giải trí',
-    subtitle: 'Trường đua thú, sòng bài casino',
+    col: 14,
+    row: 12,
+    partId: 822,
     mapId: 9,
     spawnX: 120,
     spawnY: 200,
-    box: { x: 1090, y: 200, w: 340, h: 290 },
-    pin: { x: 1260, y: 345 },
-    badgeColor: '#a855f7'
+    animTick: 0
   },
   {
-    id: 7,
+    id: 4,
+    index: 4,
+    key: 'shopping',
+    name: 'Khu mua sắm',
+    col: 23,
+    row: 12,
+    partId: 823,
+    mapId: 23,
+    spawnX: 120,
+    spawnY: 200,
+    animTick: 0
+  },
+  {
+    id: 5,
+    index: 5,
+    key: 'park',
+    name: 'Công viên',
+    col: 7,
+    row: 15,
+    partId: 824,
+    mapId: 11,
+    spawnX: 120,
+    spawnY: 200,
+    animTick: 0
+  },
+  {
+    id: 6,
+    index: 6,
     key: 'suburbs',
     name: 'Khu ngoại ô',
-    subtitle: 'Đồi cỏ ven sông, câu cá tự nhiên',
+    col: 17,
+    row: 21,
+    partId: 825,
     mapId: 17,
     spawnX: 120,
     spawnY: 200,
-    box: { x: 20, y: 660, w: 460, h: 220 },
-    pin: { x: 220, y: 760 },
-    badgeColor: '#84cc16'
+    animTick: 0
   },
   {
-    id: 8,
+    id: 7,
+    index: 7,
     key: 'farm',
     name: 'Nông trại',
-    subtitle: 'Ruộng đồng trù phú, chăn nuôi',
-    mapId: 18,
+    col: 26,
+    row: 21,
+    partId: 826,
+    mapId: 10,
     spawnX: 120,
     spawnY: 200,
-    box: { x: 680, y: 660, w: 900, h: 220 },
-    pin: { x: 1100, y: 760 },
-    badgeColor: '#eab308'
+    animTick: 0
   }
 ];
 
+/**
+ * Authentic CityMap Screen (ea.java & ae.java)
+ * Native WebGL implementation reproducing Java ME Client pixel-perfect
+ */
 export class WorldMapScreen extends GameScreen {
-  public minimapImage?: Image;
-  public bannerImage?: Image;
+  // Original Assets
+  public ctImage?: Image;   // main/ct.png (tileset: 16 x 1121, 70 tiles)
+  public kImage?: Image;    // effect/k.png (40x320: 8 frames of 40x40)
+  public bpImage?: Image;   // effect/b_p.png (48x56: selection balloon pointer)
+  public sicImage?: Image;  // effect/sIc.png (15x18: small unselected flag)
+  public cl0Image?: Image;  // effect/cl0.png (34x17 cloud)
+  public cl1Image?: Image;  // effect/cl1.png (54x24 cloud)
+
   public skinPainter?: UISkinPainter;
   public font?: IFont;
 
+  // Tilemap (citiMap: 34 cols x 26 rows = 884 bytes)
+  public readonly mapCols = 34; // s in ea.java
+  public readonly mapRows = 26; // t in ea.java
+  public readonly tileSize = 16; // u in ea.java
+  public tilemapData: Uint8Array = new Uint8Array(884);
+
+  // Screen & Viewport
   public screenW = 240;
   public screenH = 320;
+  public c = 0; // offset X when screen > map
+  public d = 0; // offset Y when screen > map
+  public maxCamX = 0; // A in ea.java
+  public maxCamY = 0; // E in ea.java
 
-  // Render viewport mapping
-  public drawW = 1600;
-  public drawH = 900;
-  public offsetX = 0;
-  public offsetY = 0;
-  public scale = 1.0;
+  // Camera & Smooth interpolation
+  public camX = 0; // f in ea.java
+  public camY = 0; // g in ea.java
+  public targetCamX = 0; // x in ea.java
+  public targetCamY = 0; // B in ea.java
+  private camXVel = 0; // y in ea.java
+  private camYVel = 0; // C in ea.java
 
-  // Interaction state
-  public hoveredRegion: WorldRegion | null = null;
-  public selectedRegion: WorldRegion | null = null;
-  public isTraveling = false;
-  public travelTicks = 0;
+  // Drag & Swipe physics
+  private isPointerDown = false;
+  private pointerStartX = 0;
+  private pointerStartY = 0;
+  private camStartX = 0;
+  private camStartY = 0;
+  private dragVelocityX = 0;
+  private dragVelocityY = 0;
+  private lastDragX = 0;
+  private lastDragY = 0;
+  private hasDragged = false;
+
+  // Selected Region & Animations
+  public regions: WorldRegion[] = [];
+  public selectedIdx = 3; // ea.b().e = 3 (Khu giải trí) in ae.java line 1519
+  public clouds: CloudEntry[] = [];
   public animTick = 0;
 
-  // UI elements
-  public backButton = { x: 12, y: 8, w: 110, h: 26, isHovered: false };
+  // Transition & Action
+  public isTraveling = false;
+  public travelTicks = 0;
+  public selectedRegion: WorldRegion | null = null;
 
   // Callbacks
   public onSelectRegion?: (region: WorldRegion) => void;
@@ -150,25 +203,65 @@ export class WorldMapScreen extends GameScreen {
     super();
     this.skinPainter = skinPainter;
     this.font = font;
+
+    // Clone regions
+    this.regions = WORLD_REGIONS.map(r => ({ ...r }));
+
+    // Initialize 7 drifting clouds (ea.java lines 225-229)
+    this.initClouds();
+
+    // Load assets
     this.loadAssets();
+  }
+
+  private initClouds(): void {
+    this.clouds = [];
+    const totalW = this.mapCols * this.tileSize;
+    const totalH = this.mapRows * this.tileSize;
+    for (let i = 0; i < 7; i++) {
+      this.clouds.push({
+        x: Math.round(i * (totalW / 10) + 50),
+        y: Math.round(Math.floor(Math.random() * 10) * (totalH / 10) + 20),
+        type: Math.floor(Math.random() * 2)
+      });
+    }
   }
 
   public async loadAssets(): Promise<void> {
     try {
-      const [minimapRes, bannerRes] = await Promise.all([
-        fetch('/assets/maps/minimap.png'),
-        fetch('/assets/maps/minimapbanner.png')
+      const [citiMapRes, ctRes, kRes, bpRes, sicRes, cl0Res, cl1Res] = await Promise.all([
+        fetch('/assets/normal/citiMap'),
+        fetch('/assets/main/ct.png'),
+        fetch('/assets/effect/k.png'),
+        fetch('/assets/effect/b_p.png'),
+        fetch('/assets/effect/sIc.png'),
+        fetch('/assets/effect/cl0.png'),
+        fetch('/assets/effect/cl1.png')
       ]);
 
-      if (minimapRes.ok) {
-        const buf = await minimapRes.arrayBuffer();
-        this.minimapImage = await Image.createImage(new Uint8Array(buf));
+      if (citiMapRes.ok) {
+        const buf = await citiMapRes.arrayBuffer();
+        this.tilemapData = new Uint8Array(buf);
       }
 
-      if (bannerRes.ok) {
-        const buf = await bannerRes.arrayBuffer();
-        this.bannerImage = await Image.createImage(new Uint8Array(buf));
-      }
+      const [ctBuf, kBuf, bpBuf, sicBuf, cl0Buf, cl1Buf] = await Promise.all([
+        ctRes.arrayBuffer(),
+        kRes.arrayBuffer(),
+        bpRes.arrayBuffer(),
+        sicRes.arrayBuffer(),
+        cl0Res.arrayBuffer(),
+        cl1Res.arrayBuffer()
+      ]);
+
+      this.ctImage = await Image.createImage(new Uint8Array(ctBuf));
+      this.kImage = await Image.createImage(new Uint8Array(kBuf));
+      this.bpImage = await Image.createImage(new Uint8Array(bpBuf));
+      this.sicImage = await Image.createImage(new Uint8Array(sicBuf));
+      this.cl0Image = await Image.createImage(new Uint8Array(cl0Buf));
+      this.cl1Image = await Image.createImage(new Uint8Array(cl1Buf));
+
+      console.log('[WorldMapScreen] Loaded original Java ME CityMap assets successfully!');
+      this.centerOnSelected(true);
     } catch (e) {
       console.warn('[WorldMapScreen] Asset loading warning:', e);
     }
@@ -178,430 +271,533 @@ export class WorldMapScreen extends GameScreen {
     this.screenW = width;
     this.screenH = height;
 
-    if (width < 450) {
-      this.backButton.w = 65;
-    } else {
-      this.backButton.w = 110;
+    const totalW = this.mapCols * this.tileSize; // 544
+    const totalH = this.mapRows * this.tileSize; // 416
+
+    this.c = Math.max(0, Math.floor((width - totalW) / 2));
+    this.d = Math.max(0, Math.floor((height - 24 - totalH) / 2));
+
+    this.maxCamX = Math.max(0, totalW - width);
+    this.maxCamY = Math.max(0, totalH - height + 24);
+
+    this.clampTargetCamera();
+  }
+
+  private centerOnSelected(immediate = false): void {
+    const r = this.regions[this.selectedIdx];
+    if (!r) return;
+
+    this.targetCamX = Math.round(r.col * this.tileSize + 8 - this.screenW / 2);
+    this.targetCamY = Math.round(r.row * this.tileSize - this.screenH / 2);
+    this.clampTargetCamera();
+
+    if (immediate) {
+      this.camX = this.targetCamX;
+      this.camY = this.targetCamY;
+      this.camXVel = 0;
+      this.camYVel = 0;
     }
+  }
 
-    // Define explicit safe bounds so the 1600x900 minimap is NEVER obscured by header or footer
-    const topSafe = 44;     // Top navigation bar + margin
-    const bottomSafe = 36;  // Bottom instruction footer + margin
-    const sideMargin = 12;  // Left & right border cushions
-
-    const availW = Math.max(100, width - sideMargin * 2);
-    const availH = Math.max(100, height - topSafe - bottomSafe);
-
-    const baseW = 1600;
-    const baseH = 900;
-    const scale = Math.min(availW / baseW, availH / baseH);
-
-    this.scale = scale;
-    this.drawW = Math.round(baseW * scale);
-    this.drawH = Math.round(baseH * scale);
-
-    // Perfectly centered within the safe visible area
-    this.offsetX = Math.round(sideMargin + (availW - this.drawW) / 2);
-    this.offsetY = Math.round(topSafe + (availH - this.drawH) / 2);
+  private clampTargetCamera(): void {
+    if (this.targetCamX < 0) this.targetCamX = 0;
+    if (this.targetCamX > this.maxCamX) this.targetCamX = this.maxCamX;
+    if (this.targetCamY < 0) this.targetCamY = 0;
+    if (this.targetCamY > this.maxCamY) this.targetCamY = this.maxCamY;
   }
 
   public update(): void {
     this.animTick++;
 
+    // 1. Traveling state
     if (this.isTraveling) {
       this.travelTicks++;
-      if (this.travelTicks > 30 && this.selectedRegion && this.onSelectRegion) {
+      if (this.travelTicks > 24 && this.selectedRegion && this.onSelectRegion) {
         const reg = this.selectedRegion;
         this.selectedRegion = null;
         this.isTraveling = false;
         this.travelTicks = 0;
         this.onSelectRegion(reg);
       }
-    }
-  }
-
-  // Convert canvas pixel coords to 1600x900 map space
-  public screenToMap(sx: number, sy: number): { x: number; y: number } {
-    if (this.scale <= 0) return { x: 0, y: 0 };
-    return {
-      x: (sx - this.offsetX) / this.scale,
-      y: (sy - this.offsetY) / this.scale
-    };
-  }
-
-  // Convert 1600x900 map coords to screen canvas space
-  public mapToScreen(mx: number, my: number): { x: number; y: number } {
-    return {
-      x: Math.round(this.offsetX + mx * this.scale),
-      y: Math.round(this.offsetY + my * this.scale)
-    };
-  }
-
-  public getRegionAt(mapX: number, mapY: number): WorldRegion | null {
-    // 1. Direct hit inside bounding box
-    for (const r of WORLD_REGIONS) {
-      if (
-        mapX >= r.box.x &&
-        mapX <= r.box.x + r.box.w &&
-        mapY >= r.box.y &&
-        mapY <= r.box.y + r.box.h
-      ) {
-        return r;
-      }
-    }
-
-    // 2. Proximity to pin (within 50px radius in map coordinates)
-    for (const r of WORLD_REGIONS) {
-      const dx = mapX - r.pin.x;
-      const dy = mapY - r.pin.y;
-      if (dx * dx + dy * dy <= 2500) {
-        return r;
-      }
-    }
-
-    return null;
-  }
-
-  public pointerMoved(x: number, y: number): void {
-    if (this.isTraveling) return;
-
-    // Check back button
-    this.backButton.isHovered =
-      x >= this.backButton.x &&
-      x <= this.backButton.x + this.backButton.w &&
-      y >= this.backButton.y &&
-      y <= this.backButton.y + this.backButton.h;
-
-    // Check regions
-    const mapPos = this.screenToMap(x, y);
-    this.hoveredRegion = this.getRegionAt(mapPos.x, mapPos.y);
-  }
-
-  public pointerPressed(x: number, y: number): void {
-    if (this.isTraveling) return;
-
-    // 1. Check Back Button
-    if (
-      x >= this.backButton.x &&
-      x <= this.backButton.x + this.backButton.w &&
-      y >= this.backButton.y &&
-      y <= this.backButton.y + this.backButton.h
-    ) {
-      if (this.onBackToHome) {
-        this.onBackToHome();
-      }
       return;
     }
 
-    // 2. Check Region Selection
-    const mapPos = this.screenToMap(x, y);
-    const region = this.getRegionAt(mapPos.x, mapPos.y);
-    if (region) {
-      this.selectedRegion = region;
+    // 2. Region pin bobbing animation (unselected regions)
+    for (let i = 0; i < this.regions.length; i++) {
+      if (i !== this.selectedIdx) {
+        this.regions[i].animTick = (this.regions[i].animTick + 1) % 9;
+      }
+    }
+
+    // 3. Inertia damp after drag
+    if (!this.isPointerDown) {
+      if (Math.abs(this.dragVelocityX) > 0.5) {
+        this.targetCamX += this.dragVelocityX;
+        this.dragVelocityX *= 0.85;
+      } else {
+        this.dragVelocityX = 0;
+      }
+      if (Math.abs(this.dragVelocityY) > 0.5) {
+        this.targetCamY += this.dragVelocityY;
+        this.dragVelocityY *= 0.85;
+      } else {
+        this.dragVelocityY = 0;
+      }
+      this.clampTargetCamera();
+    }
+
+    // 4. Camera Smooth Interpolation (ea.java lines 307-330)
+    if (this.camY !== this.targetCamY) {
+      const diffY = (this.targetCamY - this.camY) << 2;
+      this.camYVel += diffY;
+      this.camY += (this.camYVel >> 4);
+      this.camYVel &= 0x0F;
+    }
+    if (this.camX !== this.targetCamX) {
+      const diffX = (this.targetCamX - this.camX) << 2;
+      this.camXVel += diffX;
+      this.camX += (this.camXVel >> 4);
+      this.camXVel &= 0x0F;
+    }
+
+    // Clamp camera within map
+    if (this.camX < 0) { this.camX = 0; this.targetCamX = 0; }
+    if (this.camX > this.maxCamX) { this.camX = this.maxCamX; this.targetCamX = this.maxCamX; }
+    if (this.camY < 0) { this.camY = 0; this.targetCamY = 0; }
+    if (this.camY > this.maxCamY) { this.camY = this.maxCamY; this.targetCamY = this.maxCamY; }
+
+    // 5. Cloud drifting animation (ea.java lines 331-342)
+    const totalW = this.mapCols * this.tileSize;
+    const totalH = this.mapRows * this.tileSize;
+    for (const cloud of this.clouds) {
+      cloud.x -= (cloud.type + (this.animTick % 5 === 1 ? 1 : 0));
+      if (cloud.x < -this.c - 50) {
+        cloud.x = this.c + Math.floor(Math.random() * 4) * 50 + totalW;
+        cloud.y = Math.floor(Math.random() * 10) * Math.floor(totalH / 10) + 10;
+        cloud.type = Math.floor(Math.random() * 2);
+      }
+    }
+  }
+
+  /**
+   * Directional arrow key navigation (o.java lines 12-73)
+   */
+  public handleKeyNav(direction: 'up' | 'down' | 'left' | 'right'): void {
+    if (this.isTraveling) return;
+    let n2 = this.selectedIdx;
+
+    if (direction === 'down') {
+      if (n2 === 0) n2 = 5;
+      else if (n2 === 1) n2 = 4;
+      else if (n2 === 3) n2 = 6;
+      else if (n2 === 2) n2 = 7;
+      else if (n2 === 4) n2 = 7;
+    } else if (direction === 'up') {
+      if (n2 === 4) n2 = 1;
+      else if (n2 === 5) n2 = 0;
+      else if (n2 === 6) n2 = 3;
+      else if (n2 === 7) n2 = 4;
+      else if (n2 === 3) n2 = 0;
+    } else if (direction === 'right') {
+      if (n2 === 0) n2 = 3;
+      else if (n2 === 1) n2 = 2;
+      else if (n2 === 3) n2 = 4;
+      else if (n2 === 4) n2 = 2;
+      else if (n2 === 6) n2 = 7;
+      else if (n2 === 5) n2 = 3;
+    } else if (direction === 'left') {
+      if (n2 === 1) n2 = 3;
+      else if (n2 === 2) n2 = 1;
+      else if (n2 === 3) n2 = 0;
+      else if (n2 === 6) n2 = 5;
+      else if (n2 === 7) n2 = 6;
+      else if (n2 === 4) n2 = 3;
+    }
+
+    if (n2 !== this.selectedIdx) {
+      this.selectedIdx = n2;
+      this.centerOnSelected();
+    }
+  }
+
+  public confirmSelection(): void {
+    if (this.isTraveling) return;
+    const r = this.regions[this.selectedIdx];
+    if (r) {
+      this.selectedRegion = r;
       this.isTraveling = true;
       this.travelTicks = 0;
     }
   }
 
+  public keyPressed(keyCode: number): void {
+    if (this.isTraveling) return;
+
+    switch (keyCode) {
+      case 50: // Key 2 / UP
+      case -1:
+      case 38:
+        this.handleKeyNav('up');
+        break;
+      case 56: // Key 8 / DOWN
+      case -2:
+      case 40:
+        this.handleKeyNav('down');
+        break;
+      case 52: // Key 4 / LEFT
+      case -3:
+      case 37:
+        this.handleKeyNav('left');
+        break;
+      case 54: // Key 6 / RIGHT
+      case -4:
+      case 39:
+        this.handleKeyNav('right');
+        break;
+      case 13: // ENTER / FIRE / KEY 5
+      case 53:
+      case -7: // Right softkey (Chọn)
+        this.confirmSelection();
+        break;
+      case -6: // Left softkey (Menu)
+        if (this.onBackToHome) {
+          this.onBackToHome();
+        }
+        break;
+    }
+  }
+
+  public pointerPressed(x: number, y: number): void {
+    if (this.isTraveling) return;
+
+    // 1. Softkey Bar taps
+    const softkeyY = this.screenH - 24;
+    if (y >= softkeyY) {
+      if (x < 70) {
+        // Left Softkey: "Menu"
+        if (this.onBackToHome) {
+          this.onBackToHome();
+        }
+        return;
+      }
+      if (x >= Math.floor(this.screenW / 2) - 40 && x <= Math.floor(this.screenW / 2) + 40) {
+        // Center Softkey: "Chọn"
+        this.confirmSelection();
+        return;
+      }
+    }
+
+    // 2. Check region taps (ea.java lines 363-371)
+    // Box bounds: (this.c + r.col * u + u/2 - 24 - camX, this.d + r.row * u - 56 - camY, 48, 56)
+    for (let i = 0; i < this.regions.length; i++) {
+      const r = this.regions[i];
+      const boxX = this.c + r.col * this.tileSize + Math.floor(this.tileSize / 2) - 24 - this.camX;
+      const boxY = this.d + r.row * this.tileSize - 56 - this.camY;
+      const boxW = 48;
+      const boxH = 56;
+
+      if (x >= boxX && x <= boxX + boxW && y >= boxY && y <= boxY + boxH) {
+        if (this.selectedIdx === i) {
+          // Tap on already selected region -> enter!
+          this.confirmSelection();
+        } else {
+          // Select region and smoothly scroll camera
+          this.selectedIdx = i;
+          this.centerOnSelected();
+        }
+        return;
+      }
+    }
+
+    // 3. Initiate Drag / Swipe
+    this.isPointerDown = true;
+    this.pointerStartX = x;
+    this.pointerStartY = y;
+    this.camStartX = this.camX;
+    this.camStartY = this.camY;
+    this.lastDragX = x;
+    this.lastDragY = y;
+    this.dragVelocityX = 0;
+    this.dragVelocityY = 0;
+    this.hasDragged = false;
+  }
+
+  public pointerDragged(x: number, y: number): void {
+    if (!this.isPointerDown || this.isTraveling) return;
+
+    const dx = x - this.pointerStartX;
+    const dy = y - this.pointerStartY;
+
+    if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+      this.hasDragged = true;
+    }
+
+    this.dragVelocityX = this.lastDragX - x;
+    this.dragVelocityY = this.lastDragY - y;
+    this.lastDragX = x;
+    this.lastDragY = y;
+
+    this.targetCamX = this.camStartX - dx;
+    this.targetCamY = this.camStartY - dy;
+    this.clampTargetCamera();
+  }
+
+  public pointerReleased(x: number, y: number): void {
+    this.isPointerDown = false;
+  }
+
+  public pointerMoved(x: number, y: number): void {
+    // Mouse hover preview support
+  }
+
   public paint(g: Graphics): void {
     const ctx = g.ctx as CanvasRenderingContext2D | undefined;
 
-    // 1. Solid letterbox background
-    g.setColor(0x0f172a); // Slate 900
+    // 1. Clear background: graphics.setColor(0); graphics.fillRect(0, 0, w, q);
+    g.setColor(0x000000);
     g.fillRect(0, 0, this.screenW, this.screenH);
 
-    // 2. Render Minimap Background
-    if (this.minimapImage) {
-      g.drawScaledImage(
-        this.minimapImage,
-        this.offsetX,
-        this.offsetY,
-        this.drawW,
-        this.drawH
-      );
-    }
+    // 2. Camera Translation
+    const transX = this.c - this.camX;
+    const transY = this.d - this.camY;
+    g.translate(transX, transY);
 
-    // 3. Render Region Highlights & Pins
-    for (const r of WORLD_REGIONS) {
-      const isHovered = this.hoveredRegion?.id === r.id;
-      const isSelected = this.selectedRegion?.id === r.id;
-      const boxS = {
-        x: Math.round(this.offsetX + r.box.x * this.scale),
-        y: Math.round(this.offsetY + r.box.y * this.scale),
-        w: Math.round(r.box.w * this.scale),
-        h: Math.round(r.box.h * this.scale)
-      };
-      const pinS = this.mapToScreen(r.pin.x, r.pin.y);
+    // 3. Render 34x26 Tilemap (ea.java lines 478-484)
+    if (this.ctImage && this.tilemapData.length >= 884) {
+      const minCol = Math.max(0, Math.floor((this.camX - this.c) / this.tileSize));
+      const maxCol = Math.min(this.mapCols - 1, Math.ceil((this.camX - this.c + this.screenW) / this.tileSize));
+      const minRow = Math.max(0, Math.floor((this.camY - this.d) / this.tileSize));
+      const maxRow = Math.min(this.mapRows - 1, Math.ceil((this.camY - this.d + this.screenH) / this.tileSize));
 
-      if (ctx) {
-        if (isHovered || isSelected) {
-          // Animated glow rectangle over active region
-          const alpha = 0.15 + Math.sin(this.animTick * 0.2) * 0.08;
-          ctx.save();
-          ctx.fillStyle = r.badgeColor + Math.round(alpha * 255).toString(16).padStart(2, '0');
-          ctx.fillRect(boxS.x, boxS.y, boxS.w, boxS.h);
-
-          // Glowing border
-          ctx.strokeStyle = r.badgeColor;
-          ctx.lineWidth = Math.max(2, Math.round(2 * this.scale));
-          ctx.strokeRect(boxS.x, boxS.y, boxS.w, boxS.h);
-          ctx.restore();
+      for (let row = minRow; row <= maxRow; row++) {
+        for (let col = minCol; col <= maxCol; col++) {
+          const tileVal = this.tilemapData[row * this.mapCols + col];
+          // Each tile in ct.png is 16x16, stacked vertically (70 tiles)
+          const sy = (tileVal % 70) * this.tileSize;
+          g.drawRegion(
+            this.ctImage,
+            0,
+            sy,
+            this.tileSize,
+            this.tileSize,
+            0,
+            col * this.tileSize,
+            row * this.tileSize,
+            0
+          );
         }
-
-        // Concentric beacon pulse at region pin
-        const pulseRadius = ((this.animTick * 1.5 + r.id * 10) % 30);
-        const pulseAlpha = Math.max(0, 1 - pulseRadius / 30);
-        ctx.save();
-        ctx.beginPath();
-        ctx.arc(pinS.x, pinS.y, pulseRadius, 0, Math.PI * 2);
-        ctx.strokeStyle = `rgba(255, 255, 255, ${pulseAlpha * 0.7})`;
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Pin badge circle
-        const pinSize = isHovered ? 12 : 9;
-        ctx.beginPath();
-        ctx.arc(pinS.x, pinS.y, pinSize, 0, Math.PI * 2);
-        ctx.fillStyle = r.badgeColor;
-        ctx.fill();
-        ctx.strokeStyle = '#ffffff';
-        ctx.lineWidth = 2;
-        ctx.stroke();
-
-        // Inner core
-        ctx.beginPath();
-        ctx.arc(pinS.x, pinS.y, isHovered ? 5 : 3, 0, Math.PI * 2);
-        ctx.fillStyle = '#ffffff';
-        ctx.fill();
-        ctx.restore();
-
-        // Region name pill: For bottom regions (pin.y > 650), draw pill ABOVE pin to avoid overlap
-        ctx.save();
-        ctx.font = 'bold 11px Arial, sans-serif';
-        const nameText = r.name;
-        const textMetrics = ctx.measureText(nameText);
-        const pillW = textMetrics.width + 16;
-        const pillH = 20;
-        const pillX = pinS.x - Math.floor(pillW / 2);
-        const isBottomRegion = r.pin.y > 650;
-        const pillY = isBottomRegion ? (pinS.y - pillH - 12) : (pinS.y + 12);
-
-        // Pill background
-        ctx.fillStyle = isHovered ? 'rgba(15, 23, 42, 0.95)' : 'rgba(15, 23, 42, 0.8)';
-        ctx.strokeStyle = isHovered ? r.badgeColor : '#94a3b8';
-        ctx.lineWidth = isHovered ? 2 : 1;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(pillX, pillY, pillW, pillH, 6);
-        } else {
-          ctx.rect(pillX, pillY, pillW, pillH);
-        }
-        ctx.fill();
-        ctx.stroke();
-
-        // Text
-        ctx.fillStyle = isHovered ? '#ffffff' : '#e2e8f0';
-        ctx.textAlign = 'center';
-        ctx.textBaseline = 'middle';
-        ctx.fillText(nameText, pinS.x, pillY + 10);
-        ctx.restore();
       }
     }
 
-    // 4. Banner Tooltip on Hover / Selected
-    const activeRegion = this.selectedRegion || this.hoveredRegion;
-    if (activeRegion && ctx) {
-      const pinS = this.mapToScreen(activeRegion.pin.x, activeRegion.pin.y);
-      const bannerW = 200;
-      const bannerH = 56;
-      const isBottom = activeRegion.pin.y > 650;
-      let bx = pinS.x - Math.floor(bannerW / 2);
-      let by = isBottom ? (pinS.y - bannerH - 35) : (pinS.y - 75);
+    // 4. Render Region Markers (ea.java lines 486-503)
+    for (let i = 0; i < this.regions.length; i++) {
+      const r = this.regions[i];
+      const pinCenterX = r.col * this.tileSize + Math.floor(this.tileSize / 2);
+      const pinBottomY = r.row * this.tileSize;
 
-      // Keep inside screen bounds
-      bx = Math.max(10, Math.min(this.screenW - bannerW - 10, bx));
-      by = Math.max(48, Math.min(this.screenH - 36 - bannerH, by));
-
-      ctx.save();
-      // Drop shadow
-      ctx.shadowColor = 'rgba(0, 0, 0, 0.5)';
-      ctx.shadowBlur = 10;
-      ctx.shadowOffsetY = 4;
-
-      // Banner card
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-      ctx.strokeStyle = activeRegion.badgeColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(bx, by, bannerW, bannerH, 8);
+      if (i === this.selectedIdx) {
+        // Selected Region: Draw b_p.png (48x56) at anchor BOTTOM | HCENTER (33)
+        if (this.bpImage) {
+          g.drawImage(this.bpImage, pinCenterX - 24, pinBottomY - 56, 0);
+        }
+        // Draw 40x40 building icon from k.png frame i at (pinCenterX, pinBottomY - 12)
+        if (this.kImage) {
+          g.drawRegion(
+            this.kImage,
+            0,
+            i * 40,
+            40,
+            40,
+            0,
+            pinCenterX - 20,
+            pinBottomY - 12 - 40,
+            0
+          );
+        }
       } else {
-        ctx.rect(bx, by, bannerW, bannerH);
+        // Unselected Region: Draw sIc.png (15x18) bobbing up and down
+        const bob = Math.floor(r.animTick / 3);
+        if (this.sicImage) {
+          g.drawImage(this.sicImage, pinCenterX - 7, pinBottomY - bob - 18, 0);
+        }
       }
-      ctx.fill();
-      ctx.stroke();
-      ctx.restore();
-
-      // Banner Text
-      ctx.save();
-      ctx.textAlign = 'center';
-
-      // Region Title
-      ctx.font = 'bold 13px Arial, sans-serif';
-      ctx.fillStyle = activeRegion.badgeColor;
-      ctx.fillText(activeRegion.name.toUpperCase(), bx + bannerW / 2, by + 18);
-
-      // Subtitle / Description
-      ctx.font = '11px Arial, sans-serif';
-      ctx.fillStyle = '#cbd5e1';
-      ctx.fillText(activeRegion.subtitle, bx + bannerW / 2, by + 34);
-
-      // Action hint
-      ctx.font = 'italic 10px Arial, sans-serif';
-      ctx.fillStyle = '#facc15';
-      ctx.fillText('▶ Nhấp để di chuyển đến đây', bx + bannerW / 2, by + 48);
-      ctx.restore();
     }
 
-    // 5. Top Header Navigation Bar
+    // 5. Render Region Text Labels (ea.java lines 504-525)
+    for (let i = 0; i < this.regions.length; i++) {
+      const r = this.regions[i];
+      let n4 = r.col * this.tileSize;
+      let n5 = r.row * this.tileSize;
+
+      // Viewport clamping from ea.java
+      if (n5 < this.camY + 50) n5 = this.camY + 50;
+      if (n5 > this.camY + this.screenH - 20) n5 = this.camY + this.screenH - 20;
+      if (n4 < this.camX + 20) n4 = this.camX + 20;
+      if (n4 > this.camX + this.screenW - 47) n4 = this.camX + this.screenW - 47;
+
+      const isSelected = (i === this.selectedIdx);
+      const bob = Math.floor(r.animTick / 3);
+      const labelY = n5 - (isSelected ? 70 : 35) - (isSelected ? 0 : bob);
+      const labelX = n4 + 10;
+
+      this.renderTextWithOutline(g, r.name, labelX, labelY, isSelected);
+    }
+
+    // 6. Render Floating Clouds (ea.java lines 526-534)
+    for (const cloud of this.clouds) {
+      if (
+        cloud.x > this.camX - 30 &&
+        cloud.x < this.camX + 30 + this.screenW &&
+        cloud.y > this.camY - 20 &&
+        cloud.y < this.camY + 20 + this.screenH
+      ) {
+        const cloudImg = cloud.type === 0 ? this.cl0Image : this.cl1Image;
+        if (cloudImg) {
+          g.drawImage(cloudImg, cloud.x, cloud.y, 0);
+        }
+      }
+    }
+
+    // Reset Camera Translation
+    g.translate(-transX, -transY);
+
+    // 7. HUD Overlays (12+ badge, 2.5.8 version, and Softkeys)
+    this.renderHud(g);
+
+    // 8. Traveling Loading Transition Popup
+    if (this.isTraveling && this.selectedRegion) {
+      this.renderTravelingPopup(g);
+    }
+  }
+
+  private renderTextWithOutline(
+    g: Graphics,
+    text: string,
+    x: number,
+    y: number,
+    isSelected: boolean
+  ): void {
+    const ctx = g.ctx as CanvasRenderingContext2D | undefined;
     if (ctx) {
       ctx.save();
-      // Header backdrop
-      const grad = ctx.createLinearGradient(0, 0, 0, 42);
-      grad.addColorStop(0, 'rgba(15, 23, 42, 0.95)');
-      grad.addColorStop(1, 'rgba(15, 23, 42, 0.7)');
-      ctx.fillStyle = grad;
-      ctx.fillRect(0, 0, this.screenW, 42);
-
-      // Border bottom
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.3)';
-      ctx.lineWidth = 1;
-      ctx.beginPath();
-      ctx.moveTo(0, 42);
-      ctx.lineTo(this.screenW, 42);
-      ctx.stroke();
-
-      // Title in center (or adjusted for compact screens)
-      const isCompact = this.screenW < 450;
-      const titleText = isCompact ? 'CHỌN KHU VỰC' : 'BẢN ĐỒ THẾ GIỚI - CHỌN KHU VỰC';
-      const titleX = isCompact ? Math.round(this.backButton.x + this.backButton.w + (this.screenW - (this.backButton.x + this.backButton.w)) / 2) : Math.round(this.screenW / 2);
-      ctx.font = isCompact ? 'bold 12px Arial, sans-serif' : 'bold 14px Arial, sans-serif';
-      ctx.fillStyle = '#ffffff';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(titleText, titleX, 21);
-
-      // Back Button at Top-Left
-      const bb = this.backButton;
-      ctx.fillStyle = bb.isHovered ? 'rgba(239, 68, 68, 0.85)' : 'rgba(30, 41, 59, 0.9)';
-      ctx.strokeStyle = bb.isHovered ? '#ffffff' : '#64748b';
-      ctx.lineWidth = 1.5;
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(bb.x, bb.y, bb.w, bb.h, 6);
-      } else {
-        ctx.rect(bb.x, bb.y, bb.w, bb.h);
-      }
-      ctx.fill();
-      ctx.stroke();
-
-      // Back Button Text
       ctx.font = 'bold 11px Arial, sans-serif';
-      ctx.fillStyle = '#ffffff';
       ctx.textAlign = 'center';
       ctx.textBaseline = 'middle';
-      ctx.fillText(isCompact ? '◀ VỀ' : '◀ TRANG CHỦ', bb.x + bb.w / 2, bb.y + bb.h / 2);
-      ctx.restore();
-    }
 
-    // 6. Bottom Instruction / Status Footer Bar
+      // 1px black outline for authentic J2ME bitmap contrast
+      ctx.strokeStyle = '#000000';
+      ctx.lineWidth = 3;
+      ctx.strokeText(text, x, y);
+
+      ctx.fillStyle = isSelected ? '#ffffff' : '#f8fafc';
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    } else if (this.font) {
+      this.font.drawString(g, text, x, y, 2);
+    }
+  }
+
+  private renderHud(g: Graphics): void {
+    const ctx = g.ctx as CanvasRenderingContext2D | undefined;
+
+    // Top-left: "12+" badge (matching original Java client)
     if (ctx) {
-      ctx.save();
-      const footerH = 28;
-      const footerY = this.screenH - footerH;
-
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.85)';
-      ctx.fillRect(0, footerY, this.screenW, footerH);
-
-      ctx.strokeStyle = 'rgba(56, 189, 248, 0.2)';
-      ctx.beginPath();
-      ctx.moveTo(0, footerY);
-      ctx.lineTo(this.screenW, footerY);
-      ctx.stroke();
-
-      const isCompact = this.screenW < 450;
-      const hintText = isCompact
-        ? 'Chạm địa điểm trên bản đồ để di chuyển'
-        : 'Rê chuột hoặc chạm vào địa điểm trên bản đồ để di chuyển đến khu vực tương ứng';
-      ctx.font = isCompact ? '10px Arial, sans-serif' : '11px Arial, sans-serif';
-      ctx.fillStyle = '#94a3b8';
-      ctx.textAlign = 'center';
-      ctx.textBaseline = 'middle';
-      ctx.fillText(
-        hintText,
-        this.screenW / 2,
-        footerY + footerH / 2
-      );
-      ctx.restore();
-    }
-
-    // 7. Traveling / Transition Loading Modal Overlay
-    if (this.isTraveling && this.selectedRegion && ctx) {
       ctx.save();
       ctx.fillStyle = 'rgba(0, 0, 0, 0.7)';
-      ctx.fillRect(0, 0, this.screenW, this.screenH);
+      ctx.fillRect(4, 4, 26, 14);
+      ctx.strokeStyle = '#64748b';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(4, 4, 26, 14);
 
-      const modalW = 280;
-      const modalH = 120;
-      const modalX = Math.floor((this.screenW - modalW) / 2);
-      const modalY = Math.floor((this.screenH - modalH) / 2);
-
-      // Card
-      ctx.fillStyle = 'rgba(15, 23, 42, 0.95)';
-      ctx.strokeStyle = this.selectedRegion.badgeColor;
-      ctx.lineWidth = 2;
-      ctx.beginPath();
-      if (typeof ctx.roundRect === 'function') {
-        ctx.roundRect(modalX, modalY, modalW, modalH, 10);
-      } else {
-        ctx.rect(modalX, modalY, modalW, modalH);
-      }
-      ctx.fill();
-      ctx.stroke();
-
-      // Spinner dots
-      const dots = '.'.repeat((Math.floor(this.animTick / 5) % 4));
-      ctx.textAlign = 'center';
-      ctx.font = 'bold 14px Arial, sans-serif';
+      ctx.font = 'bold 10px Arial, sans-serif';
       ctx.fillStyle = '#ffffff';
-      ctx.fillText(
-        `Đang di chuyển đến ${this.selectedRegion.name}${dots}`,
-        this.screenW / 2,
-        modalY + 40
-      );
+      ctx.textAlign = 'center';
+      ctx.textBaseline = 'middle';
+      ctx.fillText('12+', 17, 11);
+      ctx.restore();
+    }
 
-      ctx.font = '12px Arial, sans-serif';
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillText(
-        `Đang kết nối máy chủ & tải bản đồ (Map ${this.selectedRegion.mapId})...`,
-        this.screenW / 2,
-        modalY + 70
-      );
+    // Top-right: "2.5.8" version string (bright green bitmap font in original)
+    if (ctx) {
+      ctx.save();
+      ctx.font = 'bold 11px monospace, sans-serif';
+      ctx.fillStyle = '#22c55e';
+      ctx.textAlign = 'right';
+      ctx.textBaseline = 'top';
+      ctx.fillText('2.5.8', this.screenW - 6, 6);
+      ctx.restore();
+    }
 
-      // Loading progress line
-      const barW = 200;
-      const barH = 6;
-      const barX = Math.floor((this.screenW - barW) / 2);
-      const barY = modalY + 90;
+    // Bottom Softkey Bar
+    const barH = 22;
+    const barY = this.screenH - barH;
 
-      ctx.fillStyle = '#334155';
-      ctx.fillRect(barX, barY, barW, barH);
+    if (ctx) {
+      ctx.save();
+      // Translucent bottom bar
+      ctx.fillStyle = 'rgba(0, 0, 0, 0.65)';
+      ctx.fillRect(0, barY, this.screenW, barH);
+      ctx.strokeStyle = 'rgba(255, 255, 255, 0.15)';
+      ctx.lineWidth = 1;
+      ctx.strokeRect(0, barY, this.screenW, barH);
 
-      const progress = Math.min(1.0, this.travelTicks / 30);
-      ctx.fillStyle = this.selectedRegion.badgeColor;
-      ctx.fillRect(barX, barY, Math.round(barW * progress), barH);
+      ctx.font = 'bold 12px Arial, sans-serif';
+      ctx.textBaseline = 'middle';
+
+      // Left softkey: "Menu"
+      ctx.fillStyle = '#ffffff';
+      ctx.textAlign = 'left';
+      ctx.fillText('Menu', 8, barY + barH / 2);
+
+      // Center: "Chọn"
+      ctx.fillStyle = '#fde047';
+      ctx.textAlign = 'center';
+      ctx.fillText('Chọn', Math.floor(this.screenW / 2), barY + barH / 2);
 
       ctx.restore();
     }
+  }
+
+  private renderTravelingPopup(g: Graphics): void {
+    const ctx = g.ctx as CanvasRenderingContext2D | undefined;
+    if (!ctx || !this.selectedRegion) return;
+
+    ctx.save();
+    ctx.fillStyle = 'rgba(0, 0, 0, 0.6)';
+    ctx.fillRect(0, 0, this.screenW, this.screenH);
+
+    const popW = Math.min(220, this.screenW - 30);
+    const popH = 64;
+    const popX = Math.floor((this.screenW - popW) / 2);
+    const popY = Math.floor((this.screenH - popH) / 2);
+
+    // Dialog card
+    ctx.fillStyle = '#0f172a';
+    ctx.fillRect(popX, popY, popW, popH);
+    ctx.strokeStyle = '#38bdf8';
+    ctx.lineWidth = 2;
+    ctx.strokeRect(popX, popY, popW, popH);
+
+    // Text: "Đang vào [Tên khu vực]..."
+    const dots = '.'.repeat((Math.floor(this.travelTicks / 5) % 4));
+    ctx.font = 'bold 12px Arial, sans-serif';
+    ctx.fillStyle = '#ffffff';
+    ctx.textAlign = 'center';
+    ctx.textBaseline = 'middle';
+    ctx.fillText(`Đang vào ${this.selectedRegion.name}${dots}`, popX + popW / 2, popY + 24);
+
+    // Mini progress bar
+    const barW = popW - 40;
+    const barH = 6;
+    const barX = popX + 20;
+    const barY = popY + 44;
+    ctx.fillStyle = '#1e293b';
+    ctx.fillRect(barX, barY, barW, barH);
+
+    const progress = Math.min(1, this.travelTicks / 24);
+    ctx.fillStyle = '#38bdf8';
+    ctx.fillRect(barX, barY, Math.round(barW * progress), barH);
+
+    ctx.restore();
   }
 }

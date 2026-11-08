@@ -94,3 +94,26 @@ d:\avatarweb2d\avatar-web\
 | **Thanh Chat In-Game & HUD** | Thanh chat HTML `#in-game-chat-bar` dùng `position: absolute; bottom: 24px` đè lên thanh phím chức năng softkey (`Chat (C)`, `12+`, `Khu X \| Y online`, `Rời khu`). | Đưa `#in-game-chat-bar` thành flex container dock riêng biệt ngay dưới canvas game, tách bạch hoàn toàn với vùng render canvas; ẩn trên World Map và tự động hiện khi vào World. | Thanh softkey và thanh chat đều hiển thị trọn vẹn, không chồng chéo nhau. |
 | **Viewport & Responsive** | Modal game gây thanh cuộn dọc không mong muốn trên `body` do chiều cao cổng thông tin 1800px. | Áp dụng class `.game-active` trên `html`, `body` với `overflow: hidden !important`, thiết lập `#game-modal` theo cấu trúc flex column `100% x 100%` với `overflow: hidden`. | Tuyệt đối không xuất hiện thanh cuộn trang ở bất kỳ kích thước màn hình nào. |
 
+---
+
+## 6. TÁI HIỆN 100% MÀN HÌNH CHỌN KHU VỰC THÀNH PHỐ CITYMAP (EA.JAVA & AE.JAVA)
+
+Đã hoàn tất phân tích ngược mã nguồn Java gốc và tái hiện 1:1 màn hình chọn khu vực CityMap:
+
+- **Class Java gốc:** `ea.java` (City Map Screen container) & `ae.java` (method `t()`, `s()`, đồ thị điều hướng phím `o.java`, xác nhận `p.java`).
+- **Asset nhị phân và đồ họa gốc:**
+  1. `citiMap` (`normal/citiMap`): 884 bytes nhị phân, ma trận 34 cột x 26 hàng. Tile giá trị `69` xác định vị trí chính xác của 8 khu vực.
+  2. `ct.png` (`main/ct.png`): Tileset 16x1121 gồm 70 tile kích thước 16x16 pixel (đường phố, thảm cỏ, tòa nhà, cây cối, mặt nước).
+  3. `k.png` (`effect/k.png`): Spritesheet 40x320 chứa 8 frame 40x40 biểu tượng kiến trúc đặc trưng của từng khu vực.
+  4. `b_p.png` (`effect/b_p.png`): Khinh khí cầu / popup bóng thoại màu trắng 48x56 pixel bao quanh khu vực đang chọn.
+  5. `sIc.png` (`effect/sIc.png`): Cờ hiệu / pin nhỏ 15x18 pixel với hiệu ứng nhấp nhô (bobbing) 3 nấc (`animTick / 3`) cho các khu vực chưa chọn.
+  6. `cl0.png` (34x17) & `cl1.png` (54x24): 7 cụm mây trôi dạt tự nhiên ngang qua bản đồ thành phố.
+- **Cơ chế điều hướng & Tương tác:**
+  - Hỗ trợ phím bấm 4 hướng (Lên/Xuống/Trái/Phải hoặc 2/8/4/6) theo đúng đồ thị kề `o.java`.
+  - Camera nội suy mượt mà (smooth camera damping) bám theo khu vực được chọn, giới hạn chuẩn xác trong phạm vi bản đồ 544x416.
+  - Hỗ trợ vuốt / kéo thả chuột và cảm ứng với vận tốc quán tính (`dragVelocityX`, `dragVelocityY`).
+  - Chạm vào pin địa danh để chọn, chạm lần 2 hoặc nhấn phím "Chọn" / Enter để chuyển cảnh.
+  - Hộp thoại chuyển cảnh chuẩn gốc `"Đang vào " + region.name + "..."` trước khi tham gia Room/Zone trên Java Server.
+- **Đối soát trực quan:** Hình ảnh kết quả từ WebGL (`web_city_map_240x320.png`) trùng khớp pixel-perfect với bản chụp thực tế từ Java MicroEmulator (`original_city_map.png`).
+
+

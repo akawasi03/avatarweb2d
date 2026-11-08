@@ -1602,123 +1602,179 @@
   var import_j2me_compat4 = __toESM(require_dist());
   var WORLD_REGIONS = [
     {
-      id: 1,
+      id: 0,
+      index: 0,
       key: "residential",
       name: "Khu nh\xE0 \u1EDF",
-      subtitle: "Khu d\xE2n c\u01B0, bi\u1EC7t th\u1EF1, nh\xE0 ri\xEAng",
-      mapId: 22,
-      spawnX: 120,
-      spawnY: 200,
-      box: { x: 25, y: 10, w: 440, h: 260 },
-      pin: { x: 240, y: 140 },
-      badgeColor: "#38bdf8"
-    },
-    {
-      id: 2,
-      key: "airport",
-      name: "S\xE2n bay",
-      subtitle: "\u0110\u01B0\u1EDDng b\u0103ng, phi tr\u01B0\u1EDDng Hawaii",
-      mapId: 25,
-      spawnX: 120,
-      spawnY: 200,
-      box: { x: 1140, y: 15, w: 440, h: 165 },
-      pin: { x: 1360, y: 95 },
-      badgeColor: "#f43f5e"
-    },
-    {
-      id: 3,
-      key: "ecological",
-      name: "Khu sinh th\xE1i",
-      subtitle: "H\u1ED3 sinh th\xE1i, \u0111\u1EA3o ng\u1ECDc, c\xE2u c\xE1",
-      mapId: 13,
-      spawnX: 120,
-      spawnY: 200,
-      box: { x: 470, y: 10, w: 260, h: 260 },
-      pin: { x: 600, y: 140 },
-      badgeColor: "#10b981"
-    },
-    {
-      id: 4,
-      key: "park",
-      name: "C\xF4ng vi\xEAn",
-      subtitle: "V\u01B0\u1EDDn hoa trung t\xE2m, t\u01B0\u1EE3ng \u0111\xE0i",
+      col: 8,
+      row: 5,
+      partId: 819,
       mapId: 11,
       spawnX: 120,
       spawnY: 200,
-      box: { x: 150, y: 390, w: 230, h: 300 },
-      pin: { x: 265, y: 540 },
-      badgeColor: "#22c55e"
+      animTick: 0
     },
     {
-      id: 5,
-      key: "shopping",
-      name: "Khu mua s\u1EAFm",
-      subtitle: "Ph\u1ED1 th\u01B0\u01A1ng m\u1EA1i, c\u1EEDa h\xE0ng, ATM",
-      mapId: 23,
+      id: 1,
+      index: 1,
+      key: "ecological",
+      name: "Khu sinh th\xE1i",
+      col: 25,
+      row: 6,
+      partId: 820,
+      mapId: 13,
       spawnX: 120,
       spawnY: 200,
-      box: { x: 390, y: 280, w: 680, h: 310 },
-      pin: { x: 730, y: 435 },
-      badgeColor: "#f59e0b"
+      animTick: 0
     },
     {
-      id: 6,
+      id: 2,
+      index: 2,
+      key: "airport",
+      name: "S\xE2n bay",
+      col: 30,
+      row: 8,
+      partId: 821,
+      mapId: 20,
+      spawnX: 120,
+      spawnY: 200,
+      animTick: 0
+    },
+    {
+      id: 3,
+      index: 3,
       key: "entertainment",
       name: "Khu gi\u1EA3i tr\xED",
-      subtitle: "Tr\u01B0\u1EDDng \u0111ua th\xFA, s\xF2ng b\xE0i casino",
+      col: 14,
+      row: 12,
+      partId: 822,
       mapId: 9,
       spawnX: 120,
       spawnY: 200,
-      box: { x: 1090, y: 200, w: 340, h: 290 },
-      pin: { x: 1260, y: 345 },
-      badgeColor: "#a855f7"
+      animTick: 0
     },
     {
-      id: 7,
+      id: 4,
+      index: 4,
+      key: "shopping",
+      name: "Khu mua s\u1EAFm",
+      col: 23,
+      row: 12,
+      partId: 823,
+      mapId: 23,
+      spawnX: 120,
+      spawnY: 200,
+      animTick: 0
+    },
+    {
+      id: 5,
+      index: 5,
+      key: "park",
+      name: "C\xF4ng vi\xEAn",
+      col: 7,
+      row: 15,
+      partId: 824,
+      mapId: 11,
+      spawnX: 120,
+      spawnY: 200,
+      animTick: 0
+    },
+    {
+      id: 6,
+      index: 6,
       key: "suburbs",
       name: "Khu ngo\u1EA1i \xF4",
-      subtitle: "\u0110\u1ED3i c\u1ECF ven s\xF4ng, c\xE2u c\xE1 t\u1EF1 nhi\xEAn",
+      col: 17,
+      row: 21,
+      partId: 825,
       mapId: 17,
       spawnX: 120,
       spawnY: 200,
-      box: { x: 20, y: 660, w: 460, h: 220 },
-      pin: { x: 220, y: 760 },
-      badgeColor: "#84cc16"
+      animTick: 0
     },
     {
-      id: 8,
+      id: 7,
+      index: 7,
       key: "farm",
       name: "N\xF4ng tr\u1EA1i",
-      subtitle: "Ru\u1ED9ng \u0111\u1ED3ng tr\xF9 ph\xFA, ch\u0103n nu\xF4i",
-      mapId: 18,
+      col: 26,
+      row: 21,
+      partId: 826,
+      mapId: 10,
       spawnX: 120,
       spawnY: 200,
-      box: { x: 680, y: 660, w: 900, h: 220 },
-      pin: { x: 1100, y: 760 },
-      badgeColor: "#eab308"
+      animTick: 0
     }
   ];
   var WorldMapScreen = class extends GameScreen {
-    minimapImage;
-    bannerImage;
+    // Original Assets
+    ctImage;
+    // main/ct.png (tileset: 16 x 1121, 70 tiles)
+    kImage;
+    // effect/k.png (40x320: 8 frames of 40x40)
+    bpImage;
+    // effect/b_p.png (48x56: selection balloon pointer)
+    sicImage;
+    // effect/sIc.png (15x18: small unselected flag)
+    cl0Image;
+    // effect/cl0.png (34x17 cloud)
+    cl1Image;
+    // effect/cl1.png (54x24 cloud)
     skinPainter;
     font;
+    // Tilemap (citiMap: 34 cols x 26 rows = 884 bytes)
+    mapCols = 34;
+    // s in ea.java
+    mapRows = 26;
+    // t in ea.java
+    tileSize = 16;
+    // u in ea.java
+    tilemapData = new Uint8Array(884);
+    // Screen & Viewport
     screenW = 240;
     screenH = 320;
-    // Render viewport mapping
-    drawW = 1600;
-    drawH = 900;
-    offsetX = 0;
-    offsetY = 0;
-    scale = 1;
-    // Interaction state
-    hoveredRegion = null;
-    selectedRegion = null;
+    c = 0;
+    // offset X when screen > map
+    d = 0;
+    // offset Y when screen > map
+    maxCamX = 0;
+    // A in ea.java
+    maxCamY = 0;
+    // E in ea.java
+    // Camera & Smooth interpolation
+    camX = 0;
+    // f in ea.java
+    camY = 0;
+    // g in ea.java
+    targetCamX = 0;
+    // x in ea.java
+    targetCamY = 0;
+    // B in ea.java
+    camXVel = 0;
+    // y in ea.java
+    camYVel = 0;
+    // C in ea.java
+    // Drag & Swipe physics
+    isPointerDown = false;
+    pointerStartX = 0;
+    pointerStartY = 0;
+    camStartX = 0;
+    camStartY = 0;
+    dragVelocityX = 0;
+    dragVelocityY = 0;
+    lastDragX = 0;
+    lastDragY = 0;
+    hasDragged = false;
+    // Selected Region & Animations
+    regions = [];
+    selectedIdx = 3;
+    // ea.b().e = 3 (Khu giải trí) in ae.java line 1519
+    clouds = [];
+    animTick = 0;
+    // Transition & Action
     isTraveling = false;
     travelTicks = 0;
-    animTick = 0;
-    // UI elements
-    backButton = { x: 12, y: 8, w: 110, h: 26, isHovered: false };
+    selectedRegion = null;
     // Callbacks
     onSelectRegion;
     onBackToHome;
@@ -1726,22 +1782,53 @@
       super();
       this.skinPainter = skinPainter;
       this.font = font;
+      this.regions = WORLD_REGIONS.map((r) => ({ ...r }));
+      this.initClouds();
       this.loadAssets();
+    }
+    initClouds() {
+      this.clouds = [];
+      const totalW = this.mapCols * this.tileSize;
+      const totalH = this.mapRows * this.tileSize;
+      for (let i = 0; i < 7; i++) {
+        this.clouds.push({
+          x: Math.round(i * (totalW / 10) + 50),
+          y: Math.round(Math.floor(Math.random() * 10) * (totalH / 10) + 20),
+          type: Math.floor(Math.random() * 2)
+        });
+      }
     }
     async loadAssets() {
       try {
-        const [minimapRes, bannerRes] = await Promise.all([
-          fetch("/assets/maps/minimap.png"),
-          fetch("/assets/maps/minimapbanner.png")
+        const [citiMapRes, ctRes, kRes, bpRes, sicRes, cl0Res, cl1Res] = await Promise.all([
+          fetch("/assets/normal/citiMap"),
+          fetch("/assets/main/ct.png"),
+          fetch("/assets/effect/k.png"),
+          fetch("/assets/effect/b_p.png"),
+          fetch("/assets/effect/sIc.png"),
+          fetch("/assets/effect/cl0.png"),
+          fetch("/assets/effect/cl1.png")
         ]);
-        if (minimapRes.ok) {
-          const buf = await minimapRes.arrayBuffer();
-          this.minimapImage = await import_j2me_compat4.Image.createImage(new Uint8Array(buf));
+        if (citiMapRes.ok) {
+          const buf = await citiMapRes.arrayBuffer();
+          this.tilemapData = new Uint8Array(buf);
         }
-        if (bannerRes.ok) {
-          const buf = await bannerRes.arrayBuffer();
-          this.bannerImage = await import_j2me_compat4.Image.createImage(new Uint8Array(buf));
-        }
+        const [ctBuf, kBuf, bpBuf, sicBuf, cl0Buf, cl1Buf] = await Promise.all([
+          ctRes.arrayBuffer(),
+          kRes.arrayBuffer(),
+          bpRes.arrayBuffer(),
+          sicRes.arrayBuffer(),
+          cl0Res.arrayBuffer(),
+          cl1Res.arrayBuffer()
+        ]);
+        this.ctImage = await import_j2me_compat4.Image.createImage(new Uint8Array(ctBuf));
+        this.kImage = await import_j2me_compat4.Image.createImage(new Uint8Array(kBuf));
+        this.bpImage = await import_j2me_compat4.Image.createImage(new Uint8Array(bpBuf));
+        this.sicImage = await import_j2me_compat4.Image.createImage(new Uint8Array(sicBuf));
+        this.cl0Image = await import_j2me_compat4.Image.createImage(new Uint8Array(cl0Buf));
+        this.cl1Image = await import_j2me_compat4.Image.createImage(new Uint8Array(cl1Buf));
+        console.log("[WorldMapScreen] Loaded original Java ME CityMap assets successfully!");
+        this.centerOnSelected(true);
       } catch (e) {
         console.warn("[WorldMapScreen] Asset loading warning:", e);
       }
@@ -1749,321 +1836,433 @@
     onResize(width, height) {
       this.screenW = width;
       this.screenH = height;
-      if (width < 450) {
-        this.backButton.w = 65;
-      } else {
-        this.backButton.w = 110;
+      const totalW = this.mapCols * this.tileSize;
+      const totalH = this.mapRows * this.tileSize;
+      this.c = Math.max(0, Math.floor((width - totalW) / 2));
+      this.d = Math.max(0, Math.floor((height - 24 - totalH) / 2));
+      this.maxCamX = Math.max(0, totalW - width);
+      this.maxCamY = Math.max(0, totalH - height + 24);
+      this.clampTargetCamera();
+    }
+    centerOnSelected(immediate = false) {
+      const r = this.regions[this.selectedIdx];
+      if (!r) return;
+      this.targetCamX = Math.round(r.col * this.tileSize + 8 - this.screenW / 2);
+      this.targetCamY = Math.round(r.row * this.tileSize - this.screenH / 2);
+      this.clampTargetCamera();
+      if (immediate) {
+        this.camX = this.targetCamX;
+        this.camY = this.targetCamY;
+        this.camXVel = 0;
+        this.camYVel = 0;
       }
-      const topSafe = 44;
-      const bottomSafe = 36;
-      const sideMargin = 12;
-      const availW = Math.max(100, width - sideMargin * 2);
-      const availH = Math.max(100, height - topSafe - bottomSafe);
-      const baseW = 1600;
-      const baseH = 900;
-      const scale = Math.min(availW / baseW, availH / baseH);
-      this.scale = scale;
-      this.drawW = Math.round(baseW * scale);
-      this.drawH = Math.round(baseH * scale);
-      this.offsetX = Math.round(sideMargin + (availW - this.drawW) / 2);
-      this.offsetY = Math.round(topSafe + (availH - this.drawH) / 2);
+    }
+    clampTargetCamera() {
+      if (this.targetCamX < 0) this.targetCamX = 0;
+      if (this.targetCamX > this.maxCamX) this.targetCamX = this.maxCamX;
+      if (this.targetCamY < 0) this.targetCamY = 0;
+      if (this.targetCamY > this.maxCamY) this.targetCamY = this.maxCamY;
     }
     update() {
       this.animTick++;
       if (this.isTraveling) {
         this.travelTicks++;
-        if (this.travelTicks > 30 && this.selectedRegion && this.onSelectRegion) {
+        if (this.travelTicks > 24 && this.selectedRegion && this.onSelectRegion) {
           const reg = this.selectedRegion;
           this.selectedRegion = null;
           this.isTraveling = false;
           this.travelTicks = 0;
           this.onSelectRegion(reg);
         }
-      }
-    }
-    // Convert canvas pixel coords to 1600x900 map space
-    screenToMap(sx, sy) {
-      if (this.scale <= 0) return { x: 0, y: 0 };
-      return {
-        x: (sx - this.offsetX) / this.scale,
-        y: (sy - this.offsetY) / this.scale
-      };
-    }
-    // Convert 1600x900 map coords to screen canvas space
-    mapToScreen(mx, my) {
-      return {
-        x: Math.round(this.offsetX + mx * this.scale),
-        y: Math.round(this.offsetY + my * this.scale)
-      };
-    }
-    getRegionAt(mapX, mapY) {
-      for (const r of WORLD_REGIONS) {
-        if (mapX >= r.box.x && mapX <= r.box.x + r.box.w && mapY >= r.box.y && mapY <= r.box.y + r.box.h) {
-          return r;
-        }
-      }
-      for (const r of WORLD_REGIONS) {
-        const dx = mapX - r.pin.x;
-        const dy = mapY - r.pin.y;
-        if (dx * dx + dy * dy <= 2500) {
-          return r;
-        }
-      }
-      return null;
-    }
-    pointerMoved(x, y) {
-      if (this.isTraveling) return;
-      this.backButton.isHovered = x >= this.backButton.x && x <= this.backButton.x + this.backButton.w && y >= this.backButton.y && y <= this.backButton.y + this.backButton.h;
-      const mapPos = this.screenToMap(x, y);
-      this.hoveredRegion = this.getRegionAt(mapPos.x, mapPos.y);
-    }
-    pointerPressed(x, y) {
-      if (this.isTraveling) return;
-      if (x >= this.backButton.x && x <= this.backButton.x + this.backButton.w && y >= this.backButton.y && y <= this.backButton.y + this.backButton.h) {
-        if (this.onBackToHome) {
-          this.onBackToHome();
-        }
         return;
       }
-      const mapPos = this.screenToMap(x, y);
-      const region = this.getRegionAt(mapPos.x, mapPos.y);
-      if (region) {
-        this.selectedRegion = region;
+      for (let i = 0; i < this.regions.length; i++) {
+        if (i !== this.selectedIdx) {
+          this.regions[i].animTick = (this.regions[i].animTick + 1) % 9;
+        }
+      }
+      if (!this.isPointerDown) {
+        if (Math.abs(this.dragVelocityX) > 0.5) {
+          this.targetCamX += this.dragVelocityX;
+          this.dragVelocityX *= 0.85;
+        } else {
+          this.dragVelocityX = 0;
+        }
+        if (Math.abs(this.dragVelocityY) > 0.5) {
+          this.targetCamY += this.dragVelocityY;
+          this.dragVelocityY *= 0.85;
+        } else {
+          this.dragVelocityY = 0;
+        }
+        this.clampTargetCamera();
+      }
+      if (this.camY !== this.targetCamY) {
+        const diffY = this.targetCamY - this.camY << 2;
+        this.camYVel += diffY;
+        this.camY += this.camYVel >> 4;
+        this.camYVel &= 15;
+      }
+      if (this.camX !== this.targetCamX) {
+        const diffX = this.targetCamX - this.camX << 2;
+        this.camXVel += diffX;
+        this.camX += this.camXVel >> 4;
+        this.camXVel &= 15;
+      }
+      if (this.camX < 0) {
+        this.camX = 0;
+        this.targetCamX = 0;
+      }
+      if (this.camX > this.maxCamX) {
+        this.camX = this.maxCamX;
+        this.targetCamX = this.maxCamX;
+      }
+      if (this.camY < 0) {
+        this.camY = 0;
+        this.targetCamY = 0;
+      }
+      if (this.camY > this.maxCamY) {
+        this.camY = this.maxCamY;
+        this.targetCamY = this.maxCamY;
+      }
+      const totalW = this.mapCols * this.tileSize;
+      const totalH = this.mapRows * this.tileSize;
+      for (const cloud of this.clouds) {
+        cloud.x -= cloud.type + (this.animTick % 5 === 1 ? 1 : 0);
+        if (cloud.x < -this.c - 50) {
+          cloud.x = this.c + Math.floor(Math.random() * 4) * 50 + totalW;
+          cloud.y = Math.floor(Math.random() * 10) * Math.floor(totalH / 10) + 10;
+          cloud.type = Math.floor(Math.random() * 2);
+        }
+      }
+    }
+    /**
+     * Directional arrow key navigation (o.java lines 12-73)
+     */
+    handleKeyNav(direction) {
+      if (this.isTraveling) return;
+      let n2 = this.selectedIdx;
+      if (direction === "down") {
+        if (n2 === 0) n2 = 5;
+        else if (n2 === 1) n2 = 4;
+        else if (n2 === 3) n2 = 6;
+        else if (n2 === 2) n2 = 7;
+        else if (n2 === 4) n2 = 7;
+      } else if (direction === "up") {
+        if (n2 === 4) n2 = 1;
+        else if (n2 === 5) n2 = 0;
+        else if (n2 === 6) n2 = 3;
+        else if (n2 === 7) n2 = 4;
+        else if (n2 === 3) n2 = 0;
+      } else if (direction === "right") {
+        if (n2 === 0) n2 = 3;
+        else if (n2 === 1) n2 = 2;
+        else if (n2 === 3) n2 = 4;
+        else if (n2 === 4) n2 = 2;
+        else if (n2 === 6) n2 = 7;
+        else if (n2 === 5) n2 = 3;
+      } else if (direction === "left") {
+        if (n2 === 1) n2 = 3;
+        else if (n2 === 2) n2 = 1;
+        else if (n2 === 3) n2 = 0;
+        else if (n2 === 6) n2 = 5;
+        else if (n2 === 7) n2 = 6;
+        else if (n2 === 4) n2 = 3;
+      }
+      if (n2 !== this.selectedIdx) {
+        this.selectedIdx = n2;
+        this.centerOnSelected();
+      }
+    }
+    confirmSelection() {
+      if (this.isTraveling) return;
+      const r = this.regions[this.selectedIdx];
+      if (r) {
+        this.selectedRegion = r;
         this.isTraveling = true;
         this.travelTicks = 0;
       }
     }
+    keyPressed(keyCode) {
+      if (this.isTraveling) return;
+      switch (keyCode) {
+        case 50:
+        // Key 2 / UP
+        case -1:
+        case 38:
+          this.handleKeyNav("up");
+          break;
+        case 56:
+        // Key 8 / DOWN
+        case -2:
+        case 40:
+          this.handleKeyNav("down");
+          break;
+        case 52:
+        // Key 4 / LEFT
+        case -3:
+        case 37:
+          this.handleKeyNav("left");
+          break;
+        case 54:
+        // Key 6 / RIGHT
+        case -4:
+        case 39:
+          this.handleKeyNav("right");
+          break;
+        case 13:
+        // ENTER / FIRE / KEY 5
+        case 53:
+        case -7:
+          this.confirmSelection();
+          break;
+        case -6:
+          if (this.onBackToHome) {
+            this.onBackToHome();
+          }
+          break;
+      }
+    }
+    pointerPressed(x, y) {
+      if (this.isTraveling) return;
+      const softkeyY = this.screenH - 24;
+      if (y >= softkeyY) {
+        if (x < 70) {
+          if (this.onBackToHome) {
+            this.onBackToHome();
+          }
+          return;
+        }
+        if (x >= Math.floor(this.screenW / 2) - 40 && x <= Math.floor(this.screenW / 2) + 40) {
+          this.confirmSelection();
+          return;
+        }
+      }
+      for (let i = 0; i < this.regions.length; i++) {
+        const r = this.regions[i];
+        const boxX = this.c + r.col * this.tileSize + Math.floor(this.tileSize / 2) - 24 - this.camX;
+        const boxY = this.d + r.row * this.tileSize - 56 - this.camY;
+        const boxW = 48;
+        const boxH = 56;
+        if (x >= boxX && x <= boxX + boxW && y >= boxY && y <= boxY + boxH) {
+          if (this.selectedIdx === i) {
+            this.confirmSelection();
+          } else {
+            this.selectedIdx = i;
+            this.centerOnSelected();
+          }
+          return;
+        }
+      }
+      this.isPointerDown = true;
+      this.pointerStartX = x;
+      this.pointerStartY = y;
+      this.camStartX = this.camX;
+      this.camStartY = this.camY;
+      this.lastDragX = x;
+      this.lastDragY = y;
+      this.dragVelocityX = 0;
+      this.dragVelocityY = 0;
+      this.hasDragged = false;
+    }
+    pointerDragged(x, y) {
+      if (!this.isPointerDown || this.isTraveling) return;
+      const dx = x - this.pointerStartX;
+      const dy = y - this.pointerStartY;
+      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
+        this.hasDragged = true;
+      }
+      this.dragVelocityX = this.lastDragX - x;
+      this.dragVelocityY = this.lastDragY - y;
+      this.lastDragX = x;
+      this.lastDragY = y;
+      this.targetCamX = this.camStartX - dx;
+      this.targetCamY = this.camStartY - dy;
+      this.clampTargetCamera();
+    }
+    pointerReleased(x, y) {
+      this.isPointerDown = false;
+    }
+    pointerMoved(x, y) {
+    }
     paint(g) {
       const ctx = g.ctx;
-      g.setColor(988970);
+      g.setColor(0);
       g.fillRect(0, 0, this.screenW, this.screenH);
-      if (this.minimapImage) {
-        g.drawScaledImage(
-          this.minimapImage,
-          this.offsetX,
-          this.offsetY,
-          this.drawW,
-          this.drawH
-        );
-      }
-      for (const r of WORLD_REGIONS) {
-        const isHovered = this.hoveredRegion?.id === r.id;
-        const isSelected = this.selectedRegion?.id === r.id;
-        const boxS = {
-          x: Math.round(this.offsetX + r.box.x * this.scale),
-          y: Math.round(this.offsetY + r.box.y * this.scale),
-          w: Math.round(r.box.w * this.scale),
-          h: Math.round(r.box.h * this.scale)
-        };
-        const pinS = this.mapToScreen(r.pin.x, r.pin.y);
-        if (ctx) {
-          if (isHovered || isSelected) {
-            const alpha = 0.15 + Math.sin(this.animTick * 0.2) * 0.08;
-            ctx.save();
-            ctx.fillStyle = r.badgeColor + Math.round(alpha * 255).toString(16).padStart(2, "0");
-            ctx.fillRect(boxS.x, boxS.y, boxS.w, boxS.h);
-            ctx.strokeStyle = r.badgeColor;
-            ctx.lineWidth = Math.max(2, Math.round(2 * this.scale));
-            ctx.strokeRect(boxS.x, boxS.y, boxS.w, boxS.h);
-            ctx.restore();
+      const transX = this.c - this.camX;
+      const transY = this.d - this.camY;
+      g.translate(transX, transY);
+      if (this.ctImage && this.tilemapData.length >= 884) {
+        const minCol = Math.max(0, Math.floor((this.camX - this.c) / this.tileSize));
+        const maxCol = Math.min(this.mapCols - 1, Math.ceil((this.camX - this.c + this.screenW) / this.tileSize));
+        const minRow = Math.max(0, Math.floor((this.camY - this.d) / this.tileSize));
+        const maxRow = Math.min(this.mapRows - 1, Math.ceil((this.camY - this.d + this.screenH) / this.tileSize));
+        for (let row = minRow; row <= maxRow; row++) {
+          for (let col = minCol; col <= maxCol; col++) {
+            const tileVal = this.tilemapData[row * this.mapCols + col];
+            const sy = tileVal % 70 * this.tileSize;
+            g.drawRegion(
+              this.ctImage,
+              0,
+              sy,
+              this.tileSize,
+              this.tileSize,
+              0,
+              col * this.tileSize,
+              row * this.tileSize,
+              0
+            );
           }
-          const pulseRadius = (this.animTick * 1.5 + r.id * 10) % 30;
-          const pulseAlpha = Math.max(0, 1 - pulseRadius / 30);
-          ctx.save();
-          ctx.beginPath();
-          ctx.arc(pinS.x, pinS.y, pulseRadius, 0, Math.PI * 2);
-          ctx.strokeStyle = `rgba(255, 255, 255, ${pulseAlpha * 0.7})`;
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          const pinSize = isHovered ? 12 : 9;
-          ctx.beginPath();
-          ctx.arc(pinS.x, pinS.y, pinSize, 0, Math.PI * 2);
-          ctx.fillStyle = r.badgeColor;
-          ctx.fill();
-          ctx.strokeStyle = "#ffffff";
-          ctx.lineWidth = 2;
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.arc(pinS.x, pinS.y, isHovered ? 5 : 3, 0, Math.PI * 2);
-          ctx.fillStyle = "#ffffff";
-          ctx.fill();
-          ctx.restore();
-          ctx.save();
-          ctx.font = "bold 11px Arial, sans-serif";
-          const nameText = r.name;
-          const textMetrics = ctx.measureText(nameText);
-          const pillW = textMetrics.width + 16;
-          const pillH = 20;
-          const pillX = pinS.x - Math.floor(pillW / 2);
-          const isBottomRegion = r.pin.y > 650;
-          const pillY = isBottomRegion ? pinS.y - pillH - 12 : pinS.y + 12;
-          ctx.fillStyle = isHovered ? "rgba(15, 23, 42, 0.95)" : "rgba(15, 23, 42, 0.8)";
-          ctx.strokeStyle = isHovered ? r.badgeColor : "#94a3b8";
-          ctx.lineWidth = isHovered ? 2 : 1;
-          ctx.beginPath();
-          if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(pillX, pillY, pillW, pillH, 6);
-          } else {
-            ctx.rect(pillX, pillY, pillW, pillH);
-          }
-          ctx.fill();
-          ctx.stroke();
-          ctx.fillStyle = isHovered ? "#ffffff" : "#e2e8f0";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillText(nameText, pinS.x, pillY + 10);
-          ctx.restore();
         }
       }
-      const activeRegion = this.selectedRegion || this.hoveredRegion;
-      if (activeRegion && ctx) {
-        const pinS = this.mapToScreen(activeRegion.pin.x, activeRegion.pin.y);
-        const bannerW = 200;
-        const bannerH = 56;
-        const isBottom = activeRegion.pin.y > 650;
-        let bx = pinS.x - Math.floor(bannerW / 2);
-        let by = isBottom ? pinS.y - bannerH - 35 : pinS.y - 75;
-        bx = Math.max(10, Math.min(this.screenW - bannerW - 10, bx));
-        by = Math.max(48, Math.min(this.screenH - 36 - bannerH, by));
-        ctx.save();
-        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
-        ctx.shadowBlur = 10;
-        ctx.shadowOffsetY = 4;
-        ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
-        ctx.strokeStyle = activeRegion.badgeColor;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === "function") {
-          ctx.roundRect(bx, by, bannerW, bannerH, 8);
+      for (let i = 0; i < this.regions.length; i++) {
+        const r = this.regions[i];
+        const pinCenterX = r.col * this.tileSize + Math.floor(this.tileSize / 2);
+        const pinBottomY = r.row * this.tileSize;
+        if (i === this.selectedIdx) {
+          if (this.bpImage) {
+            g.drawImage(this.bpImage, pinCenterX - 24, pinBottomY - 56, 0);
+          }
+          if (this.kImage) {
+            g.drawRegion(
+              this.kImage,
+              0,
+              i * 40,
+              40,
+              40,
+              0,
+              pinCenterX - 20,
+              pinBottomY - 12 - 40,
+              0
+            );
+          }
         } else {
-          ctx.rect(bx, by, bannerW, bannerH);
+          const bob = Math.floor(r.animTick / 3);
+          if (this.sicImage) {
+            g.drawImage(this.sicImage, pinCenterX - 7, pinBottomY - bob - 18, 0);
+          }
         }
-        ctx.fill();
-        ctx.stroke();
-        ctx.restore();
-        ctx.save();
-        ctx.textAlign = "center";
-        ctx.font = "bold 13px Arial, sans-serif";
-        ctx.fillStyle = activeRegion.badgeColor;
-        ctx.fillText(activeRegion.name.toUpperCase(), bx + bannerW / 2, by + 18);
-        ctx.font = "11px Arial, sans-serif";
-        ctx.fillStyle = "#cbd5e1";
-        ctx.fillText(activeRegion.subtitle, bx + bannerW / 2, by + 34);
-        ctx.font = "italic 10px Arial, sans-serif";
-        ctx.fillStyle = "#facc15";
-        ctx.fillText("\u25B6 Nh\u1EA5p \u0111\u1EC3 di chuy\u1EC3n \u0111\u1EBFn \u0111\xE2y", bx + bannerW / 2, by + 48);
-        ctx.restore();
       }
+      for (let i = 0; i < this.regions.length; i++) {
+        const r = this.regions[i];
+        let n4 = r.col * this.tileSize;
+        let n5 = r.row * this.tileSize;
+        if (n5 < this.camY + 50) n5 = this.camY + 50;
+        if (n5 > this.camY + this.screenH - 20) n5 = this.camY + this.screenH - 20;
+        if (n4 < this.camX + 20) n4 = this.camX + 20;
+        if (n4 > this.camX + this.screenW - 47) n4 = this.camX + this.screenW - 47;
+        const isSelected = i === this.selectedIdx;
+        const bob = Math.floor(r.animTick / 3);
+        const labelY = n5 - (isSelected ? 70 : 35) - (isSelected ? 0 : bob);
+        const labelX = n4 + 10;
+        this.renderTextWithOutline(g, r.name, labelX, labelY, isSelected);
+      }
+      for (const cloud of this.clouds) {
+        if (cloud.x > this.camX - 30 && cloud.x < this.camX + 30 + this.screenW && cloud.y > this.camY - 20 && cloud.y < this.camY + 20 + this.screenH) {
+          const cloudImg = cloud.type === 0 ? this.cl0Image : this.cl1Image;
+          if (cloudImg) {
+            g.drawImage(cloudImg, cloud.x, cloud.y, 0);
+          }
+        }
+      }
+      g.translate(-transX, -transY);
+      this.renderHud(g);
+      if (this.isTraveling && this.selectedRegion) {
+        this.renderTravelingPopup(g);
+      }
+    }
+    renderTextWithOutline(g, text, x, y, isSelected) {
+      const ctx = g.ctx;
       if (ctx) {
         ctx.save();
-        const grad = ctx.createLinearGradient(0, 0, 0, 42);
-        grad.addColorStop(0, "rgba(15, 23, 42, 0.95)");
-        grad.addColorStop(1, "rgba(15, 23, 42, 0.7)");
-        ctx.fillStyle = grad;
-        ctx.fillRect(0, 0, this.screenW, 42);
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.3)";
-        ctx.lineWidth = 1;
-        ctx.beginPath();
-        ctx.moveTo(0, 42);
-        ctx.lineTo(this.screenW, 42);
-        ctx.stroke();
-        const isCompact = this.screenW < 450;
-        const titleText = isCompact ? "CH\u1ECCN KHU V\u1EF0C" : "B\u1EA2N \u0110\u1ED2 TH\u1EBE GI\u1EDAI - CH\u1ECCN KHU V\u1EF0C";
-        const titleX = isCompact ? Math.round(this.backButton.x + this.backButton.w + (this.screenW - (this.backButton.x + this.backButton.w)) / 2) : Math.round(this.screenW / 2);
-        ctx.font = isCompact ? "bold 12px Arial, sans-serif" : "bold 14px Arial, sans-serif";
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(titleText, titleX, 21);
-        const bb = this.backButton;
-        ctx.fillStyle = bb.isHovered ? "rgba(239, 68, 68, 0.85)" : "rgba(30, 41, 59, 0.9)";
-        ctx.strokeStyle = bb.isHovered ? "#ffffff" : "#64748b";
-        ctx.lineWidth = 1.5;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === "function") {
-          ctx.roundRect(bb.x, bb.y, bb.w, bb.h, 6);
-        } else {
-          ctx.rect(bb.x, bb.y, bb.w, bb.h);
-        }
-        ctx.fill();
-        ctx.stroke();
         ctx.font = "bold 11px Arial, sans-serif";
-        ctx.fillStyle = "#ffffff";
         ctx.textAlign = "center";
         ctx.textBaseline = "middle";
-        ctx.fillText(isCompact ? "\u25C0 V\u1EC0" : "\u25C0 TRANG CH\u1EE6", bb.x + bb.w / 2, bb.y + bb.h / 2);
+        ctx.strokeStyle = "#000000";
+        ctx.lineWidth = 3;
+        ctx.strokeText(text, x, y);
+        ctx.fillStyle = isSelected ? "#ffffff" : "#f8fafc";
+        ctx.fillText(text, x, y);
         ctx.restore();
+      } else if (this.font) {
+        this.font.drawString(g, text, x, y, 2);
       }
+    }
+    renderHud(g) {
+      const ctx = g.ctx;
       if (ctx) {
-        ctx.save();
-        const footerH = 28;
-        const footerY = this.screenH - footerH;
-        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
-        ctx.fillRect(0, footerY, this.screenW, footerH);
-        ctx.strokeStyle = "rgba(56, 189, 248, 0.2)";
-        ctx.beginPath();
-        ctx.moveTo(0, footerY);
-        ctx.lineTo(this.screenW, footerY);
-        ctx.stroke();
-        const isCompact = this.screenW < 450;
-        const hintText = isCompact ? "Ch\u1EA1m \u0111\u1ECBa \u0111i\u1EC3m tr\xEAn b\u1EA3n \u0111\u1ED3 \u0111\u1EC3 di chuy\u1EC3n" : "R\xEA chu\u1ED9t ho\u1EB7c ch\u1EA1m v\xE0o \u0111\u1ECBa \u0111i\u1EC3m tr\xEAn b\u1EA3n \u0111\u1ED3 \u0111\u1EC3 di chuy\u1EC3n \u0111\u1EBFn khu v\u1EF1c t\u01B0\u01A1ng \u1EE9ng";
-        ctx.font = isCompact ? "10px Arial, sans-serif" : "11px Arial, sans-serif";
-        ctx.fillStyle = "#94a3b8";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText(
-          hintText,
-          this.screenW / 2,
-          footerY + footerH / 2
-        );
-        ctx.restore();
-      }
-      if (this.isTraveling && this.selectedRegion && ctx) {
         ctx.save();
         ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-        ctx.fillRect(0, 0, this.screenW, this.screenH);
-        const modalW = 280;
-        const modalH = 120;
-        const modalX = Math.floor((this.screenW - modalW) / 2);
-        const modalY = Math.floor((this.screenH - modalH) / 2);
-        ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
-        ctx.strokeStyle = this.selectedRegion.badgeColor;
-        ctx.lineWidth = 2;
-        ctx.beginPath();
-        if (typeof ctx.roundRect === "function") {
-          ctx.roundRect(modalX, modalY, modalW, modalH, 10);
-        } else {
-          ctx.rect(modalX, modalY, modalW, modalH);
-        }
-        ctx.fill();
-        ctx.stroke();
-        const dots = ".".repeat(Math.floor(this.animTick / 5) % 4);
-        ctx.textAlign = "center";
-        ctx.font = "bold 14px Arial, sans-serif";
+        ctx.fillRect(4, 4, 26, 14);
+        ctx.strokeStyle = "#64748b";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(4, 4, 26, 14);
+        ctx.font = "bold 10px Arial, sans-serif";
         ctx.fillStyle = "#ffffff";
-        ctx.fillText(
-          `\u0110ang di chuy\u1EC3n \u0111\u1EBFn ${this.selectedRegion.name}${dots}`,
-          this.screenW / 2,
-          modalY + 40
-        );
-        ctx.font = "12px Arial, sans-serif";
-        ctx.fillStyle = "#94a3b8";
-        ctx.fillText(
-          `\u0110ang k\u1EBFt n\u1ED1i m\xE1y ch\u1EE7 & t\u1EA3i b\u1EA3n \u0111\u1ED3 (Map ${this.selectedRegion.mapId})...`,
-          this.screenW / 2,
-          modalY + 70
-        );
-        const barW = 200;
-        const barH = 6;
-        const barX = Math.floor((this.screenW - barW) / 2);
-        const barY = modalY + 90;
-        ctx.fillStyle = "#334155";
-        ctx.fillRect(barX, barY, barW, barH);
-        const progress = Math.min(1, this.travelTicks / 30);
-        ctx.fillStyle = this.selectedRegion.badgeColor;
-        ctx.fillRect(barX, barY, Math.round(barW * progress), barH);
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("12+", 17, 11);
         ctx.restore();
       }
+      if (ctx) {
+        ctx.save();
+        ctx.font = "bold 11px monospace, sans-serif";
+        ctx.fillStyle = "#22c55e";
+        ctx.textAlign = "right";
+        ctx.textBaseline = "top";
+        ctx.fillText("2.5.8", this.screenW - 6, 6);
+        ctx.restore();
+      }
+      const barH = 22;
+      const barY = this.screenH - barH;
+      if (ctx) {
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+        ctx.fillRect(0, barY, this.screenW, barH);
+        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
+        ctx.lineWidth = 1;
+        ctx.strokeRect(0, barY, this.screenW, barH);
+        ctx.font = "bold 12px Arial, sans-serif";
+        ctx.textBaseline = "middle";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "left";
+        ctx.fillText("Menu", 8, barY + barH / 2);
+        ctx.fillStyle = "#fde047";
+        ctx.textAlign = "center";
+        ctx.fillText("Ch\u1ECDn", Math.floor(this.screenW / 2), barY + barH / 2);
+        ctx.restore();
+      }
+    }
+    renderTravelingPopup(g) {
+      const ctx = g.ctx;
+      if (!ctx || !this.selectedRegion) return;
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.fillRect(0, 0, this.screenW, this.screenH);
+      const popW = Math.min(220, this.screenW - 30);
+      const popH = 64;
+      const popX = Math.floor((this.screenW - popW) / 2);
+      const popY = Math.floor((this.screenH - popH) / 2);
+      ctx.fillStyle = "#0f172a";
+      ctx.fillRect(popX, popY, popW, popH);
+      ctx.strokeStyle = "#38bdf8";
+      ctx.lineWidth = 2;
+      ctx.strokeRect(popX, popY, popW, popH);
+      const dots = ".".repeat(Math.floor(this.travelTicks / 5) % 4);
+      ctx.font = "bold 12px Arial, sans-serif";
+      ctx.fillStyle = "#ffffff";
+      ctx.textAlign = "center";
+      ctx.textBaseline = "middle";
+      ctx.fillText(`\u0110ang v\xE0o ${this.selectedRegion.name}${dots}`, popX + popW / 2, popY + 24);
+      const barW = popW - 40;
+      const barH = 6;
+      const barX = popX + 20;
+      const barY = popY + 44;
+      ctx.fillStyle = "#1e293b";
+      ctx.fillRect(barX, barY, barW, barH);
+      const progress = Math.min(1, this.travelTicks / 24);
+      ctx.fillStyle = "#38bdf8";
+      ctx.fillRect(barX, barY, Math.round(barW * progress), barH);
+      ctx.restore();
     }
   };
 

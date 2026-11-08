@@ -120,8 +120,8 @@ async function run() {
     await new Promise(r => setTimeout(r, 1500)); // wait for minimap images to fully load & draw
     await captureScreenshot(ws, 'worldmap_step2_selection_screen.png');
 
-    // 4. Hover over "Công viên" region pin
-    console.log('[Step 4] Hovering over "Công viên" (pin around 265, 540 in 1600x900 map)...');
+    // 4. Hover over currently selected region or click "Chọn" softkey
+    console.log('[Step 4] Checking selected region on authentic CityMap...');
     // Find canvas bounds and calculate screen coordinate of pin
     const canvasInfo = await sendCDP(ws, 'Runtime.evaluate', {
       expression: `
@@ -130,20 +130,21 @@ async function run() {
           const rect = canvas.getBoundingClientRect();
           const screen = window.gameMidlet?.worldMapScreen;
           if (!screen) return null;
-          // pin: x: 265, y: 540
-          const sPos = screen.mapToScreen(265, 540);
+          const r = screen.regions[screen.selectedIdx];
+          const canvasX = screen.c + r.col * screen.tileSize + 8 - screen.camX;
+          const canvasY = screen.d + r.row * screen.tileSize - 28 - screen.camY;
           const scaleX = rect.width / canvas.width;
           const scaleY = rect.height / canvas.height;
           return {
-            clientX: rect.left + sPos.x * scaleX,
-            clientY: rect.top + sPos.y * scaleY
+            clientX: rect.left + canvasX * scaleX,
+            clientY: rect.top + canvasY * scaleY
           };
         })()
       `,
       returnByValue: true
     });
 
-    console.log('Hover coords on canvas:', canvasInfo?.result?.value);
+    console.log('Target coords on canvas:', canvasInfo?.result?.value);
     if (canvasInfo?.result?.value) {
       const { clientX, clientY } = canvasInfo.result.value;
       await sendCDP(ws, 'Input.dispatchMouseEvent', {
@@ -154,8 +155,8 @@ async function run() {
       await new Promise(r => setTimeout(r, 1000));
       await captureScreenshot(ws, 'worldmap_step3_hover_park.png');
 
-      // 5. Click on "Công viên" to travel
-      console.log('[Step 5] Clicking "Công viên" region...');
+      // 5. Click on selected region pin to travel
+      console.log('[Step 5] Clicking selected region pin to travel...');
       await sendCDP(ws, 'Input.dispatchMouseEvent', {
         type: 'mousePressed',
         button: 'left',
