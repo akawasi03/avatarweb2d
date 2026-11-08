@@ -37,6 +37,7 @@ export class NetworkSession {
   public cipher: SessionCipher;
   public isConnected = false;
   public isHandshakeDone = false;
+  public myUserId = 0;
 
   private decoder: PacketStreamDecoder;
   private listeners: { [event: string]: Listener[] } = {};
@@ -172,6 +173,7 @@ export class NetworkSession {
       const star = r.readByte();
 
       console.log(`[Network] Login Success! UserID=${userId}, Xu=${xu}, Luong=${luong}`);
+      this.myUserId = userId;
       this.lastLoginCredentials = null;
       this.emit('login_success', {
         id: userId,
@@ -777,7 +779,7 @@ export class NetworkSession {
 
   // --- Farm System (Nông trại) ---
 
-  public sendJoinFarm(userId: number): void {
+  public sendJoinFarm(userId: number = this.myUserId): void {
     this.sendGetHandler(10);
     const msg = new Message(Cmd.JOIN);
     msg.writer().writeInt(userId);

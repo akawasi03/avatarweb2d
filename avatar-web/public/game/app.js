@@ -57,7 +57,7 @@
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Graphics = void 0;
       var Sprite_js_1 = require_Sprite();
-      var Graphics7 = class _Graphics {
+      var Graphics8 = class _Graphics {
         ctx;
         static HCENTER = 1;
         static VCENTER = 2;
@@ -231,6 +231,12 @@
             this.ctx.drawImage(image.element, 0, 0, image.width, image.height, pt.x, pt.y, image.width, image.height);
           }
         }
+        drawScaledImage(image, x, y, width, height, anchor = 0) {
+          const pt = this.calculateAnchor(x, y, width, height, anchor);
+          if (this.ctx && image.element) {
+            this.ctx.drawImage(image.element, 0, 0, image.width, image.height, pt.x, pt.y, width, height);
+          }
+        }
         drawRegion(image, x_src, y_src, width, height, transform, x_dst, y_dst, anchor = 0) {
           let destW = width;
           let destH = height;
@@ -277,7 +283,7 @@
           this.ctx.restore();
         }
       };
-      exports.Graphics = Graphics7;
+      exports.Graphics = Graphics8;
     }
   });
 
@@ -287,7 +293,7 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Image = void 0;
-      var Image8 = class _Image {
+      var Image9 = class _Image {
         width;
         height;
         data;
@@ -351,7 +357,7 @@
           return new _Image(width, height, bytes);
         }
       };
-      exports.Image = Image8;
+      exports.Image = Image9;
     }
   });
 
@@ -1158,7 +1164,7 @@
   });
 
   // packages/game-client/src/core/GameMidlet.ts
-  var import_j2me_compat5 = __toESM(require_dist());
+  var import_j2me_compat6 = __toESM(require_dist());
 
   // packages/game-client/src/runtime/GameCanvas.ts
   var import_j2me_compat = __toESM(require_dist());
@@ -1592,6 +1598,466 @@
     }
   };
 
+  // packages/game-client/src/gameplay/WorldMapScreen.ts
+  var import_j2me_compat4 = __toESM(require_dist());
+  var WORLD_REGIONS = [
+    {
+      id: 1,
+      key: "residential",
+      name: "Khu nh\xE0 \u1EDF",
+      subtitle: "Khu d\xE2n c\u01B0, bi\u1EC7t th\u1EF1, nh\xE0 ri\xEAng",
+      mapId: 22,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 25, y: 10, w: 440, h: 260 },
+      pin: { x: 240, y: 140 },
+      badgeColor: "#38bdf8"
+    },
+    {
+      id: 2,
+      key: "airport",
+      name: "S\xE2n bay",
+      subtitle: "\u0110\u01B0\u1EDDng b\u0103ng, phi tr\u01B0\u1EDDng Hawaii",
+      mapId: 25,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 1140, y: 15, w: 440, h: 165 },
+      pin: { x: 1360, y: 95 },
+      badgeColor: "#f43f5e"
+    },
+    {
+      id: 3,
+      key: "ecological",
+      name: "Khu sinh th\xE1i",
+      subtitle: "H\u1ED3 sinh th\xE1i, \u0111\u1EA3o ng\u1ECDc, c\xE2u c\xE1",
+      mapId: 13,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 470, y: 10, w: 260, h: 260 },
+      pin: { x: 600, y: 140 },
+      badgeColor: "#10b981"
+    },
+    {
+      id: 4,
+      key: "park",
+      name: "C\xF4ng vi\xEAn",
+      subtitle: "V\u01B0\u1EDDn hoa trung t\xE2m, t\u01B0\u1EE3ng \u0111\xE0i",
+      mapId: 11,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 150, y: 390, w: 230, h: 300 },
+      pin: { x: 265, y: 540 },
+      badgeColor: "#22c55e"
+    },
+    {
+      id: 5,
+      key: "shopping",
+      name: "Khu mua s\u1EAFm",
+      subtitle: "Ph\u1ED1 th\u01B0\u01A1ng m\u1EA1i, c\u1EEDa h\xE0ng, ATM",
+      mapId: 23,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 390, y: 280, w: 680, h: 310 },
+      pin: { x: 730, y: 435 },
+      badgeColor: "#f59e0b"
+    },
+    {
+      id: 6,
+      key: "entertainment",
+      name: "Khu gi\u1EA3i tr\xED",
+      subtitle: "Tr\u01B0\u1EDDng \u0111ua th\xFA, s\xF2ng b\xE0i casino",
+      mapId: 9,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 1090, y: 200, w: 340, h: 290 },
+      pin: { x: 1260, y: 345 },
+      badgeColor: "#a855f7"
+    },
+    {
+      id: 7,
+      key: "suburbs",
+      name: "Khu ngo\u1EA1i \xF4",
+      subtitle: "\u0110\u1ED3i c\u1ECF ven s\xF4ng, c\xE2u c\xE1 t\u1EF1 nhi\xEAn",
+      mapId: 17,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 20, y: 700, w: 440, h: 180 },
+      pin: { x: 240, y: 790 },
+      badgeColor: "#84cc16"
+    },
+    {
+      id: 8,
+      key: "farm",
+      name: "N\xF4ng tr\u1EA1i",
+      subtitle: "Ru\u1ED9ng \u0111\u1ED3ng tr\xF9 ph\xFA, ch\u0103n nu\xF4i",
+      mapId: 18,
+      spawnX: 120,
+      spawnY: 200,
+      box: { x: 700, y: 700, w: 850, h: 190 },
+      pin: { x: 1125, y: 795 },
+      badgeColor: "#eab308"
+    }
+  ];
+  var WorldMapScreen = class extends GameScreen {
+    minimapImage;
+    bannerImage;
+    skinPainter;
+    font;
+    screenW = 240;
+    screenH = 320;
+    // Render viewport mapping
+    drawW = 1600;
+    drawH = 900;
+    offsetX = 0;
+    offsetY = 0;
+    scale = 1;
+    // Interaction state
+    hoveredRegion = null;
+    selectedRegion = null;
+    isTraveling = false;
+    travelTicks = 0;
+    animTick = 0;
+    // UI elements
+    backButton = { x: 12, y: 8, w: 110, h: 26, isHovered: false };
+    // Callbacks
+    onSelectRegion;
+    onBackToHome;
+    constructor(skinPainter, font) {
+      super();
+      this.skinPainter = skinPainter;
+      this.font = font;
+      this.loadAssets();
+    }
+    async loadAssets() {
+      try {
+        const [minimapRes, bannerRes] = await Promise.all([
+          fetch("/assets/maps/minimap.png"),
+          fetch("/assets/maps/minimapbanner.png")
+        ]);
+        if (minimapRes.ok) {
+          const buf = await minimapRes.arrayBuffer();
+          this.minimapImage = await import_j2me_compat4.Image.createImage(new Uint8Array(buf));
+        }
+        if (bannerRes.ok) {
+          const buf = await bannerRes.arrayBuffer();
+          this.bannerImage = await import_j2me_compat4.Image.createImage(new Uint8Array(buf));
+        }
+      } catch (e) {
+        console.warn("[WorldMapScreen] Asset loading warning:", e);
+      }
+    }
+    onResize(width, height) {
+      this.screenW = width;
+      this.screenH = height;
+      const baseW = 1600;
+      const baseH = 900;
+      const mapAspect = baseW / baseH;
+      const screenAspect = width / height;
+      if (screenAspect > mapAspect) {
+        this.drawH = height;
+        this.drawW = Math.round(height * mapAspect);
+        this.offsetX = Math.round((width - this.drawW) / 2);
+        this.offsetY = 0;
+      } else {
+        this.drawW = width;
+        this.drawH = Math.round(width / mapAspect);
+        this.offsetX = 0;
+        this.offsetY = Math.round((height - this.drawH) / 2);
+      }
+      this.scale = this.drawW / baseW;
+    }
+    update() {
+      this.animTick++;
+      if (this.isTraveling) {
+        this.travelTicks++;
+        if (this.travelTicks > 30 && this.selectedRegion && this.onSelectRegion) {
+          const reg = this.selectedRegion;
+          this.selectedRegion = null;
+          this.isTraveling = false;
+          this.travelTicks = 0;
+          this.onSelectRegion(reg);
+        }
+      }
+    }
+    // Convert canvas pixel coords to 1600x900 map space
+    screenToMap(sx, sy) {
+      if (this.scale <= 0) return { x: 0, y: 0 };
+      return {
+        x: (sx - this.offsetX) / this.scale,
+        y: (sy - this.offsetY) / this.scale
+      };
+    }
+    // Convert 1600x900 map coords to screen canvas space
+    mapToScreen(mx, my) {
+      return {
+        x: Math.round(this.offsetX + mx * this.scale),
+        y: Math.round(this.offsetY + my * this.scale)
+      };
+    }
+    getRegionAt(mapX, mapY) {
+      for (const r of WORLD_REGIONS) {
+        if (mapX >= r.box.x && mapX <= r.box.x + r.box.w && mapY >= r.box.y && mapY <= r.box.y + r.box.h) {
+          return r;
+        }
+      }
+      for (const r of WORLD_REGIONS) {
+        const dx = mapX - r.pin.x;
+        const dy = mapY - r.pin.y;
+        if (dx * dx + dy * dy <= 2500) {
+          return r;
+        }
+      }
+      return null;
+    }
+    pointerMoved(x, y) {
+      if (this.isTraveling) return;
+      this.backButton.isHovered = x >= this.backButton.x && x <= this.backButton.x + this.backButton.w && y >= this.backButton.y && y <= this.backButton.y + this.backButton.h;
+      const mapPos = this.screenToMap(x, y);
+      this.hoveredRegion = this.getRegionAt(mapPos.x, mapPos.y);
+    }
+    pointerPressed(x, y) {
+      if (this.isTraveling) return;
+      if (x >= this.backButton.x && x <= this.backButton.x + this.backButton.w && y >= this.backButton.y && y <= this.backButton.y + this.backButton.h) {
+        if (this.onBackToHome) {
+          this.onBackToHome();
+        }
+        return;
+      }
+      const mapPos = this.screenToMap(x, y);
+      const region = this.getRegionAt(mapPos.x, mapPos.y);
+      if (region) {
+        this.selectedRegion = region;
+        this.isTraveling = true;
+        this.travelTicks = 0;
+      }
+    }
+    paint(g) {
+      const ctx = g.ctx;
+      g.setColor(988970);
+      g.fillRect(0, 0, this.screenW, this.screenH);
+      if (this.minimapImage) {
+        g.drawScaledImage(
+          this.minimapImage,
+          this.offsetX,
+          this.offsetY,
+          this.drawW,
+          this.drawH
+        );
+      }
+      for (const r of WORLD_REGIONS) {
+        const isHovered = this.hoveredRegion?.id === r.id;
+        const isSelected = this.selectedRegion?.id === r.id;
+        const boxS = {
+          x: Math.round(this.offsetX + r.box.x * this.scale),
+          y: Math.round(this.offsetY + r.box.y * this.scale),
+          w: Math.round(r.box.w * this.scale),
+          h: Math.round(r.box.h * this.scale)
+        };
+        const pinS = this.mapToScreen(r.pin.x, r.pin.y);
+        if (ctx) {
+          if (isHovered || isSelected) {
+            const alpha = 0.15 + Math.sin(this.animTick * 0.2) * 0.08;
+            ctx.save();
+            ctx.fillStyle = r.badgeColor + Math.round(alpha * 255).toString(16).padStart(2, "0");
+            ctx.fillRect(boxS.x, boxS.y, boxS.w, boxS.h);
+            ctx.strokeStyle = r.badgeColor;
+            ctx.lineWidth = Math.max(2, Math.round(2 * this.scale));
+            ctx.strokeRect(boxS.x, boxS.y, boxS.w, boxS.h);
+            ctx.restore();
+          }
+          const pulseRadius = (this.animTick * 1.5 + r.id * 10) % 30;
+          const pulseAlpha = Math.max(0, 1 - pulseRadius / 30);
+          ctx.save();
+          ctx.beginPath();
+          ctx.arc(pinS.x, pinS.y, pulseRadius, 0, Math.PI * 2);
+          ctx.strokeStyle = `rgba(255, 255, 255, ${pulseAlpha * 0.7})`;
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          const pinSize = isHovered ? 12 : 9;
+          ctx.beginPath();
+          ctx.arc(pinS.x, pinS.y, pinSize, 0, Math.PI * 2);
+          ctx.fillStyle = r.badgeColor;
+          ctx.fill();
+          ctx.strokeStyle = "#ffffff";
+          ctx.lineWidth = 2;
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.arc(pinS.x, pinS.y, isHovered ? 5 : 3, 0, Math.PI * 2);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+          ctx.restore();
+          ctx.save();
+          ctx.font = "bold 11px Arial, sans-serif";
+          const nameText = r.name;
+          const textMetrics = ctx.measureText(nameText);
+          const pillW = textMetrics.width + 16;
+          const pillH = 20;
+          const pillX = pinS.x - Math.floor(pillW / 2);
+          const pillY = pinS.y + 14;
+          ctx.fillStyle = isHovered ? "rgba(15, 23, 42, 0.95)" : "rgba(15, 23, 42, 0.8)";
+          ctx.strokeStyle = isHovered ? r.badgeColor : "#94a3b8";
+          ctx.lineWidth = isHovered ? 2 : 1;
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(pillX, pillY, pillW, pillH, 6);
+          } else {
+            ctx.rect(pillX, pillY, pillW, pillH);
+          }
+          ctx.fill();
+          ctx.stroke();
+          ctx.fillStyle = isHovered ? "#ffffff" : "#e2e8f0";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillText(nameText, pinS.x, pillY + 10);
+          ctx.restore();
+        }
+      }
+      const activeRegion = this.selectedRegion || this.hoveredRegion;
+      if (activeRegion && ctx) {
+        const pinS = this.mapToScreen(activeRegion.pin.x, activeRegion.pin.y);
+        const bannerW = 200;
+        const bannerH = 56;
+        let bx = pinS.x - Math.floor(bannerW / 2);
+        let by = pinS.y - 75;
+        bx = Math.max(10, Math.min(this.screenW - bannerW - 10, bx));
+        by = Math.max(45, by);
+        ctx.save();
+        ctx.shadowColor = "rgba(0, 0, 0, 0.5)";
+        ctx.shadowBlur = 10;
+        ctx.shadowOffsetY = 4;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+        ctx.strokeStyle = activeRegion.badgeColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(bx, by, bannerW, bannerH, 8);
+        } else {
+          ctx.rect(bx, by, bannerW, bannerH);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.restore();
+        ctx.save();
+        ctx.textAlign = "center";
+        ctx.font = "bold 13px Arial, sans-serif";
+        ctx.fillStyle = activeRegion.badgeColor;
+        ctx.fillText(activeRegion.name.toUpperCase(), bx + bannerW / 2, by + 18);
+        ctx.font = "11px Arial, sans-serif";
+        ctx.fillStyle = "#cbd5e1";
+        ctx.fillText(activeRegion.subtitle, bx + bannerW / 2, by + 34);
+        ctx.font = "italic 10px Arial, sans-serif";
+        ctx.fillStyle = "#facc15";
+        ctx.fillText("\u25B6 Nh\u1EA5p \u0111\u1EC3 di chuy\u1EC3n \u0111\u1EBFn \u0111\xE2y", bx + bannerW / 2, by + 48);
+        ctx.restore();
+      }
+      if (ctx) {
+        ctx.save();
+        const grad = ctx.createLinearGradient(0, 0, 0, 42);
+        grad.addColorStop(0, "rgba(15, 23, 42, 0.95)");
+        grad.addColorStop(1, "rgba(15, 23, 42, 0.7)");
+        ctx.fillStyle = grad;
+        ctx.fillRect(0, 0, this.screenW, 42);
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.3)";
+        ctx.lineWidth = 1;
+        ctx.beginPath();
+        ctx.moveTo(0, 42);
+        ctx.lineTo(this.screenW, 42);
+        ctx.stroke();
+        ctx.font = "bold 14px Arial, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("B\u1EA2N \u0110\u1ED2 TH\u1EBE GI\u1EDAI - CH\u1ECCN KHU V\u1EF0C", this.screenW / 2, 21);
+        const bb = this.backButton;
+        ctx.fillStyle = bb.isHovered ? "rgba(239, 68, 68, 0.85)" : "rgba(30, 41, 59, 0.9)";
+        ctx.strokeStyle = bb.isHovered ? "#ffffff" : "#64748b";
+        ctx.lineWidth = 1.5;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(bb.x, bb.y, bb.w, bb.h, 6);
+        } else {
+          ctx.rect(bb.x, bb.y, bb.w, bb.h);
+        }
+        ctx.fill();
+        ctx.stroke();
+        ctx.font = "bold 11px Arial, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText("\u25C0 TRANG CH\u1EE6", bb.x + bb.w / 2, bb.y + bb.h / 2);
+        ctx.restore();
+      }
+      if (ctx) {
+        ctx.save();
+        const footerH = 28;
+        const footerY = this.screenH - footerH;
+        ctx.fillStyle = "rgba(15, 23, 42, 0.85)";
+        ctx.fillRect(0, footerY, this.screenW, footerH);
+        ctx.strokeStyle = "rgba(56, 189, 248, 0.2)";
+        ctx.beginPath();
+        ctx.moveTo(0, footerY);
+        ctx.lineTo(this.screenW, footerY);
+        ctx.stroke();
+        ctx.font = "11px Arial, sans-serif";
+        ctx.fillStyle = "#94a3b8";
+        ctx.textAlign = "center";
+        ctx.textBaseline = "middle";
+        ctx.fillText(
+          "R\xEA chu\u1ED9t ho\u1EB7c ch\u1EA1m v\xE0o \u0111\u1ECBa \u0111i\u1EC3m tr\xEAn b\u1EA3n \u0111\u1ED3 \u0111\u1EC3 di chuy\u1EC3n \u0111\u1EBFn khu v\u1EF1c t\u01B0\u01A1ng \u1EE9ng",
+          this.screenW / 2,
+          footerY + footerH / 2
+        );
+        ctx.restore();
+      }
+      if (this.isTraveling && this.selectedRegion && ctx) {
+        ctx.save();
+        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
+        ctx.fillRect(0, 0, this.screenW, this.screenH);
+        const modalW = 280;
+        const modalH = 120;
+        const modalX = Math.floor((this.screenW - modalW) / 2);
+        const modalY = Math.floor((this.screenH - modalH) / 2);
+        ctx.fillStyle = "rgba(15, 23, 42, 0.95)";
+        ctx.strokeStyle = this.selectedRegion.badgeColor;
+        ctx.lineWidth = 2;
+        ctx.beginPath();
+        if (typeof ctx.roundRect === "function") {
+          ctx.roundRect(modalX, modalY, modalW, modalH, 10);
+        } else {
+          ctx.rect(modalX, modalY, modalW, modalH);
+        }
+        ctx.fill();
+        ctx.stroke();
+        const dots = ".".repeat(Math.floor(this.animTick / 5) % 4);
+        ctx.textAlign = "center";
+        ctx.font = "bold 14px Arial, sans-serif";
+        ctx.fillStyle = "#ffffff";
+        ctx.fillText(
+          `\u0110ang di chuy\u1EC3n \u0111\u1EBFn ${this.selectedRegion.name}${dots}`,
+          this.screenW / 2,
+          modalY + 40
+        );
+        ctx.font = "12px Arial, sans-serif";
+        ctx.fillStyle = "#94a3b8";
+        ctx.fillText(
+          `\u0110ang k\u1EBFt n\u1ED1i m\xE1y ch\u1EE7 & t\u1EA3i b\u1EA3n \u0111\u1ED3 (Map ${this.selectedRegion.mapId})...`,
+          this.screenW / 2,
+          modalY + 70
+        );
+        const barW = 200;
+        const barH = 6;
+        const barX = Math.floor((this.screenW - barW) / 2);
+        const barY = modalY + 90;
+        ctx.fillStyle = "#334155";
+        ctx.fillRect(barX, barY, barW, barH);
+        const progress = Math.min(1, this.travelTicks / 30);
+        ctx.fillStyle = this.selectedRegion.badgeColor;
+        ctx.fillRect(barX, barY, Math.round(barW * progress), barH);
+        ctx.restore();
+      }
+    }
+  };
+
   // packages/game-client/src/renderer/BitmapFont.ts
   var BitmapFont = class {
     glyphChars = "";
@@ -1697,7 +2163,7 @@
   };
 
   // packages/game-client/src/assets/AvArchiveLoader.ts
-  var import_j2me_compat4 = __toESM(require_dist());
+  var import_j2me_compat5 = __toESM(require_dist());
   var AvArchiveLoader = class _AvArchiveLoader {
     static KEY = new TextEncoder().encode("NguyenVanMinh");
     entries = /* @__PURE__ */ new Map();
@@ -1739,7 +2205,7 @@
       const fileName = name.endsWith(".png") ? name : `${name}.png`;
       const bytes = this.getFileBytes(fileName);
       if (!bytes) return null;
-      return import_j2me_compat4.Image.createImage(bytes);
+      return import_j2me_compat5.Image.createImage(bytes);
     }
     getEntryNames() {
       return Array.from(this.entries.keys());
@@ -1751,6 +2217,7 @@
     canvas;
     splashScreen;
     loginScreen;
+    worldMapScreen;
     skinPainter;
     font;
     constructor(ctx) {
@@ -1758,6 +2225,7 @@
       this.font = new BitmapFont();
       this.skinPainter = new UISkinPainter(this.font);
       this.loginScreen = new LoginScreen(this.skinPainter, this.font);
+      this.worldMapScreen = new WorldMapScreen(this.skinPainter, this.font);
       this.splashScreen = new SplashScreen(void 0, () => {
         this.canvas.setCurrentScreen(this.loginScreen);
       });
@@ -1765,11 +2233,11 @@
     }
     async initAssets(logoPngBytes, fontMetadataBytes, fontPngBytes, bgAvBytes) {
       if (logoPngBytes) {
-        this.splashScreen.logoImage = await import_j2me_compat5.Image.createImage(logoPngBytes);
+        this.splashScreen.logoImage = await import_j2me_compat6.Image.createImage(logoPngBytes);
       }
       if (fontMetadataBytes && fontPngBytes) {
         this.font.loadMetadata(fontMetadataBytes);
-        this.font.fontImage = await import_j2me_compat5.Image.createImage(fontPngBytes);
+        this.font.fontImage = await import_j2me_compat6.Image.createImage(fontPngBytes);
       }
       if (bgAvBytes) {
         const bgLoader = new AvArchiveLoader();
@@ -1803,6 +2271,7 @@
     cipher;
     isConnected = false;
     isHandshakeDone = false;
+    myUserId = 0;
     decoder;
     listeners = {};
     lastLoginCredentials = null;
@@ -1913,6 +2382,7 @@
         const luong = r.readInt();
         const star = r.readByte();
         console.log(`[Network] Login Success! UserID=${userId}, Xu=${xu}, Luong=${luong}`);
+        this.myUserId = userId;
         this.lastLoginCredentials = null;
         this.emit("login_success", {
           id: userId,
@@ -2403,7 +2873,7 @@
       this.sendMessage(msg);
     }
     // --- Farm System (Nông trại) ---
-    sendJoinFarm(userId) {
+    sendJoinFarm(userId = this.myUserId) {
       this.sendGetHandler(10);
       const msg = new import_protocol.Message(import_protocol.Cmd.JOIN);
       msg.writer().writeInt(userId);
@@ -2488,10 +2958,10 @@
   };
 
   // packages/game-client/src/gameplay/GameWorldScreen.ts
-  var import_j2me_compat8 = __toESM(require_dist());
+  var import_j2me_compat9 = __toESM(require_dist());
 
   // packages/game-client/src/maps/TilemapRenderer.ts
-  var import_j2me_compat6 = __toESM(require_dist());
+  var import_j2me_compat7 = __toESM(require_dist());
   var TilemapRenderer = class _TilemapRenderer {
     static TILE_SIZE = 24;
     // i = 24 in ir.java
@@ -2597,10 +3067,10 @@
         };
         console.log(`[TilemapRenderer] Loaded map ${mapId}: ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
         const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
-        this.tilesetImage = await import_j2me_compat6.Image.createImage(tilesetUrl);
+        this.tilesetImage = await import_j2me_compat7.Image.createImage(tilesetUrl);
         try {
           const bgUrl = `/assets/bg/0${nightSuffix}.png`;
-          this.bgImage = await import_j2me_compat6.Image.createImage(bgUrl);
+          this.bgImage = await import_j2me_compat7.Image.createImage(bgUrl);
         } catch (err) {
         }
       } catch (err) {
@@ -2684,7 +3154,7 @@
   };
 
   // packages/game-client/src/characters/AvatarRenderer.ts
-  var import_j2me_compat7 = __toESM(require_dist());
+  var import_j2me_compat8 = __toESM(require_dist());
   var AvatarRenderer = class {
     static partsMap = /* @__PURE__ */ new Map();
     static slicesMap = /* @__PURE__ */ new Map();
@@ -2696,7 +3166,7 @@
       if (this.isInitialized) return;
       try {
         try {
-          this.shadowImage = await import_j2me_compat7.Image.createImage("/assets/effect/s0.png");
+          this.shadowImage = await import_j2me_compat8.Image.createImage("/assets/effect/s0.png");
         } catch (err) {
           console.warn("[AvatarRenderer] Could not load shadow image:", err);
         }
@@ -2726,7 +3196,7 @@
         return this.atlasImages.get(imageId);
       }
       try {
-        const img = await import_j2me_compat7.Image.createImage(`/res/big/${imageId}.png`);
+        const img = await import_j2me_compat8.Image.createImage(`/res/big/${imageId}.png`);
         this.atlasImages.set(imageId, img);
         return img;
       } catch (err) {
@@ -2739,7 +3209,7 @@
         return this.itemImages.get(itemId);
       }
       try {
-        const img = await import_j2me_compat7.Image.createImage(`/res/item/${itemId}.png`);
+        const img = await import_j2me_compat8.Image.createImage(`/res/item/${itemId}.png`);
         this.itemImages.set(itemId, img);
         return img;
       } catch (err) {
@@ -2782,7 +3252,7 @@
         g.fillArc(x - 9, y - 2, 18, 6, 0, 360);
       }
       const isMirrored = direct === 2;
-      const transform = isMirrored ? import_j2me_compat7.Sprite.TRANS_MIRROR : import_j2me_compat7.Sprite.TRANS_NONE;
+      const transform = isMirrored ? import_j2me_compat8.Sprite.TRANS_MIRROR : import_j2me_compat8.Sprite.TRANS_NONE;
       const partsToRender = [];
       for (const partId of wearing) {
         const part = this.partsMap.get(partId);
@@ -2970,7 +3440,7 @@
       this.setupNetworkHandlers();
       AvatarRenderer.init().catch(console.error);
       this.tilemapRenderer.loadMap(this.currentMapId).catch(console.error);
-      import_j2me_compat8.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
+      import_j2me_compat9.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
       });
     }
     onResize(_width, _height) {
@@ -3000,6 +3470,11 @@
           }
         }
         console.log(`[World] Entered Map ${this.currentMapId}, Area ${this.currentAreaId} (Online players: ${this.remotePlayers.size + 1})`);
+      });
+      this.networkSession.on("farm_join", () => {
+        this.currentMapId = 18;
+        this.tilemapRenderer.loadMap(18);
+        console.log("[World] Entered Farm (Map 18)");
       });
       this.networkSession.on("player_join_park", (player) => {
         if (player.id !== this.localPlayer.id) {
@@ -3761,24 +4236,59 @@
     window.gameWorldScreen = worldScreen;
     midlet.canvas.setCurrentScreen(midlet.loginScreen);
     window.__SCENE = "login";
+    let cachedUserData = null;
+    const showWorldMap = () => {
+      midlet.canvas.setCurrentScreen(midlet.worldMapScreen);
+      window.__SCENE = "worldmap";
+      const chatBar = document.getElementById("in-game-chat-bar");
+      if (chatBar) chatBar.style.display = "none";
+      const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
+      if (statusEl) {
+        statusEl.textContent = `Ng\u01B0\u1EDDi ch\u01A1i: ${worldScreen.localPlayer.name} | Vui l\xF2ng ch\u1ECDn 1 trong 8 khu v\u1EF1c tr\xEAn b\u1EA3n \u0111\u1ED3`;
+        statusEl.style.color = "#facc15";
+      }
+    };
+    midlet.worldMapScreen.onSelectRegion = (region) => {
+      console.log(`[WebClient] Entering Region: ${region.name} (Map ${region.mapId})`);
+      midlet.canvas.setCurrentScreen(worldScreen);
+      window.__SCENE = "world";
+      const chatBar = document.getElementById("in-game-chat-bar");
+      if (chatBar) chatBar.style.display = "flex";
+      const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
+      if (statusEl) {
+        const xuFormatted = Number(cachedUserData?.xu || 0).toLocaleString("vi-VN");
+        statusEl.textContent = `Ng\u01B0\u1EDDi ch\u01A1i: ${worldScreen.localPlayer.name} | B\u1EA3n \u0111\u1ED3: ${region.name} | Xu: ${xuFormatted}`;
+        statusEl.style.color = "#38bdf8";
+      }
+      worldScreen.currentMapId = region.mapId;
+      if (region.key === "farm") {
+        network.sendJoinFarm(worldScreen.localPlayer.id || cachedUserData?.id || 0);
+      } else {
+        network.sendJoinPark(region.mapId, 0, region.spawnX, region.spawnY);
+      }
+    };
+    midlet.worldMapScreen.onBackToHome = () => {
+      console.log("[WebClient] Back to home requested from World Map");
+      if (typeof window.closeGame === "function") {
+        window.closeGame();
+      } else {
+        const modal = document.getElementById("game-modal");
+        if (modal) modal.style.display = "none";
+        const fab = document.getElementById("floatingPlayBtn");
+        if (fab) fab.style.display = "inline-flex";
+      }
+    };
+    window.openWorldMap = showWorldMap;
     network.on("login_success", (userData) => {
       console.log("[WebClient] Logged in successfully!", userData);
+      cachedUserData = userData;
       worldScreen.localPlayer.id = userData.id;
       worldScreen.localPlayer.name = document.getElementById("usernameInput")?.value || "T\xF4i";
       worldScreen.localPlayer.gender = userData.gender;
       worldScreen.localPlayer.wearing = userData.wearing || [];
-      midlet.canvas.setCurrentScreen(worldScreen);
-      window.__SCENE = "world";
       const loginOverlay = document.getElementById("login-overlay");
       if (loginOverlay) loginOverlay.style.display = "none";
-      const chatOverlay = document.getElementById("chat-overlay-bar");
-      if (chatOverlay) chatOverlay.style.display = "flex";
-      network.sendJoinPark(11, 0, 120, 200);
-      const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
-      if (statusEl) {
-        statusEl.textContent = `Ng\u01B0\u1EDDi ch\u01A1i: ${worldScreen.localPlayer.name} | B\u1EA3n \u0111\u1ED3: C\xF4ng vi\xEAn | Xu: ${Number(userData.xu || 0).toLocaleString("vi-VN")}`;
-        statusEl.style.color = "#38bdf8";
-      }
+      showWorldMap();
     });
     network.on("login_fail", (reason) => {
       alert(`\u0110\u0103ng nh\u1EADp th\u1EA5t b\u1EA1i: ${reason}`);

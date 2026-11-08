@@ -2,6 +2,7 @@ import { Image, RenderContext2D } from '@avatar/j2me-compat';
 import { GameCanvas } from '../runtime/GameCanvas.js';
 import { SplashScreen } from '../gameplay/SplashScreen.js';
 import { LoginScreen } from '../gameplay/LoginScreen.js';
+import { WorldMapScreen } from '../gameplay/WorldMapScreen.js';
 import { UISkinPainter } from '../ui/UISkinPainter.js';
 import { BitmapFont } from '../renderer/BitmapFont.js';
 import { AvArchiveLoader } from '../assets/AvArchiveLoader.js';
@@ -10,6 +11,7 @@ export class GameMidlet {
   public canvas: GameCanvas;
   public splashScreen: SplashScreen;
   public loginScreen: LoginScreen;
+  public worldMapScreen: WorldMapScreen;
   public skinPainter: UISkinPainter;
   public font: BitmapFont;
 
@@ -19,6 +21,7 @@ export class GameMidlet {
     this.skinPainter = new UISkinPainter(this.font);
 
     this.loginScreen = new LoginScreen(this.skinPainter, this.font);
+    this.worldMapScreen = new WorldMapScreen(this.skinPainter, this.font);
     this.splashScreen = new SplashScreen(undefined, () => {
       this.canvas.setCurrentScreen(this.loginScreen);
     });

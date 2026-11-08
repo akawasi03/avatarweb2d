@@ -1339,6 +1339,7 @@ if (!$view) {
       </div>
       <div class="game-bar-right">
         <span id="gamePlayerInfo" style="color: #38bdf8;">Đang kết nối...</span>
+        <button class="btn-game-tool" onclick="openWorldMap()" title="Mở bản đồ thế giới 8 khu vực">🗺 Chọn khu vực</button>
         <button class="btn-game-tool" onclick="toggleFullscreen()">⛶ Toàn màn hình</button>
         <button class="btn-game-close" onclick="closeGame()">✖ Đóng game</button>
       </div>
@@ -1733,6 +1734,12 @@ if (!$view) {
         modal.requestFullscreen?.().catch(console.error);
       } else {
         document.exitFullscreen?.().catch(console.error);
+      }
+    }
+
+    function openWorldMap() {
+      if (typeof window.openWorldMap === 'function') {
+        window.openWorldMap();
       }
     }
 

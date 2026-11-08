@@ -225,6 +225,13 @@ export class Graphics {
     }
   }
 
+  public drawScaledImage(image: Image, x: number, y: number, width: number, height: number, anchor = 0): void {
+    const pt = this.calculateAnchor(x, y, width, height, anchor);
+    if (this.ctx && image.element) {
+      this.ctx.drawImage(image.element, 0, 0, image.width, image.height, pt.x, pt.y, width, height);
+    }
+  }
+
   public drawRegion(
     image: Image,
     x_src: number,

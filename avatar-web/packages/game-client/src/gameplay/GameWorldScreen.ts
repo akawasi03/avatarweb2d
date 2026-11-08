@@ -184,6 +184,12 @@ export class GameWorldScreen extends GameScreen {
       console.log(`[World] Entered Map ${this.currentMapId}, Area ${this.currentAreaId} (Online players: ${this.remotePlayers.size + 1})`);
     });
 
+    this.networkSession.on('farm_join', () => {
+      this.currentMapId = 18;
+      this.tilemapRenderer.loadMap(18);
+      console.log('[World] Entered Farm (Map 18)');
+    });
+
     this.networkSession.on('player_join_park', (player: RemotePlayer) => {
       if (player.id !== this.localPlayer.id) {
         this.remotePlayers.set(player.id, {

@@ -5,5 +5,7 @@ export * from './ui/GameScreen.js';
 export * from './ui/UISkinPainter.js';
 export * from './gameplay/SplashScreen.js';
 export * from './gameplay/LoginScreen.js';
+export * from './gameplay/WorldMapScreen.js';
+export * from './gameplay/GameWorldScreen.js';
 export * from './runtime/GameCanvas.js';
 export * from './core/GameMidlet.js';

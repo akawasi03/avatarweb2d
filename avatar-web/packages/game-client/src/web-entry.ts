@@ -10,6 +10,8 @@ declare global {
     networkSession?: NetworkSession;
     gameWorldScreen?: GameWorldScreen;
     loginWithCredentials?: (u: string, p: string) => void;
+    openWorldMap?: () => void;
+    closeGame?: () => void;
   }
 }
 
@@ -57,34 +59,82 @@ async function startWebClient() {
   midlet.canvas.setCurrentScreen(midlet.loginScreen);
   window.__SCENE = 'login';
 
+  let cachedUserData: any = null;
+
+  // Show World Map Screen (8 Regions)
+  const showWorldMap = () => {
+    midlet.canvas.setCurrentScreen(midlet.worldMapScreen);
+    window.__SCENE = 'worldmap';
+
+    // Hide chat bar on map screen to keep canvas clear
+    const chatBar = document.getElementById('in-game-chat-bar');
+    if (chatBar) chatBar.style.display = 'none';
+
+    const statusEl = document.getElementById('login-status') || document.getElementById('gamePlayerInfo');
+    if (statusEl) {
+      statusEl.textContent = `Người chơi: ${worldScreen.localPlayer.name} | Vui lòng chọn 1 trong 8 khu vực trên bản đồ`;
+      statusEl.style.color = '#facc15';
+    }
+  };
+
+  // Wire World Map actions
+  midlet.worldMapScreen.onSelectRegion = (region) => {
+    console.log(`[WebClient] Entering Region: ${region.name} (Map ${region.mapId})`);
+
+    // Switch to GameWorldScreen
+    midlet.canvas.setCurrentScreen(worldScreen);
+    window.__SCENE = 'world';
+
+    // Show in-game chat bar
+    const chatBar = document.getElementById('in-game-chat-bar');
+    if (chatBar) chatBar.style.display = 'flex';
+
+    // Update UI status
+    const statusEl = document.getElementById('login-status') || document.getElementById('gamePlayerInfo');
+    if (statusEl) {
+      const xuFormatted = Number(cachedUserData?.xu || 0).toLocaleString('vi-VN');
+      statusEl.textContent = `Người chơi: ${worldScreen.localPlayer.name} | Bản đồ: ${region.name} | Xu: ${xuFormatted}`;
+      statusEl.style.color = '#38bdf8';
+    }
+
+    // Join selected map
+    worldScreen.currentMapId = region.mapId;
+    if (region.key === 'farm') {
+      network.sendJoinFarm(worldScreen.localPlayer.id || cachedUserData?.id || 0);
+    } else {
+      network.sendJoinPark(region.mapId, 0, region.spawnX, region.spawnY);
+    }
+  };
+
+  midlet.worldMapScreen.onBackToHome = () => {
+    console.log('[WebClient] Back to home requested from World Map');
+    if (typeof window.closeGame === 'function') {
+      window.closeGame();
+    } else {
+      const modal = document.getElementById('game-modal');
+      if (modal) modal.style.display = 'none';
+      const fab = document.getElementById('floatingPlayBtn');
+      if (fab) fab.style.display = 'inline-flex';
+    }
+  };
+
+  window.openWorldMap = showWorldMap;
+
   // Network Event Handlers
   network.on('login_success', (userData: any) => {
     console.log('[WebClient] Logged in successfully!', userData);
+    cachedUserData = userData;
     worldScreen.localPlayer.id = userData.id;
     worldScreen.localPlayer.name = (document.getElementById('usernameInput') as HTMLInputElement)?.value || 'Tôi';
     worldScreen.localPlayer.gender = userData.gender;
     worldScreen.localPlayer.wearing = userData.wearing || [];
 
-    // Switch to World Screen
-    midlet.canvas.setCurrentScreen(worldScreen);
-    window.__SCENE = 'world';
-
-    // Hide login modal overlay and show floating chat bar
+    // Hide login overlay if present
     const loginOverlay = document.getElementById('login-overlay');
     if (loginOverlay) loginOverlay.style.display = 'none';
 
-    const chatOverlay = document.getElementById('chat-overlay-bar');
-    if (chatOverlay) chatOverlay.style.display = 'flex';
-
-    // Automatically enter Park Map 11, Zone 0
-    network.sendJoinPark(11, 0, 120, 200);
-
-    // Update UI status
-    const statusEl = document.getElementById('login-status') || document.getElementById('gamePlayerInfo');
-    if (statusEl) {
-      statusEl.textContent = `Người chơi: ${worldScreen.localPlayer.name} | Bản đồ: Công viên | Xu: ${Number(userData.xu || 0).toLocaleString('vi-VN')}`;
-      statusEl.style.color = '#38bdf8';
-    }
+    // Navigate to World Map Selection Screen
+    showWorldMap();
   });
 
   network.on('login_fail', (reason: string) => {
