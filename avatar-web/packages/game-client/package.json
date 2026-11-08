@@ -1,0 +1,17 @@
+{
+  "name": "@avatar/game-client",
+  "version": "1.0.0",
+  "main": "./dist/index.js",
+  "types": "./dist/index.d.ts",
+  "scripts": {
+    "build": "tsc",
+    "test": "node --test dist/**/*.test.js"
+  },
+  "dependencies": {
+    "@avatar/j2me-compat": "*",
+    "@avatar/protocol": "*"
+  },
+  "devDependencies": {
+    "typescript": "^5.4.5"
+  }
+}

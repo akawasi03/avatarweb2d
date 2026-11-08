@@ -1,0 +1,24 @@
+{
+  "name": "avatar-web",
+  "version": "1.0.0",
+  "private": true,
+  "description": "Avatar Teamobi Native WebGL Port",
+  "workspaces": [
+    "packages/*"
+  ],
+  "scripts": {
+    "build": "npm run build --workspaces",
+    "gateway": "npm run start --workspace=@avatar/web-gateway",
+    "client": "npm run dev --workspace=@avatar/game-client",
+    "test": "npm run test --workspaces"
+  },
+  "devDependencies": {
+    "@types/node": "^26.6.6",
+    "@types/ws": "^8.18.2",
+    "esbuild": "^0.28.2",
+    "typescript": "^5.9.3"
+  },
+  "dependencies": {
+    "ws": "^8.22.1"
+  }
+}

@@ -1,0 +1,25 @@
+{
+  "name": "teamobi/avatar-web",
+  "description": "Avatar Teamobi 2.5.8 - Native WebGL Port (PHP Backend & Client Architecture)",
+  "type": "project",
+  "license": "proprietary",
+  "require": {
+    "php": ">=8.2",
+    "ext-pdo": "*",
+    "ext-pdo_mysql": "*",
+    "ext-json": "*",
+    "ext-mbstring": "*"
+  },
+  "autoload": {
+    "psr-4": {
+      "Avatar\\": "app/",
+      "Avatar\\WebSocket\\": "websocket/",
+      "Avatar\\Database\\": "database/"
+    }
+  },
+  "config": {
+    "optimize-autoloader": true,
+    "preferred-install": "dist",
+    "sort-packages": true
+  }
+}

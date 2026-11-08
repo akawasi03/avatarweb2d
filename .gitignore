@@ -1,0 +1,36 @@
+# Dependencies
+node_modules/
+vendor/
+avatar-web/node_modules/
+avatar-web/vendor/
+avatar-web/public/res
+Avatar-Sv-master-master/logs/
+Avatar-Sv-master-master/target/
+
+# Large binary dumps and archives (> 25MB - Exceeds GitHub Limit)
+*.resS
+*.rar
+*.zip
+resources.assets.resS
+Avatar-Sv-full.zip
+resources.assets.rar
+
+# Backups & Database Dumps
+backups/
+*.sql
+*.dump
+
+# Build outputs & targets
+target/
+dist/
+*.class
+*.log
+logs/
+server_live.log
+
+# IDE & OS files
+.idea/
+.vscode/
+.system_generated/
+Thumbs.db
+.DS_Store

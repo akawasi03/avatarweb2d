@@ -1,0 +1,203 @@
+<!DOCTYPE html>
+<html lang="vi">
+<head>
+  <meta charset="UTF-8">
+  <meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+  <title>Avatar Teamobi 2.5.8 - Native WebGL Fullscreen</title>
+  <style>
+    * {
+      box-sizing: border-box;
+      margin: 0;
+      padding: 0;
+    }
+    html, body {
+      width: 100vw;
+      height: 100vh;
+      overflow: hidden;
+      background-color: #050b14;
+      color: #fff;
+      font-family: 'Segoe UI', Tahoma, Geneva, Verdana, sans-serif;
+      user-select: none;
+      -webkit-user-select: none;
+    }
+    #game-container {
+      position: fixed;
+      top: 0;
+      left: 0;
+      width: 100vw;
+      height: 100vh;
+      z-index: 1;
+      background: #000;
+    }
+    #gameCanvas {
+      width: 100vw;
+      height: 100vh;
+      display: block;
+      image-rendering: pixelated;
+      image-rendering: crisp-edges;
+      cursor: crosshair;
+    }
+
+    /* Floating Glassmorphism Login Panel */
+    #login-overlay {
+      position: fixed;
+      bottom: 28px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      background: rgba(15, 23, 36, 0.88);
+      backdrop-filter: blur(10px);
+      border: 1px solid rgba(0, 229, 255, 0.25);
+      border-radius: 8px;
+      padding: 8px 14px;
+      display: flex;
+      align-items: center;
+      gap: 8px;
+      box-shadow: 0 8px 32px rgba(0, 0, 0, 0.7);
+    }
+    .form-group {
+      display: flex;
+      align-items: center;
+      gap: 6px;
+      font-size: 12px;
+    }
+    .form-group input, .form-group select {
+      background: rgba(30, 41, 59, 0.9);
+      border: 1px solid rgba(255, 255, 255, 0.15);
+      color: #fff;
+      padding: 5px 8px;
+      border-radius: 4px;
+      font-size: 12px;
+      outline: none;
+    }
+    .form-group input:focus {
+      border-color: #00e5ff;
+    }
+    .btn-login {
+      background: linear-gradient(135deg, #00897b, #00bfa5);
+      color: #fff;
+      border: none;
+      padding: 6px 14px;
+      border-radius: 4px;
+      cursor: pointer;
+      font-weight: bold;
+      font-size: 12px;
+      transition: all 0.2s;
+      white-space: nowrap;
+    }
+    .btn-login:hover {
+      background: linear-gradient(135deg, #00bfa5, #1de9b6);
+      transform: scale(1.02);
+    }
+    #login-status {
+      font-size: 11px;
+      color: #ffa726;
+      white-space: nowrap;
+      min-width: 140px;
+    }
+
+    /* Floating Chat Overlay */
+    #chat-overlay-bar {
+      position: fixed;
+      bottom: 26px;
+      left: 50%;
+      transform: translateX(-50%);
+      z-index: 10;
+      display: none;
+      background: rgba(15, 23, 36, 0.85);
+      backdrop-filter: blur(8px);
+      border: 1px solid rgba(0, 229, 255, 0.3);
+      border-radius: 20px;
+      padding: 3px 6px 3px 12px;
+      align-items: center;
+      gap: 6px;
+      width: min(90vw, 440px);
+      box-shadow: 0 4px 20px rgba(0, 0, 0, 0.6);
+    }
+    #chatInput {
+      flex: 1;
+      background: transparent;
+      border: none;
+      color: #fff;
+      font-size: 12px;
+      outline: none;
+    }
+    .btn-chat-send {
+      background: #1976d2;
+      color: #fff;
+      border: none;
+      padding: 4px 12px;
+      border-radius: 14px;
+      cursor: pointer;
+      font-size: 11px;
+      font-weight: bold;
+      transition: background 0.2s;
+    }
+    .btn-chat-send:hover {
+      background: #2196f3;
+    }
+  </style>
+</head>
+<body>
+  <div id="game-container">
+    <canvas id="gameCanvas" width="640" height="360"></canvas>
+  </div>
+
+  <!-- Bottom Floating Login Control -->
+  <div id="login-overlay">
+    <div class="form-group">
+      <input type="text" id="usernameInput" value="admin" placeholder="Tài khoản" style="width: 80px;">
+      <select id="quickUserSelect" onchange="onSelectQuickUser(this.value)">
+        <option value="admin">User: admin</option>
+        <option value="ad">User: ad</option>
+      </select>
+    </div>
+    <div class="form-group">
+      <input type="password" id="passwordInput" value="123456" placeholder="Mật khẩu" style="width: 80px;">
+      <button class="btn-login" id="loginBtn" onclick="onLoginClick()">Đăng nhập</button>
+    </div>
+    <div id="login-status">Sẵn sàng kết nối...</div>
+  </div>
+
+  <!-- Floating Chat Input Bar -->
+  <div id="chat-overlay-bar">
+    <input type="text" id="chatInput" placeholder="Nhập tin nhắn chat (Enter để gửi)..." onkeydown="if(event.key==='Enter') onSendChat()">
+    <button class="btn-chat-send" onclick="onSendChat()">Gửi</button>
+  </div>
+
+  <script>
+    function onSelectQuickUser(username) {
+      document.getElementById('usernameInput').value = username;
+      document.getElementById('passwordInput').value = '123456';
+    }
+
+    function onLoginClick() {
+      const u = document.getElementById('usernameInput').value.trim();
+      const p = document.getElementById('passwordInput').value.trim();
+      if (!u || !p) {
+        alert('Vui lòng nhập tài khoản và mật khẩu!');
+        return;
+      }
+      document.getElementById('login-status').textContent = 'Đang gửi đăng nhập...';
+      document.getElementById('login-status').style.color = '#FFA500';
+      if (window.loginWithCredentials) {
+        window.loginWithCredentials(u, p);
+      } else {
+        document.getElementById('login-status').textContent = 'Đang nạp ứng dụng WebGL...';
+      }
+    }
+
+    function onSendChat() {
+      const input = document.getElementById('chatInput');
+      const text = input.value.trim();
+      if (text && window.networkSession && window.networkSession.isConnected) {
+        window.networkSession.sendChat(text);
+        input.value = '';
+        input.blur();
+      }
+    }
+  </script>
+
+  <script type="module" src="app.js?v=2.5.8.4"></script>
+</body>
+</html>

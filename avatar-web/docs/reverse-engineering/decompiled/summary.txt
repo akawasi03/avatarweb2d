@@ -1,0 +1,41 @@
+Summary for D:\avatarweb2d\Avatar-Sv-master-master\Avatar258.jar
+Decompiled with CFR 0.152
+
+
+ek
+----------------------------
+
+k()
+  Unable to fully structure code
+
+
+go
+----------------------------
+
+t()
+  Unable to fully structure code
+k()
+  Unable to fully structure code
+l()
+  Unable to fully structure code
+
+
+gv
+----------------------------
+
+run()
+  Unable to fully structure code
+
+
+ir
+----------------------------
+
+b()
+  Unable to fully structure code
+
+
+kd
+----------------------------
+
+j()
+  Unable to fully structure code
