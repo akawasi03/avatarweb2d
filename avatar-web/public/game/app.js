@@ -1609,9 +1609,9 @@
       col: 8,
       row: 5,
       partId: 819,
-      mapId: 11,
+      mapId: 21,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 72,
       animTick: 0
     },
     {
@@ -1624,7 +1624,7 @@
       partId: 820,
       mapId: 13,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 72,
       animTick: 0
     },
     {
@@ -1637,7 +1637,7 @@
       partId: 821,
       mapId: 20,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 144,
       animTick: 0
     },
     {
@@ -1650,7 +1650,7 @@
       partId: 822,
       mapId: 9,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 72,
       animTick: 0
     },
     {
@@ -1663,7 +1663,7 @@
       partId: 823,
       mapId: 23,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 72,
       animTick: 0
     },
     {
@@ -1676,7 +1676,7 @@
       partId: 824,
       mapId: 11,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 72,
       animTick: 0
     },
     {
@@ -1689,7 +1689,7 @@
       partId: 825,
       mapId: 17,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 72,
       animTick: 0
     },
     {
@@ -1700,9 +1700,9 @@
       col: 26,
       row: 21,
       partId: 826,
-      mapId: 10,
+      mapId: 25,
       spawnX: 120,
-      spawnY: 200,
+      spawnY: 72,
       animTick: 0
     }
   ];
@@ -3178,13 +3178,45 @@
     mapData;
     tilesetImage;
     bgImage;
-    bgPatternImage;
+    cloudImage;
     isNight = false;
     cameraX = 0;
     cameraY = 0;
+    // Authentic background mapping from ir.java line 98 (byte[] h)
+    static BG_TYPE_BY_MAP = {
+      0: 1,
+      1: 1,
+      2: 1,
+      3: 1,
+      4: 1,
+      5: 1,
+      6: 1,
+      7: 1,
+      8: 1,
+      9: 0,
+      10: 0,
+      11: 1,
+      12: 3,
+      13: 3,
+      14: 3,
+      15: 3,
+      16: 3,
+      17: 2,
+      18: -1,
+      19: -1,
+      20: -1,
+      21: 0,
+      22: 0,
+      23: 0,
+      24: 2,
+      25: 2
+    };
+    /**
+     * Authentic Map Height formula from ir.java lines 1050-1115
+     * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
+     */
     static getMapHeightTiles(mapId) {
-      const index = mapId - 1;
-      switch (index) {
+      switch (mapId) {
         case 107:
           return 16;
         case 25:
@@ -3228,9 +3260,10 @@
       this.isNight = hour >= 18 || hour < 6;
       const nightSuffix = this.isNight ? "1" : "0";
       try {
-        const mapRes = await fetch(`/assets/maps/${mapId}`);
+        const fileId = mapId + 1;
+        const mapRes = await fetch(`/assets/maps/${fileId}`);
         if (!mapRes.ok) {
-          console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId}`);
+          console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId} (file ${fileId})`);
           return;
         }
         const buffer = await mapRes.arrayBuffer();
@@ -3243,6 +3276,26 @@
         for (let i = 0; i < totalTiles; i++) {
           const val = bytes[i];
           tiles[i] = val === 255 ? -1 : val;
+        }
+        for (let i = 0; i < totalTiles; i++) {
+          const t = tiles[i];
+          if (t === 139) {
+            tiles[i] = i % widthTiles === 0 ? tiles[i + 1] : tiles[i - 1];
+          } else if (t === 140) {
+            tiles[i] = 55;
+          } else if (t === 141) {
+            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 0;
+          } else if (t === 152) {
+            tiles[i] = mapId === 25 ? 55 : 0;
+          } else if (t === 153) {
+            tiles[i] = Math.floor(i / widthTiles) === 0 ? 43 : 6;
+          } else if (t === 155 || t === 156) {
+            tiles[i] = 55;
+          } else if (t === 204) {
+            tiles[i] = 43;
+          } else if (t >= 126) {
+            tiles[i] = i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126 ? tiles[i - 1] : 0;
+          }
         }
         for (let i = 0; i < totalTiles; i++) {
           const t = tiles[i];
@@ -3262,6 +3315,10 @@
             collision[i] = 79;
           } else if (t < 7) {
             collision[i] = 80;
+          } else if (t >= 44 && t <= 55) {
+            collision[i] = 80;
+          } else if (t === 111 || t === 112) {
+            collision[i] = 80;
           } else {
             collision[i] = 88;
           }
@@ -3273,12 +3330,22 @@
           tiles,
           collision
         };
-        console.log(`[TilemapRenderer] Loaded map ${mapId}: ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
+        console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
         const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
         this.tilesetImage = await import_j2me_compat7.Image.createImage(tilesetUrl);
+        this.bgImage = void 0;
+        this.cloudImage = void 0;
+        const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
+        if (bgType !== -1) {
+          try {
+            const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
+            this.bgImage = await import_j2me_compat7.Image.createImage(bgUrl);
+          } catch (err) {
+          }
+        }
         try {
-          const bgUrl = `/assets/bg/0${nightSuffix}.png`;
-          this.bgImage = await import_j2me_compat7.Image.createImage(bgUrl);
+          const cloudUrl = `/assets/bg/${nightSuffix}.png`;
+          this.cloudImage = await import_j2me_compat7.Image.createImage(cloudUrl);
         } catch (err) {
         }
       } catch (err) {
@@ -3308,15 +3375,23 @@
       if (!this.mapData || !this.tilesetImage) return;
       const tileSize = _TilemapRenderer.TILE_SIZE;
       const { widthTiles, heightTiles, tiles } = this.mapData;
-      const skyColor = this.isNight ? 792873 : 6143735;
+      const skyColor = this.isNight ? 21 : 6143735;
       g.setColor(skyColor);
       g.fillRect(0, 0, screenW, screenH);
+      if (this.cloudImage) {
+        const cW = this.cloudImage.getWidth();
+        const parallaxCloud = -Math.floor(this.cameraX * 0.12) % cW;
+        const cloudY = Math.max(-20, 15 - Math.floor(this.cameraY * 0.1));
+        for (let x = parallaxCloud - cW; x < screenW + cW; x += cW) {
+          g.drawImage(this.cloudImage, x, cloudY, 0);
+        }
+      }
       if (this.bgImage) {
         const bgW = this.bgImage.getWidth();
-        const bgH = this.bgImage.getHeight();
         const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
+        const bgY = Math.max(0, 40 - Math.floor(this.cameraY * 0.2));
         for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
-          g.drawImage(this.bgImage, x, 60, 0);
+          g.drawImage(this.bgImage, x, bgY, 0);
         }
       }
       const startTileX = Math.max(0, Math.floor(this.cameraX / tileSize));
@@ -3614,7 +3689,7 @@
   };
 
   // packages/game-client/src/gameplay/GameWorldScreen.ts
-  var GameWorldScreen = class extends GameScreen {
+  var GameWorldScreen = class _GameWorldScreen extends GameScreen {
     localPlayer = {
       id: 0,
       name: "T\xF4i",
@@ -3662,39 +3737,150 @@
       "To\xE0n m\xE0n h\xECnh",
       "\u0110\xF3ng Menu"
     ];
-    // Map NPCs (Map 11 Công viên)
-    mapNpcs = [
-      {
-        id: 864,
-        targetId: 2000000864,
-        name: "Th\u1EA7n T\xE0i X\u1EC9u",
-        x: 80,
-        y: 70,
-        wearing: [2440, 2441, 0, 4338, 608, 3484, 3854, 5312],
-        chatMessage: "",
-        chatTimer: 0
-      },
-      {
-        id: 860,
-        targetId: 2000000860,
-        name: "Ti\xEAn tri Lovanga",
-        x: 250,
-        y: 80,
-        wearing: [89, 88, 0, 2044, 3299],
-        chatMessage: "",
-        chatTimer: 0
-      },
-      {
-        id: 465,
-        targetId: 2000000465,
-        name: "V\xE9 s\u1ED1",
-        x: 638,
-        y: 80,
-        wearing: [89, 88, 0, 33, 49, 328],
-        chatMessage: "",
-        chatTimer: 0
-      }
-    ];
+    // Authentic NPCs definition per Map ID from avatar_2x.npc database
+    static ALL_MAP_NPCS = {
+      9: [
+        {
+          id: 185,
+          targetId: 2000000185,
+          name: "Quay s\u1ED1",
+          x: 514,
+          y: 48,
+          wearing: [3379, 310, 309, 0, 82, 201, 523, 313, 528],
+          chatMessage: "",
+          chatTimer: 0,
+          chatList: ["Quay s\u1ED1 may m\u1EAFn \u0111\xE2y", "B\u1EA1n c\xF3 th\u1EC3 tr\xFAng nh\u1EEFng m\xF3n qu\xE0 \u0111\u1ED9c \u0111\xE1o", "H\xE3y tham gia ngay n\xE0o"]
+        },
+        {
+          id: 186,
+          targetId: 2000000186,
+          name: "\u0110\u1EA5u gi\xE1",
+          x: 410,
+          y: 48,
+          wearing: [598, 597, 0, 82, 308, 595, 313],
+          chatMessage: "",
+          chatTimer: 0,
+          chatList: ["Ch\xE0o c\xE1c b\u1EA1n \u0111\xE3 \u0111\u1EBFn v\u1EDBi \u0111\u1EA5u gi\xE1", "Hi\u1EC7n ch\u01B0a c\xF3 th\xF4ng tin phi\xEAn ti\u1EBFp theo"]
+        }
+      ],
+      11: [
+        {
+          id: 864,
+          targetId: 2000000864,
+          name: "Th\u1EA7n T\xE0i X\u1EC9u",
+          x: 80,
+          y: 50,
+          wearing: [2440, 2441, 0, 4338, 608, 3484, 3854, 5312],
+          chatMessage: "",
+          chatTimer: 0
+        },
+        {
+          id: 860,
+          targetId: 2000000860,
+          name: "Ti\xEAn tri Lovanga",
+          x: 250,
+          y: 64,
+          wearing: [89, 88, 0, 2044, 3299],
+          chatMessage: "",
+          chatTimer: 0
+        },
+        {
+          id: 465,
+          targetId: 2000000465,
+          name: "V\xE9 s\u1ED1",
+          x: 638,
+          y: 68,
+          wearing: [89, 88, 0, 33, 49, 328],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
+      13: [
+        {
+          id: 430,
+          targetId: 2000000430,
+          name: "Th\u1EE3 c\xE2u",
+          x: 326,
+          y: 64,
+          wearing: [3387, 3386, 0, 82, 3385, 3384, 442],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
+      17: [
+        {
+          id: 863,
+          targetId: 2000000863,
+          name: "Ch\u1EA1y To Win",
+          x: 54,
+          y: 48,
+          wearing: [2440, 2441, 0, 4338, 608, 3484, 3854, 5312],
+          chatMessage: "",
+          chatTimer: 0,
+          chatList: ["Shop c\xE0y chay \u0111\xE2y"]
+        },
+        {
+          id: 862,
+          targetId: 2000000862,
+          name: "Pay To Win",
+          x: 173,
+          y: 48,
+          wearing: [2440, 2441, 0, 4338, 608, 3484, 3854, 5312, 5455, 2310],
+          chatMessage: "",
+          chatTimer: 0,
+          chatList: ["Ch\u1EC9 c\xF3 th\u1EC3 PayToWin = )))"]
+        }
+      ],
+      20: [
+        {
+          id: 335,
+          targetId: 2000000335,
+          name: "Phi h\xE0nh gia",
+          x: 40,
+          y: 49,
+          wearing: [75, 56, 0, 516, 55, 2042],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
+      21: [
+        {
+          id: 857,
+          targetId: 2000000857,
+          name: "Ch\u1EE7 \u0111\u1EA7u t\u01B0",
+          x: 598,
+          y: 24,
+          wearing: [2403],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
+      23: [
+        {
+          id: 95,
+          targetId: 2000000095,
+          name: "Th\u1EE3 kim ho\xE0n",
+          x: 686,
+          y: 52,
+          wearing: [4205, 3378, 63, 62, 87, 90, 2073, 291, 616],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
+      25: [
+        {
+          id: 850,
+          targetId: 2000000850,
+          name: "L\xE1i bu\xF4n",
+          x: 70,
+          y: 45,
+          wearing: [273, 326, 0, 82, 73, 297, 442],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ]
+    };
+    mapNpcs = [];
     // Active NPC Dialogue State
     activeDialog = null;
     // Active Chest Inventory State
@@ -3725,6 +3911,10 @@
       this.rightCmd = { caption: "R\u1EDDi khu", actionId: 2 };
       this.setupNetworkHandlers();
       AvatarRenderer.init().catch(console.error);
+      this.mapNpcs = (_GameWorldScreen.ALL_MAP_NPCS[this.currentMapId] || []).map((n) => ({ ...n }));
+      for (const npc of this.mapNpcs) {
+        AvatarRenderer.preloadWearing(npc.wearing);
+      }
       this.tilemapRenderer.loadMap(this.currentMapId).catch(console.error);
       import_j2me_compat9.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
       });
@@ -3738,6 +3928,10 @@
         if (data.x > 0 && data.y > 0) {
           this.localPlayer.x = data.x;
           this.localPlayer.y = data.y;
+        }
+        this.mapNpcs = (_GameWorldScreen.ALL_MAP_NPCS[this.currentMapId] || []).map((n) => ({ ...n }));
+        for (const npc of this.mapNpcs) {
+          AvatarRenderer.preloadWearing(npc.wearing);
         }
         this.tilemapRenderer.loadMap(this.currentMapId);
         AvatarRenderer.preloadWearing(this.localPlayer.wearing);
@@ -4590,11 +4784,9 @@
         statusEl.style.color = "#38bdf8";
       }
       worldScreen.currentMapId = region.mapId;
-      if (region.key === "farm") {
-        network.sendJoinFarm(worldScreen.localPlayer.id || cachedUserData?.id || 0);
-      } else {
-        network.sendJoinPark(region.mapId, 0, region.spawnX, region.spawnY);
-      }
+      worldScreen.localPlayer.x = region.spawnX;
+      worldScreen.localPlayer.y = region.spawnY;
+      network.sendJoinPark(region.mapId, 0, region.spawnX, region.spawnY);
     };
     midlet.worldMapScreen.onBackToHome = () => {
       console.log("[WebClient] Back to home requested from World Map");

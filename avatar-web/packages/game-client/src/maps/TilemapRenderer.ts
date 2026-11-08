@@ -15,15 +15,31 @@ export class TilemapRenderer {
   public mapData?: MapData;
   public tilesetImage?: Image;
   public bgImage?: Image;
-  public bgPatternImage?: Image;
+  public cloudImage?: Image;
 
   public isNight: boolean = false;
   public cameraX: number = 0;
   public cameraY: number = 0;
 
+  // Authentic background mapping from ir.java line 98 (byte[] h)
+  public static readonly BG_TYPE_BY_MAP: Record<number, number> = {
+    0: 1, 1: 1, 2: 1, 3: 1, 4: 1, 5: 1, 6: 1, 7: 1, 8: 1,
+    9: 0,
+    10: 0,
+    11: 1,
+    12: 3, 13: 3, 14: 3, 15: 3, 16: 3,
+    17: 2,
+    18: -1, 19: -1, 20: -1,
+    21: 0, 22: 0, 23: 0,
+    24: 2, 25: 2
+  };
+
+  /**
+   * Authentic Map Height formula from ir.java lines 1050-1115
+   * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
+   */
   public static getMapHeightTiles(mapId: number): number {
-    const index = mapId - 1;
-    switch (index) {
+    switch (mapId) {
       case 107: return 16;
       case 25:
       case 21: return 7;
@@ -58,10 +74,12 @@ export class TilemapRenderer {
     const nightSuffix = this.isNight ? '1' : '0';
 
     try {
-      // 1. Load map binary bytes
-      const mapRes = await fetch(`/assets/maps/${mapId}`);
+      // In Java ME (ae.java line 486 & ir.java line 966):
+      // For server mapId (by2), the client loads binary file `by2 + 1`!
+      const fileId = mapId + 1;
+      const mapRes = await fetch(`/assets/maps/${fileId}`);
       if (!mapRes.ok) {
-        console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId}`);
+        console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId} (file ${fileId})`);
         return;
       }
       const buffer = await mapRes.arrayBuffer();
@@ -77,6 +95,30 @@ export class TilemapRenderer {
       for (let i = 0; i < totalTiles; i++) {
         const val = bytes[i];
         tiles[i] = val === 255 ? -1 : val;
+      }
+
+      // Authentic special tile marker transformation from ir.java (lines 1370-1550, 1869, 2262)
+      // Any tile marker index >= 126 is resolved into its underlying visual ground/road tile
+      for (let i = 0; i < totalTiles; i++) {
+        const t = tiles[i];
+        if (t === 139) {
+          // ir.a(hn2, d): resolve to horizontal neighbor
+          tiles[i] = (i % widthTiles === 0) ? tiles[i + 1] : tiles[i - 1];
+        } else if (t === 140) {
+          tiles[i] = 55;
+        } else if (t === 141) {
+          tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 0;
+        } else if (t === 152) {
+          tiles[i] = mapId === 25 ? 55 : 0;
+        } else if (t === 153) {
+          tiles[i] = Math.floor(i / widthTiles) === 0 ? 43 : 6;
+        } else if (t === 155 || t === 156) {
+          tiles[i] = 55;
+        } else if (t === 204) {
+          tiles[i] = 43;
+        } else if (t >= 126) {
+          tiles[i] = (i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126) ? tiles[i - 1] : 0;
+        }
       }
 
       // Compute base / collision matrix g[] as in ir.java lines 1260-1285
@@ -98,6 +140,10 @@ export class TilemapRenderer {
           collision[i] = 79;
         } else if (t < 7) {
           collision[i] = 80;
+        } else if (t >= 44 && t <= 55) {
+          collision[i] = 80;
+        } else if (t === 111 || t === 112) {
+          collision[i] = 80;
         } else {
           collision[i] = 88;
         }
@@ -111,18 +157,31 @@ export class TilemapRenderer {
         collision
       };
 
-      console.log(`[TilemapRenderer] Loaded map ${mapId}: ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
+      console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
 
       // 2. Load tileset image
       const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
       this.tilesetImage = await Image.createImage(tilesetUrl);
 
-      // 3. Load background image (e.g. 0.png for sky / clouds, 00.png / 01.png for mountains)
+      // 3. Load background image (e.g. 0.png for sky / clouds, 00.png / 10.png / 20.png / 30.png for scenery)
+      this.bgImage = undefined;
+      this.cloudImage = undefined;
+
+      const bgType = TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
+      if (bgType !== -1) {
+        try {
+          const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
+          this.bgImage = await Image.createImage(bgUrl);
+        } catch (err) {
+          // Optional landscape background
+        }
+      }
+
       try {
-        const bgUrl = `/assets/bg/0${nightSuffix}.png`;
-        this.bgImage = await Image.createImage(bgUrl);
+        const cloudUrl = `/assets/bg/${nightSuffix}.png`;
+        this.cloudImage = await Image.createImage(cloudUrl);
       } catch (err) {
-        // Optional background
+        // Optional cloud background
       }
     } catch (err) {
       console.error('[TilemapRenderer] Load error:', err);
@@ -162,17 +221,28 @@ export class TilemapRenderer {
     const tileSize = TilemapRenderer.TILE_SIZE;
     const { widthTiles, heightTiles, tiles } = this.mapData;
 
-    // 1. Paint background sky / mountains
-    const skyColor = this.isNight ? 0x0C1929 : 0x5DBEF7;
+    // 1. Paint background sky / mountains / clouds
+    const skyColor = this.isNight ? 0x000015 : 0x5DBEF7;
     g.setColor(skyColor);
     g.fillRect(0, 0, screenW, screenH);
 
+    // Clouds layer (0.png / 1.png)
+    if (this.cloudImage) {
+      const cW = this.cloudImage.getWidth();
+      const parallaxCloud = -Math.floor(this.cameraX * 0.12) % cW;
+      const cloudY = Math.max(-20, 15 - Math.floor(this.cameraY * 0.1));
+      for (let x = parallaxCloud - cW; x < screenW + cW; x += cW) {
+        g.drawImage(this.cloudImage, x, cloudY, 0);
+      }
+    }
+
+    // Scenery landscape layer (00.png, 10.png, 20.png, 30.png)
     if (this.bgImage) {
       const bgW = this.bgImage.getWidth();
-      const bgH = this.bgImage.getHeight();
       const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
+      const bgY = Math.max(0, 40 - Math.floor(this.cameraY * 0.2));
       for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
-        g.drawImage(this.bgImage, x, 60, 0);
+        g.drawImage(this.bgImage, x, bgY, 0);
       }
     }
 

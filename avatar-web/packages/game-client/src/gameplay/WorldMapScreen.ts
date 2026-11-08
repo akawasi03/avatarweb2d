@@ -36,9 +36,9 @@ export const WORLD_REGIONS: WorldRegion[] = [
     col: 8,
     row: 5,
     partId: 819,
-    mapId: 11,
+    mapId: 21,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 72,
     animTick: 0
   },
   {
@@ -51,7 +51,7 @@ export const WORLD_REGIONS: WorldRegion[] = [
     partId: 820,
     mapId: 13,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 72,
     animTick: 0
   },
   {
@@ -64,7 +64,7 @@ export const WORLD_REGIONS: WorldRegion[] = [
     partId: 821,
     mapId: 20,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 144,
     animTick: 0
   },
   {
@@ -77,7 +77,7 @@ export const WORLD_REGIONS: WorldRegion[] = [
     partId: 822,
     mapId: 9,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 72,
     animTick: 0
   },
   {
@@ -90,7 +90,7 @@ export const WORLD_REGIONS: WorldRegion[] = [
     partId: 823,
     mapId: 23,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 72,
     animTick: 0
   },
   {
@@ -103,7 +103,7 @@ export const WORLD_REGIONS: WorldRegion[] = [
     partId: 824,
     mapId: 11,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 72,
     animTick: 0
   },
   {
@@ -116,7 +116,7 @@ export const WORLD_REGIONS: WorldRegion[] = [
     partId: 825,
     mapId: 17,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 72,
     animTick: 0
   },
   {
@@ -127,9 +127,9 @@ export const WORLD_REGIONS: WorldRegion[] = [
     col: 26,
     row: 21,
     partId: 826,
-    mapId: 10,
+    mapId: 25,
     spawnX: 120,
-    spawnY: 200,
+    spawnY: 72,
     animTick: 0
   }
 ];
