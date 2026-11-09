@@ -505,8 +505,8 @@ export class TilemapRenderer {
     if (mapHeightPx > screenH) {
       camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
     } else {
-      // Road sits flush against the bottom edge of the screen (đường sát xuống dưới)
-      camY = mapHeightPx - screenH;
+      // Road sits flush against the bottom edge of the screen, leaving 20px for the thin bottom bar
+      camY = mapHeightPx - screenH + 20;
     }
 
     this.cameraX = camX;
@@ -540,24 +540,35 @@ export class TilemapRenderer {
     // Scenery landscape layer (00.png, 10.png, 20.png, 30.png)
     if (this.bgImage) {
       const bgW = this.bgImage.getWidth();
+      const bgH = this.bgImage.getHeight();
       const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
-      const bgY = Math.max(0, 40 - Math.floor(this.cameraY * 0.2));
+      const groundTopY = screenH - heightTiles * tileSize;
+      const bgY = Math.max(0, groundTopY - bgH + 30);
       for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
         g.drawImage(this.bgImage, x, bgY, 0);
       }
     }
 
-    // 2. Visible tile range based on camera viewport
-    const startTileX = Math.max(0, Math.floor(this.cameraX / tileSize));
-    const endTileX = Math.min(widthTiles, Math.ceil((this.cameraX + screenW) / tileSize));
+    // 2. Visible tile range based on camera viewport (seamlessly covers full screenW)
+    const startTileX = Math.floor(this.cameraX / tileSize);
+    const endTileX = Math.ceil((this.cameraX + screenW) / tileSize);
     const startTileY = Math.max(0, Math.floor(this.cameraY / tileSize));
     const endTileY = Math.min(heightTiles, Math.ceil((this.cameraY + screenH) / tileSize));
 
     // 3. Render base ground tiles (Layer 1)
     for (let ty = startTileY; ty < endTileY; ty++) {
       for (let tx = startTileX; tx < endTileX; tx++) {
-        const tileIdx = tiles[ty * widthTiles + tx];
+        // Clamp column to [0, widthTiles - 1] so ground/sidewalk/road tiles seamlessly repeat to the screen borders
+        const clampedCol = Math.max(0, Math.min(widthTiles - 1, tx));
+        let tileIdx = tiles[ty * widthTiles + clampedCol];
         if (tileIdx < 0) continue;
+
+        // Outside boundary, avoid duplicating doorways or markers, retain asphalt/sidewalk
+        if (tx < 0 || tx >= widthTiles) {
+          if (tileIdx > 120 || tileIdx < 0) {
+            tileIdx = 96;
+          }
+        }
 
         // In ir.java lines 873-874 & ht.java line 21:
         // this.c = image.getHeight() / tileSize (18 vertical tiles per column!)

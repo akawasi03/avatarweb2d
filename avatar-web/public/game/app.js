@@ -3599,7 +3599,7 @@
       if (mapHeightPx > screenH) {
         camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
       } else {
-        camY = mapHeightPx - screenH;
+        camY = mapHeightPx - screenH + 20;
       }
       this.cameraX = camX;
       this.cameraY = camY;
@@ -3624,20 +3624,28 @@
       }
       if (this.bgImage) {
         const bgW = this.bgImage.getWidth();
+        const bgH = this.bgImage.getHeight();
         const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
-        const bgY = Math.max(0, 40 - Math.floor(this.cameraY * 0.2));
+        const groundTopY = screenH - heightTiles * tileSize;
+        const bgY = Math.max(0, groundTopY - bgH + 30);
         for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
           g.drawImage(this.bgImage, x, bgY, 0);
         }
       }
-      const startTileX = Math.max(0, Math.floor(this.cameraX / tileSize));
-      const endTileX = Math.min(widthTiles, Math.ceil((this.cameraX + screenW) / tileSize));
+      const startTileX = Math.floor(this.cameraX / tileSize);
+      const endTileX = Math.ceil((this.cameraX + screenW) / tileSize);
       const startTileY = Math.max(0, Math.floor(this.cameraY / tileSize));
       const endTileY = Math.min(heightTiles, Math.ceil((this.cameraY + screenH) / tileSize));
       for (let ty = startTileY; ty < endTileY; ty++) {
         for (let tx = startTileX; tx < endTileX; tx++) {
-          const tileIdx = tiles[ty * widthTiles + tx];
+          const clampedCol = Math.max(0, Math.min(widthTiles - 1, tx));
+          let tileIdx = tiles[ty * widthTiles + clampedCol];
           if (tileIdx < 0) continue;
+          if (tx < 0 || tx >= widthTiles) {
+            if (tileIdx > 120 || tileIdx < 0) {
+              tileIdx = 96;
+            }
+          }
           const numRows = 18;
           const col = Math.floor(tileIdx / numRows);
           const row = tileIdx % numRows;
@@ -4549,9 +4557,37 @@
         this.isEmoteOpen = false;
         return;
       }
-      if (x >= 6 && x <= 56 && y >= 6 && y <= 30) {
-        this.isMenuOpen = !this.isMenuOpen;
-        this.isEmoteOpen = false;
+      if (y >= 3 && y <= 33) {
+        if (x >= 8 && x <= 64) {
+          this.isMenuOpen = !this.isMenuOpen;
+          this.isEmoteOpen = false;
+          return;
+        }
+        if (x >= 70 && x <= 96) {
+          alert("H\xF2m th\u01B0 th\xF4ng b\xE1o: Th\xE0nh ph\u1ED1 Avatar ch\xE0o \u0111\xF3n b\u1EA1n tham gia s\u1EF1 ki\u1EC7n \u0111\u1EB7c bi\u1EC7t!");
+          return;
+        }
+        if (x >= 102 && x <= 128) {
+          this.promptChat();
+          return;
+        }
+        if (x >= screenW - 100 && x <= screenW - 74) {
+          if (typeof window !== "undefined" && window.openWorldMap) {
+            window.openWorldMap();
+          }
+          return;
+        }
+        if (x >= screenW - 68 && x <= screenW - 42) {
+          this.isRunningFast = !this.isRunningFast;
+          return;
+        }
+        if (x >= screenW - 36 && x <= screenW - 10) {
+          this.isEmoteOpen = !this.isEmoteOpen;
+          return;
+        }
+        return;
+      }
+      if (y >= screenH - 22) {
         return;
       }
       const worldTargetX = x + this.tilemapRenderer.cameraX;
@@ -4768,13 +4804,95 @@
           }
         }
       }
+      g.setColor(2312557);
+      g.fillRect(0, 0, screenW, 34);
+      g.setColor(1783892);
+      g.fillRect(0, 0, screenW, 1);
+      g.setColor(3894683);
+      g.fillRect(0, 33, screenW, 1);
       g.setColor(1402304);
-      g.fillRoundRect(8, 8, 44, 20, 4);
-      g.setColor(9489145);
-      g.drawRoundRect(8, 8, 44, 20, 4);
+      g.fillRoundRect(8, 4, 56, 26, 5);
+      g.setColor(16777215);
+      g.drawRoundRect(8, 4, 56, 26, 5);
       if (this.font) {
-        this.font.drawString(g, "MENU", 30, 12, 2);
+        this.font.drawString(g, "MENU", 36, 10, 2);
       }
+      g.setColor(16777215);
+      g.fillRoundRect(70, 4, 26, 26, 5);
+      g.setColor(13358561);
+      g.drawRoundRect(70, 4, 26, 26, 5);
+      g.setColor(2450411);
+      g.drawRect(75, 11, 16, 11);
+      g.drawLine(75, 11, 83, 17);
+      g.drawLine(83, 17, 91, 11);
+      g.setColor(15680580);
+      g.fillArc(87, 2, 9, 9, 0, 360);
+      g.setColor(16777215);
+      if (this.font) {
+        this.font.drawString(g, "!", 91, 2, 2);
+      }
+      g.setColor(16777215);
+      g.fillRoundRect(102, 4, 26, 26, 5);
+      g.setColor(13358561);
+      g.drawRoundRect(102, 4, 26, 26, 5);
+      g.setColor(165063);
+      g.fillRoundRect(106, 9, 18, 12, 3);
+      g.fillArc(107, 18, 5, 5, 0, 360);
+      g.setColor(16777215);
+      g.fillRect(109, 13, 2, 2);
+      g.fillRect(114, 13, 2, 2);
+      g.fillRect(119, 13, 2, 2);
+      g.setColor(16777215);
+      g.fillRoundRect(screenW - 100, 4, 26, 26, 5);
+      g.setColor(13358561);
+      g.drawRoundRect(screenW - 100, 4, 26, 26, 5);
+      g.setColor(165063);
+      g.fillRoundRect(screenW - 96, 8, 18, 18, 3);
+      g.setColor(16777215);
+      g.drawLine(screenW - 94, 17, screenW - 80, 17);
+      g.drawLine(screenW - 87, 10, screenW - 87, 24);
+      g.setColor(16777215);
+      g.fillRoundRect(screenW - 68, 4, 26, 26, 5);
+      g.setColor(13358561);
+      g.drawRoundRect(screenW - 68, 4, 26, 26, 5);
+      if (this.font) {
+        this.font.drawString(g, this.isRunningFast ? "\u26A1" : "\u{1F3C3}", screenW - 55, 9, 2);
+      }
+      g.setColor(16777215);
+      g.fillRoundRect(screenW - 36, 4, 26, 26, 5);
+      g.setColor(13358561);
+      g.drawRoundRect(screenW - 36, 4, 26, 26, 5);
+      if (this.font) {
+        this.font.drawString(g, "\u{1F60A}", screenW - 23, 9, 2);
+      }
+      const ctx = g.ctx;
+      if (ctx) {
+        ctx.save();
+        ctx.beginPath();
+        ctx.rect(136, 0, Math.max(50, screenW - 245), 34);
+        ctx.clip();
+        ctx.fillStyle = "#FFFFFF";
+        ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+        ctx.textBaseline = "middle";
+        ctx.fillText(this.tickerText, this.tickerX, 17);
+        ctx.restore();
+      }
+      g.setColor(1120295);
+      g.fillRect(0, screenH - 20, screenW, 20);
+      g.setColor(3621201);
+      g.fillRect(0, screenH - 20, screenW, 1);
+      if (this.img12Plus && this.img12Plus.getWidth() > 0) {
+        g.drawImage(this.img12Plus, 4, screenH - 18, 0);
+      } else {
+        g.setColor(1982639);
+        g.fillRoundRect(4, screenH - 18, 24, 16, 2);
+        g.setColor(16777215);
+        if (this.font) {
+          this.font.drawString(g, "12+", 16, screenH - 16, 2);
+        }
+      }
+      g.setColor(7041664);
+      g.fillRoundRect(Math.floor(screenW / 2) - 40, screenH - 13, 80, 6, 3);
       if (this.isMenuOpen) {
         const mw = 170;
         const mh = this.menuOptions.length * 24 + 16;
@@ -5037,20 +5155,10 @@
       const rect = parent.getBoundingClientRect();
       const winW = Math.floor(rect.width > 0 ? rect.width : window.innerWidth);
       const winH = Math.floor(rect.height > 0 ? rect.height : window.innerHeight);
-      if (window.__SCENE === "worldmap") {
-        canvas.width = winW;
-        canvas.height = winH;
-        midlet.canvas.resize(winW, winH);
-        ctx.imageSmoothingEnabled = true;
-      } else {
-        const scale = Math.max(1, Math.round(winH / 340));
-        const logicalW = Math.max(320, Math.round(winW / scale));
-        const logicalH = Math.max(240, Math.round(winH / scale));
-        canvas.width = logicalW;
-        canvas.height = logicalH;
-        midlet.canvas.resize(logicalW, logicalH);
-        ctx.imageSmoothingEnabled = false;
-      }
+      canvas.width = winW;
+      canvas.height = winH;
+      midlet.canvas.resize(winW, winH);
+      ctx.imageSmoothingEnabled = false;
     }
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();

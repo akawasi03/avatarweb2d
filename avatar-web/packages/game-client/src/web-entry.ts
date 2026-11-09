@@ -438,23 +438,11 @@ async function startWebClient() {
 
 
 
-    if (window.__SCENE === 'worldmap') {
-      // Full native HD resolution for world map (1:1 pixel crispness with zero black pillarbox)
-      canvas.width = winW;
-      canvas.height = winH;
-      midlet.canvas.resize(winW, winH);
-      ctx.imageSmoothingEnabled = true;
-    } else {
-      // Authentic retro pixel art density: target logical height ~320-360px
-      const scale = Math.max(1, Math.round(winH / 340));
-      const logicalW = Math.max(320, Math.round(winW / scale));
-      const logicalH = Math.max(240, Math.round(winH / scale));
-
-      canvas.width = logicalW;
-      canvas.height = logicalH;
-      midlet.canvas.resize(logicalW, logicalH);
-      ctx.imageSmoothingEnabled = false;
-    }
+    // Full native 100vw x 100dvh viewport resolution: maximum map view area and crisp 1:1 pixel art
+    canvas.width = winW;
+    canvas.height = winH;
+    midlet.canvas.resize(winW, winH);
+    ctx.imageSmoothingEnabled = false;
 
   }
 

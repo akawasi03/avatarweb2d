@@ -856,11 +856,11 @@ if (!$view) {
       position: fixed;
       top: 0;
       left: 0;
-      width: 100%;
-      height: 100%;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
       background: #000000;
       z-index: 9999;
-      flex-direction: column;
       overflow: hidden;
       margin: 0;
       padding: 0;
@@ -934,14 +934,14 @@ if (!$view) {
     }
 
     .game-canvas-wrapper {
-      flex: 1;
-      width: 100%;
-      min-height: 0;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
       position: relative;
       overflow: hidden;
-      display: flex;
-      align-items: center;
-      justify-content: center;
+      display: block;
+      margin: 0;
+      padding: 0;
       background: #000;
     }
 
@@ -949,6 +949,8 @@ if (!$view) {
       width: 100%;
       height: 100%;
       display: block;
+      margin: 0;
+      padding: 0;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       cursor: crosshair;

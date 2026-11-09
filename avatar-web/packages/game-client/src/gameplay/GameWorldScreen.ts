@@ -772,10 +772,47 @@ export class GameWorldScreen extends GameScreen {
       return;
     }
 
-    // 3. Top-left [ MENU ] button
-    if (x >= 6 && x <= 56 && y >= 6 && y <= 30) {
-      this.isMenuOpen = !this.isMenuOpen;
-      this.isEmoteOpen = false;
+    // 3. Top Bar HUD Button interactions (matching reference screenshot)
+    if (y >= 3 && y <= 33) {
+      // 3a. [MENU] button (x = 8..64)
+      if (x >= 8 && x <= 64) {
+        this.isMenuOpen = !this.isMenuOpen;
+        this.isEmoteOpen = false;
+        return;
+      }
+      // 3b. Mail button (x = 70..96)
+      if (x >= 70 && x <= 96) {
+        alert('Hòm thư thông báo: Thành phố Avatar chào đón bạn tham gia sự kiện đặc biệt!');
+        return;
+      }
+      // 3c. Chat button (x = 102..128)
+      if (x >= 102 && x <= 128) {
+        this.promptChat();
+        return;
+      }
+      // 3d. Radar / World Map button (x = screenW - 100..screenW - 74)
+      if (x >= screenW - 100 && x <= screenW - 74) {
+        if (typeof window !== 'undefined' && (window as any).openWorldMap) {
+          (window as any).openWorldMap();
+        }
+        return;
+      }
+      // 3e. Speed Run button (x = screenW - 68..screenW - 42)
+      if (x >= screenW - 68 && x <= screenW - 42) {
+        this.isRunningFast = !this.isRunningFast;
+        return;
+      }
+      // 3f. Emotion Smiley button (x = screenW - 36..screenW - 10)
+      if (x >= screenW - 36 && x <= screenW - 10) {
+        this.isEmoteOpen = !this.isEmoteOpen;
+        return;
+      }
+      // Clicking elsewhere on top marquee bar does not trigger world character walk
+      return;
+    }
+
+    // 4. Bottom bar area does not trigger world walk
+    if (y >= screenH - 22) {
       return;
     }
 
@@ -1050,14 +1087,120 @@ export class GameWorldScreen extends GameScreen {
       }
     }
 
-    // 6. Floating compact [ MENU ] pill at top-left
+    // 6. Authentic Top Bar (Height 34px) matching reference screenshot
+    g.setColor(0x23496D); // Dark slate blue strip
+    g.fillRect(0, 0, screenW, 34);
+    g.setColor(0x1B3854);
+    g.fillRect(0, 0, screenW, 1);
+    g.setColor(0x3B6D9B);
+    g.fillRect(0, 33, screenW, 1);
+
+    // 6a. [MENU] Button (x = 8, y = 4, w = 56, h = 26)
     g.setColor(0x1565C0);
-    g.fillRoundRect(8, 8, 44, 20, 4);
-    g.setColor(0x90CAF9);
-    g.drawRoundRect(8, 8, 44, 20, 4);
+    g.fillRoundRect(8, 4, 56, 26, 5);
+    g.setColor(0xFFFFFF);
+    g.drawRoundRect(8, 4, 56, 26, 5);
     if (this.font) {
-      this.font.drawString(g, 'MENU', 30, 12, 2);
+      this.font.drawString(g, 'MENU', 36, 10, 2);
     }
+
+    // 6b. Mail Button (x = 70, y = 4, w = 26, h = 26)
+    g.setColor(0xFFFFFF);
+    g.fillRoundRect(70, 4, 26, 26, 5);
+    g.setColor(0xCBD5E1);
+    g.drawRoundRect(70, 4, 26, 26, 5);
+    // Envelope icon
+    g.setColor(0x2563EB);
+    g.drawRect(75, 11, 16, 11);
+    g.drawLine(75, 11, 83, 17);
+    g.drawLine(83, 17, 91, 11);
+    // Red notification badge (!)
+    g.setColor(0xEF4444);
+    g.fillArc(87, 2, 9, 9, 0, 360);
+    g.setColor(0xFFFFFF);
+    if (this.font) {
+      this.font.drawString(g, '!', 91, 2, 2);
+    }
+
+    // 6c. Chat Button (x = 102, y = 4, w = 26, h = 26)
+    g.setColor(0xFFFFFF);
+    g.fillRoundRect(102, 4, 26, 26, 5);
+    g.setColor(0xCBD5E1);
+    g.drawRoundRect(102, 4, 26, 26, 5);
+    // Blue speech bubble icon
+    g.setColor(0x0284C7);
+    g.fillRoundRect(106, 9, 18, 12, 3);
+    g.fillArc(107, 18, 5, 5, 0, 360);
+    g.setColor(0xFFFFFF);
+    g.fillRect(109, 13, 2, 2);
+    g.fillRect(114, 13, 2, 2);
+    g.fillRect(119, 13, 2, 2);
+
+    // 6d. Radar / World Map Button (x = screenW - 100, y = 4, w = 26, h = 26)
+    g.setColor(0xFFFFFF);
+    g.fillRoundRect(screenW - 100, 4, 26, 26, 5);
+    g.setColor(0xCBD5E1);
+    g.drawRoundRect(screenW - 100, 4, 26, 26, 5);
+    // Diamond compass icon
+    g.setColor(0x0284C7);
+    g.fillRoundRect(screenW - 96, 8, 18, 18, 3);
+    g.setColor(0xFFFFFF);
+    g.drawLine(screenW - 94, 17, screenW - 80, 17);
+    g.drawLine(screenW - 87, 10, screenW - 87, 24);
+
+    // 6e. Speed Run Button (x = screenW - 68, y = 4, w = 26, h = 26)
+    g.setColor(0xFFFFFF);
+    g.fillRoundRect(screenW - 68, 4, 26, 26, 5);
+    g.setColor(0xCBD5E1);
+    g.drawRoundRect(screenW - 68, 4, 26, 26, 5);
+    if (this.font) {
+      this.font.drawString(g, this.isRunningFast ? '⚡' : '🏃', screenW - 55, 9, 2);
+    }
+
+    // 6f. Emotion Smiley Button (x = screenW - 36, y = 4, w = 26, h = 26)
+    g.setColor(0xFFFFFF);
+    g.fillRoundRect(screenW - 36, 4, 26, 26, 5);
+    g.setColor(0xCBD5E1);
+    g.drawRoundRect(screenW - 36, 4, 26, 26, 5);
+    if (this.font) {
+      this.font.drawString(g, '😊', screenW - 23, 9, 2);
+    }
+
+    // 6g. Top Marquee Text Clipping Area
+    const ctx = g.ctx as CanvasRenderingContext2D | undefined;
+    if (ctx) {
+      ctx.save();
+      ctx.beginPath();
+      ctx.rect(136, 0, Math.max(50, screenW - 245), 34);
+      ctx.clip();
+      ctx.fillStyle = '#FFFFFF';
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textBaseline = 'middle';
+      ctx.fillText(this.tickerText, this.tickerX, 17);
+      ctx.restore();
+    }
+
+    // 7. Bottom Status Bar (Height 20px) matching reference screenshot
+    g.setColor(0x111827); // Dark strip
+    g.fillRect(0, screenH - 20, screenW, 20);
+    g.setColor(0x374151);
+    g.fillRect(0, screenH - 20, screenW, 1);
+
+    // 12+ badge
+    if (this.img12Plus && this.img12Plus.getWidth() > 0) {
+      g.drawImage(this.img12Plus, 4, screenH - 18, 0);
+    } else {
+      g.setColor(0x1E40AF);
+      g.fillRoundRect(4, screenH - 18, 24, 16, 2);
+      g.setColor(0xFFFFFF);
+      if (this.font) {
+        this.font.drawString(g, '12+', 16, screenH - 16, 2);
+      }
+    }
+
+    // Softkey Capsule indicator in center
+    g.setColor(0x6B7280);
+    g.fillRoundRect(Math.floor(screenW / 2) - 40, screenH - 13, 80, 6, 3);
 
     // 9. In-game Menu Popup
     if (this.isMenuOpen) {
