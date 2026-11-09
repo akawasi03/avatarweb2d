@@ -3111,9 +3111,11 @@
     static TILES_PER_ROW = 7;
     // 168 px / 24 px = 7 tiles
     mapData;
+    mapObjects = [];
     tilesetImage;
     bgImage;
     cloudImage;
+    objectImageCache = /* @__PURE__ */ new Map();
     isNight = false;
     cameraX = 0;
     cameraY = 0;
@@ -3208,30 +3210,142 @@
         const totalTiles = widthTiles * heightTiles;
         const tiles = new Int16Array(totalTiles);
         const collision = new Int16Array(totalTiles);
+        this.mapObjects = [];
         for (let i = 0; i < totalTiles; i++) {
           const val = bytes[i];
           tiles[i] = val === 255 ? -1 : val;
         }
+        const spawnedObjects = [];
         for (let i = 0; i < totalTiles; i++) {
           const t = tiles[i];
-          if (t === 139) {
+          const col = i % widthTiles;
+          const row = Math.floor(i / widthTiles);
+          const px = col * _TilemapRenderer.TILE_SIZE;
+          const py = row * _TilemapRenderer.TILE_SIZE;
+          if (t === 127) {
+            spawnedObjects.push({ partId: 830, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 128) {
+            spawnedObjects.push({ partId: 828, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+          } else if (t === 129 || t === 160) {
+            const part = mapId === 17 ? 836 : 829;
+            spawnedObjects.push({ partId: part, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 141) {
+            spawnedObjects.push({ partId: 840, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+          } else if (t === 143) {
+            spawnedObjects.push({ partId: 831, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 51;
+          } else if (t === 144) {
+            spawnedObjects.push({ partId: 841, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = 5;
+          } else if (t === 147 || t === 161) {
+            spawnedObjects.push({ partId: 832, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 148 || t === 162) {
+            const part = mapId === 17 ? 836 : 833;
+            spawnedObjects.push({ partId: part, x: px + 48, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 149) {
+            spawnedObjects.push({ partId: 834, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 150) {
+            spawnedObjects.push({ partId: 842, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = mapId === 25 ? 4 : 0;
+          } else if (t === 151) {
+            spawnedObjects.push({ partId: 843, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = 0;
+          } else if (t === 152) {
+            spawnedObjects.push({ partId: 835, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = mapId === 25 ? 55 : 0;
+          } else if (t === 159) {
+            spawnedObjects.push({ partId: 848, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+            tiles[i] = mapId === 25 ? 5 : mapId === 13 ? 0 : 4;
+          } else if (t === 172) {
+            spawnedObjects.push({ partId: 836, x: px + 37, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 173 || t === 179) {
+            spawnedObjects.push({ partId: 837, x: px + 48, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 174) {
+            spawnedObjects.push({ partId: 838, x: px + 48, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 175) {
+            spawnedObjects.push({ partId: 830, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 176) {
+            spawnedObjects.push({ partId: 829, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 177) {
+            spawnedObjects.push({ partId: 832, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 186) {
+            spawnedObjects.push({ partId: 847, x: px + 11, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
+            tiles[i] = 43;
+          } else if (t === 190) {
+            spawnedObjects.push({ partId: 1029, x: px + 36, y: py + 20, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 192) {
+            spawnedObjects.push({ partId: 1034, x: px + 36, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 193) {
+            spawnedObjects.push({ partId: 1032, x: px + 24, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 194) {
+            spawnedObjects.push({ partId: 1030, x: px + 24, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 195) {
+            spawnedObjects.push({ partId: 1037, x: px + 24, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 196) {
+            spawnedObjects.push({ partId: 1035, x: px + 24, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 197) {
+            spawnedObjects.push({ partId: 1033, x: px + 12, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 198) {
+            spawnedObjects.push({ partId: 1036, x: px + 12, y: py + 20, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 199) {
+            spawnedObjects.push({ partId: 1031, x: px + 24, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 200) {
+            spawnedObjects.push({ partId: 1075, x: px + 24, y: py + 24, layer: 0 });
+            tiles[i] = 4;
+          } else if (t === 201) {
+            spawnedObjects.push({ partId: 1094, x: px + 24, y: py + 20, layer: 0 });
+            tiles[i] = 5;
+          } else if (t === 202) {
+            spawnedObjects.push({ partId: 4, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
+            tiles[i] = 96;
+          } else if (t === 204) {
+            spawnedObjects.push({ partId: 846, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
+            tiles[i] = 43;
+          } else if (t === 139) {
             tiles[i] = i % widthTiles === 0 ? tiles[i + 1] : tiles[i - 1];
           } else if (t === 140) {
             tiles[i] = 55;
-          } else if (t === 141) {
-            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 0;
-          } else if (t === 152) {
-            tiles[i] = mapId === 25 ? 55 : 0;
-          } else if (t === 153) {
-            tiles[i] = Math.floor(i / widthTiles) === 0 ? 43 : 6;
-          } else if (t === 155 || t === 156) {
-            tiles[i] = 55;
-          } else if (t === 204) {
-            tiles[i] = 43;
           } else if (t >= 126) {
             tiles[i] = i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126 ? tiles[i - 1] : 0;
           }
         }
+        const uniquePartIds = Array.from(new Set(spawnedObjects.map((o) => o.partId)));
+        await Promise.all(uniquePartIds.map(async (partId) => {
+          if (!this.objectImageCache.has(partId)) {
+            try {
+              const img = await import_j2me_compat6.Image.createImage(`/assets/home/${partId}.png`);
+              this.objectImageCache.set(partId, img);
+            } catch (e) {
+              console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
+            }
+          }
+        }));
+        for (const obj of spawnedObjects) {
+          obj.image = this.objectImageCache.get(obj.partId);
+        }
+        this.mapObjects = spawnedObjects;
         for (let i = 0; i < totalTiles; i++) {
           const t = tiles[i];
           if (t === -4) {
@@ -3265,7 +3379,7 @@
           tiles,
           collision
         };
-        console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
+        console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
         const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
         this.tilesetImage = await import_j2me_compat6.Image.createImage(tilesetUrl);
         this.bgImage = void 0;
@@ -3306,6 +3420,9 @@
       this.cameraX = camX;
       this.cameraY = camY;
     }
+    /**
+     * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
+     */
     paint(g, screenW, screenH) {
       if (!this.mapData || !this.tilesetImage) return;
       const tileSize = _TilemapRenderer.TILE_SIZE;
@@ -3367,7 +3484,7 @@
         return true;
       }
       const c = collision[ty * widthTiles + tx];
-      return !(c === 80 || c === 51 || c === 88 || c === 0);
+      return c === 88 || c === 92;
     }
   };
 
@@ -4374,6 +4491,7 @@
       }
       const entities = [];
       entities.push({
+        type: "avatar",
         id: this.localPlayer.id,
         name: this.localPlayer.name,
         x: this.localPlayer.x,
@@ -4411,7 +4529,7 @@
       for (const npc of this.mapNpcs) {
         if (!seenIds.has(npc.id) && !seenIds.has(npc.targetId)) {
           const alreadyPresent = entities.some(
-            (e) => e.name.toLowerCase().replace(/[^a-z0-9]/g, "") === npc.name.toLowerCase().replace(/[^a-z0-9]/g, "")
+            (e) => e.name && e.name.toLowerCase().replace(/[^a-z0-9]/g, "") === npc.name.toLowerCase().replace(/[^a-z0-9]/g, "")
           );
           if (!alreadyPresent) {
             seenIds.add(npc.id);
@@ -4429,8 +4547,31 @@
           }
         }
       }
+      if (this.tilemapRenderer && this.tilemapRenderer.mapObjects) {
+        for (const obj of this.tilemapRenderer.mapObjects) {
+          if (obj.image) {
+            entities.push({
+              type: "object",
+              x: obj.x,
+              y: obj.y,
+              mapObject: obj
+            });
+          }
+        }
+      }
       entities.sort((a, b) => a.y - b.y);
       for (const ent of entities) {
+        if (ent.type === "object" && ent.mapObject && ent.mapObject.image) {
+          const img = ent.mapObject.image;
+          const imgW = img.getWidth();
+          const imgH = img.getHeight();
+          const screenX2 = ent.x - Math.floor(imgW / 2) - camX;
+          const screenY2 = ent.y - imgH - camY;
+          if (screenX2 + imgW >= -50 && screenX2 <= screenW + 50 && screenY2 + imgH >= -50 && screenY2 <= screenH + 50) {
+            g.drawImage(img, screenX2, screenY2, 0);
+          }
+          continue;
+        }
         const screenX = ent.x - camX;
         const screenY = ent.y - camY;
         if (screenX >= -50 && screenX <= screenW + 50 && screenY >= -60 && screenY <= screenH + 60) {
@@ -4438,11 +4579,11 @@
             g,
             screenX,
             screenY,
-            ent.wearing,
-            ent.direct,
-            ent.frame,
-            ent.name,
-            ent.isLocal,
+            ent.wearing || [],
+            ent.direct || 0,
+            ent.frame || 0,
+            ent.name || "",
+            !!ent.isLocal,
             this.font,
             ent.chatMessage
           );

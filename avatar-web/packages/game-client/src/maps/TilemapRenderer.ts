@@ -8,14 +8,25 @@ export interface MapData {
   collision: Int16Array; // g in ir.java
 }
 
+export interface MapObjectInstance {
+  partId: number;
+  x: number;          // World X in pixels (foot anchor center)
+  y: number;          // World Y in pixels (foot anchor bottom)
+  layer: number;      // 0: Y-sorted ground/structure, 1: overhead canopy
+  image?: Image;
+}
+
 export class TilemapRenderer {
   public static readonly TILE_SIZE = 24; // i = 24 in ir.java
   public static readonly TILES_PER_ROW = 7; // 168 px / 24 px = 7 tiles
 
   public mapData?: MapData;
+  public mapObjects: MapObjectInstance[] = [];
   public tilesetImage?: Image;
   public bgImage?: Image;
   public cloudImage?: Image;
+
+  private objectImageCache: Map<number, Image> = new Map();
 
   public isNight: boolean = false;
   public cameraX: number = 0;
@@ -91,35 +102,185 @@ export class TilemapRenderer {
 
       const tiles = new Int16Array(totalTiles);
       const collision = new Int16Array(totalTiles);
+      this.mapObjects = [];
 
       for (let i = 0; i < totalTiles; i++) {
         const val = bytes[i];
         tiles[i] = val === 255 ? -1 : val;
       }
 
-      // Authentic special tile marker transformation from ir.java (lines 1370-1550, 1869, 2262)
-      // Any tile marker index >= 126 is resolved into its underlying visual ground/road tile
+      // Authentic special tile marker decoding & MapObject spawning from ir.java lines 1308-1600
+      const spawnedObjects: MapObjectInstance[] = [];
+
       for (let i = 0; i < totalTiles; i++) {
         const t = tiles[i];
-        if (t === 139) {
-          // ir.a(hn2, d): resolve to horizontal neighbor
+        const col = i % widthTiles;
+        const row = Math.floor(i / widthTiles);
+        const px = col * TilemapRenderer.TILE_SIZE;
+        const py = row * TilemapRenderer.TILE_SIZE;
+
+        if (t === 127) {
+          // Casino Palace / Airport Terminal (Part 830)
+          spawnedObjects.push({ partId: 830, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 128) {
+          // Entrance Gate / Arch (Part 828)
+          spawnedObjects.push({ partId: 828, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 5;
+        } else if (t === 129 || t === 160) {
+          // Mall / Supermarket (Part 829 or 836 in suburbs)
+          const part = (mapId === 17) ? 836 : 829;
+          spawnedObjects.push({ partId: part, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 141) {
+          // Barn gate / Park lamp post (Part 840)
+          spawnedObjects.push({ partId: 840, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 5;
+        } else if (t === 143) {
+          // Farm Silo / Ecological Pavilion (Part 831)
+          spawnedObjects.push({ partId: 831, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 51;
+        } else if (t === 144) {
+          // Well / Farm Water Tank (Part 841)
+          spawnedObjects.push({ partId: 841, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = 5;
+        } else if (t === 147 || t === 161) {
+          // Storefront (Part 832)
+          spawnedObjects.push({ partId: 832, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 148 || t === 162) {
+          // Airport hangar / Suburban shop (Part 833 or 836)
+          const part = (mapId === 17) ? 836 : 833;
+          spawnedObjects.push({ partId: part, x: px + 48, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 149) {
+          // Airport Radar Tower (Part 834)
+          spawnedObjects.push({ partId: 834, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 150) {
+          // Farm Windmill (Part 842)
+          spawnedObjects.push({ partId: 842, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = (mapId === 25) ? 4 : 0;
+        } else if (t === 151) {
+          // Farm Coop / Barn Stall (Part 843)
+          spawnedObjects.push({ partId: 843, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = 0;
+        } else if (t === 152) {
+          // Wooden Fence / Park Railing (Part 835)
+          spawnedObjects.push({ partId: 835, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = (mapId === 25) ? 55 : 0;
+        } else if (t === 159) {
+          // Water Fountain / Garden Pond (Part 848)
+          spawnedObjects.push({ partId: 848, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
+          tiles[i] = (mapId === 25) ? 5 : ((mapId === 13) ? 0 : 4);
+        } else if (t === 172) {
+          // Shade Tree Type 1 (Part 836)
+          spawnedObjects.push({ partId: 836, x: px + 37, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 173 || t === 179) {
+          // Tree Type 2 (Part 837)
+          spawnedObjects.push({ partId: 837, x: px + 48, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 174) {
+          // Tree Type 3 (Part 838)
+          spawnedObjects.push({ partId: 838, x: px + 48, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 175) {
+          // Residential House Type A (Part 830)
+          spawnedObjects.push({ partId: 830, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 176) {
+          // Residential House Type B (Part 829)
+          spawnedObjects.push({ partId: 829, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 177) {
+          // Residential House Type C (Part 832)
+          spawnedObjects.push({ partId: 832, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 186) {
+          // Fishing Pier / River Dock (Part 847)
+          spawnedObjects.push({ partId: 847, x: px + 11, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
+          tiles[i] = 43;
+        } else if (t === 190) {
+          // Casino Game Table 1 (Part 1029)
+          spawnedObjects.push({ partId: 1029, x: px + 36, y: py + 20, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 192) {
+          // Casino Game Table 2 (Part 1034)
+          spawnedObjects.push({ partId: 1034, x: px + 36, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 193) {
+          // Gaming Chair (Part 1032)
+          spawnedObjects.push({ partId: 1032, x: px + 24, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 194) {
+          // Gaming Sofa (Part 1030)
+          spawnedObjects.push({ partId: 1030, x: px + 24, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 195) {
+          // Shopping Display Rack 1 (Part 1037)
+          spawnedObjects.push({ partId: 1037, x: px + 24, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 196) {
+          // Shopping Display Rack 2 (Part 1035)
+          spawnedObjects.push({ partId: 1035, x: px + 24, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 197) {
+          // Clothing Mannequin (Part 1033)
+          spawnedObjects.push({ partId: 1033, x: px + 12, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 198) {
+          // Suburban Park Bench (Part 1036)
+          spawnedObjects.push({ partId: 1036, x: px + 12, y: py + 20, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 199) {
+          // Suburban Street Lamp (Part 1031)
+          spawnedObjects.push({ partId: 1031, x: px + 24, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 200) {
+          // Lucky Wheel Machine (Part 1075)
+          spawnedObjects.push({ partId: 1075, x: px + 24, y: py + 24, layer: 0 });
+          tiles[i] = 4;
+        } else if (t === 201) {
+          // Decorative Plant (Part 1094)
+          spawnedObjects.push({ partId: 1094, x: px + 24, y: py + 20, layer: 0 });
+          tiles[i] = 5;
+        } else if (t === 202) {
+          // Residential Mailbox / Post (Part 4)
+          spawnedObjects.push({ partId: 4, x: px + 24, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
+          tiles[i] = 96;
+        } else if (t === 204) {
+          // Park Entrance Arch (Part 846)
+          spawnedObjects.push({ partId: 846, x: px + 12, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
+          tiles[i] = 43;
+        } else if (t === 139) {
+          // Waypoint: resolve to neighbor
           tiles[i] = (i % widthTiles === 0) ? tiles[i + 1] : tiles[i - 1];
         } else if (t === 140) {
           tiles[i] = 55;
-        } else if (t === 141) {
-          tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 0;
-        } else if (t === 152) {
-          tiles[i] = mapId === 25 ? 55 : 0;
-        } else if (t === 153) {
-          tiles[i] = Math.floor(i / widthTiles) === 0 ? 43 : 6;
-        } else if (t === 155 || t === 156) {
-          tiles[i] = 55;
-        } else if (t === 204) {
-          tiles[i] = 43;
         } else if (t >= 126) {
           tiles[i] = (i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126) ? tiles[i - 1] : 0;
         }
       }
+
+      // Preload images for all spawned map objects
+      const uniquePartIds = Array.from(new Set(spawnedObjects.map(o => o.partId)));
+      await Promise.all(uniquePartIds.map(async (partId) => {
+        if (!this.objectImageCache.has(partId)) {
+          try {
+            const img = await Image.createImage(`/assets/home/${partId}.png`);
+            this.objectImageCache.set(partId, img);
+          } catch (e) {
+            console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
+          }
+        }
+      }));
+
+      // Bind loaded images to spawned objects
+      for (const obj of spawnedObjects) {
+        obj.image = this.objectImageCache.get(obj.partId);
+      }
+      this.mapObjects = spawnedObjects;
 
       // Compute base / collision matrix g[] as in ir.java lines 1260-1285
       for (let i = 0; i < totalTiles; i++) {
@@ -157,13 +318,13 @@ export class TilemapRenderer {
         collision
       };
 
-      console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
+      console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
 
       // 2. Load tileset image
       const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
       this.tilesetImage = await Image.createImage(tilesetUrl);
 
-      // 3. Load background image (e.g. 0.png for sky / clouds, 00.png / 10.png / 20.png / 30.png for scenery)
+      // 3. Load background image
       this.bgImage = undefined;
       this.cloudImage = undefined;
 
@@ -215,13 +376,16 @@ export class TilemapRenderer {
     this.cameraY = camY;
   }
 
+  /**
+   * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
+   */
   public paint(g: Graphics, screenW: number, screenH: number): void {
     if (!this.mapData || !this.tilesetImage) return;
 
     const tileSize = TilemapRenderer.TILE_SIZE;
     const { widthTiles, heightTiles, tiles } = this.mapData;
 
-    // 1. Paint background sky / mountains / clouds
+    // 1. Paint background sky / mountains / clouds (Layer 0)
     const skyColor = this.isNight ? 0x000015 : 0x5DBEF7;
     g.setColor(skyColor);
     g.fillRect(0, 0, screenW, screenH);
@@ -252,7 +416,7 @@ export class TilemapRenderer {
     const startTileY = Math.max(0, Math.floor(this.cameraY / tileSize));
     const endTileY = Math.min(heightTiles, Math.ceil((this.cameraY + screenH) / tileSize));
 
-    // 3. Render map tiles
+    // 3. Render base ground tiles (Layer 1)
     for (let ty = startTileY; ty < endTileY; ty++) {
       for (let tx = startTileX; tx < endTileX; tx++) {
         const tileIdx = tiles[ty * widthTiles + tx];
@@ -298,8 +462,7 @@ export class TilemapRenderer {
       return true; // Out of bounds
     }
 
-    // Tile collision code check (80 and 51 are walkable paths)
     const c = collision[ty * widthTiles + tx];
-    return !(c === 80 || c === 51 || c === 88 || c === 0);
+    return c === 88 || c === 92;
   }
 }
