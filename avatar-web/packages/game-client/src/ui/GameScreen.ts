@@ -21,7 +21,7 @@ export abstract class GameScreen {
   }
 
   public abstract update(): void;
-  public abstract paint(g: Graphics): void;
+  public abstract paint(g: Graphics, alpha?: number): void;
 
   public keyPressed(keyCode: number): void {}
   public keyReleased(keyCode: number): void {}

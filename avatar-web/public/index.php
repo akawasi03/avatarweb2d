@@ -950,12 +950,12 @@ if (!$view) {
     }
 
     #gameCanvas {
-      aspect-ratio: 4 / 3;
-      max-width: 100vw;
-      max-height: 100vh;
-      max-height: 100dvh;
+      width: 100vw;
+      height: 100vh;
+      height: 100dvh;
       display: block;
-      margin: auto;
+      margin: 0;
+      padding: 0;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       cursor: crosshair;
@@ -1300,12 +1300,7 @@ if (!$view) {
             <input type="password" id="loginPassword" class="auth-input-field" placeholder="Mật khẩu" autocomplete="current-password" onkeydown="if(event.key==='Enter') doLogin()">
           </div>
 
-          <!-- Quick Fill buttons -->
-          <div class="quick-fill-accounts">
-            <span>Tài khoản có sẵn:</span>
-            <button type="button" class="btn-quick-acc" onclick="fillLogin('admin','123456')">admin</button>
-            <button type="button" class="btn-quick-acc" onclick="fillLogin('ad','123456')">ad</button>
-          </div>
+          
 
           <!-- Footer -->
           <div class="auth-card-footer">
@@ -1733,8 +1728,13 @@ if (!$view) {
       // Trigger canvas resize to fit container exactly
       window.dispatchEvent(new Event('resize'));
 
-      const u = autoUser || currentUser?.username || 'admin';
-      const p = autoPass || '123456';
+      const u = autoUser || currentUser?.username || '';
+      const p = autoPass || (currentUser ? '' : '');
+      if (!u || !p) {
+        // If not authenticated, open login view
+        switchView('login');
+        return;
+      }
 
       const playerInfoEl = document.getElementById('gamePlayerInfo');
       if (playerInfoEl) {

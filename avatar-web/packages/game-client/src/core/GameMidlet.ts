@@ -1,4 +1,4 @@
-import { Image, RenderContext2D } from '@avatar/j2me-compat';
+import { Image, IRenderBackend, RenderContext2D } from '@avatar/j2me-compat';
 import { GameCanvas } from '../runtime/GameCanvas.js';
 import { SplashScreen } from '../gameplay/SplashScreen.js';
 import { LoginScreen } from '../gameplay/LoginScreen.js';
@@ -15,8 +15,8 @@ export class GameMidlet {
   public skinPainter: UISkinPainter;
   public font: BitmapFont;
 
-  constructor(ctx?: RenderContext2D) {
-    this.canvas = new GameCanvas(ctx);
+  constructor(target?: IRenderBackend | RenderContext2D) {
+    this.canvas = new GameCanvas(target);
     this.font = new BitmapFont();
     this.skinPainter = new UISkinPainter(this.font);
 

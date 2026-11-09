@@ -1,5 +1,7 @@
 import { Sprite } from '../sprite/Sprite.js';
 import { Image } from '../image/Image.js';
+import { IRenderBackend, RenderMetrics } from './IRenderBackend.js';
+import { WebGL2Renderer } from './WebGL2Renderer.js';
 
 export interface RenderContext2D {
   save(): void;
@@ -23,9 +25,17 @@ export interface RenderContext2D {
   drawImage(image: any, sx: number, sy: number, sw: number, sh: number, dx: number, dy: number, dw: number, dh: number): void;
   fillStyle: any;
   strokeStyle: any;
+  lineWidth?: any;
+  lineJoin?: any;
+  miterLimit?: any;
+  font?: any;
+  textAlign?: any;
+  textBaseline?: any;
+  strokeText?(text: string, x: number, y: number): void;
+  fillText?(text: string, x: number, y: number): void;
 }
 
-export class Graphics {
+export class Graphics implements IRenderBackend {
   public static readonly HCENTER = 1;
   public static readonly VCENTER = 2;
   public static readonly LEFT = 4;
@@ -33,6 +43,9 @@ export class Graphics {
   public static readonly TOP = 16;
   public static readonly BOTTOM = 32;
   public static readonly BASELINE = 64;
+
+  public backend?: IRenderBackend;
+  public ctx?: RenderContext2D;
 
   private tx = 0;
   private ty = 0;
@@ -42,35 +55,93 @@ export class Graphics {
   private clipH = 99999;
   private currentColor = 0;
 
-  constructor(public ctx?: RenderContext2D) {}
+  constructor(target?: IRenderBackend | RenderContext2D) {
+    if (!target) return;
+    if ('fillRect' in target && 'drawRegion' in target && 'flush' in target) {
+      this.backend = target as IRenderBackend;
+      const webgl = target as WebGL2Renderer;
+      if (webgl.textCtx) {
+        this.ctx = new Proxy(webgl.textCtx, {
+          get(tgt: any, prop: string | symbol) {
+            webgl.markTextUsed();
+            const val = tgt[prop];
+            return typeof val === 'function' ? val.bind(tgt) : val;
+          },
+          set(tgt: any, prop: string | symbol, value: any) {
+            webgl.markTextUsed();
+            tgt[prop] = value;
+            return true;
+          }
+        });
+      }
+    } else {
+      this.ctx = target as RenderContext2D;
+    }
+  }
+
+  public beginFrame(width: number, height: number): void {
+    if (this.backend?.beginFrame) {
+      this.backend.beginFrame(width, height);
+    } else if (this.ctx) {
+      this.ctx.restore();
+      this.ctx.save();
+      this.ctx.clearRect(0, 0, width, height);
+      this.tx = 0;
+      this.ty = 0;
+    }
+  }
+
+  public endFrame(): void {
+    if (this.backend?.endFrame) {
+      this.backend.endFrame();
+    }
+  }
+
+  public flush(): void {
+    if (this.backend?.flush) {
+      this.backend.flush();
+    }
+  }
+
+  public getMetrics(): RenderMetrics {
+    if (this.backend?.getMetrics) {
+      return this.backend.getMetrics();
+    }
+    return { drawCalls: 1, quadCount: 0, batchCount: 1 };
+  }
 
   public translate(x: number, y: number): void {
     this.tx += x;
     this.ty += y;
+    if (this.backend) {
+      this.backend.translate(x, y);
+    }
   }
 
   public getTranslateX(): number {
-    return this.tx;
+    return this.backend ? this.backend.getTranslateX() : this.tx;
   }
 
   public getTranslateY(): number {
-    return this.ty;
+    return this.backend ? this.backend.getTranslateY() : this.ty;
   }
 
   public setColor(rgb: number): void {
     this.currentColor = rgb;
-    const r = (rgb >> 16) & 0xFF;
-    const g = (rgb >> 8) & 0xFF;
-    const b = rgb & 0xFF;
-    const colorStr = `rgb(${r},${g},${b})`;
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.setColor(rgb);
+    } else if (this.ctx) {
+      const r = (rgb >> 16) & 0xff;
+      const g = (rgb >> 8) & 0xff;
+      const b = rgb & 0xff;
+      const colorStr = `rgb(${r},${g},${b})`;
       this.ctx.fillStyle = colorStr;
       this.ctx.strokeStyle = colorStr;
     }
   }
 
   public getColor(): number {
-    return this.currentColor;
+    return this.backend ? this.backend.getColor() : this.currentColor;
   }
 
   public setClip(x: number, y: number, width: number, height: number): void {
@@ -78,8 +149,10 @@ export class Graphics {
     this.clipY = y;
     this.clipW = width;
     this.clipH = height;
-    if (this.ctx) {
-      // In Canvas 2D, clip() is cumulative. For J2ME setClip(), reset and apply translation
+
+    if (this.backend) {
+      this.backend.setClip(x, y, width, height);
+    } else if (this.ctx) {
       this.ctx.restore();
       this.ctx.save();
       this.ctx.translate(this.tx, this.ty);
@@ -99,35 +172,41 @@ export class Graphics {
   }
 
   public getClipX(): number {
-    return this.clipX;
+    return this.backend ? this.backend.getClipX() : this.clipX;
   }
 
   public getClipY(): number {
-    return this.clipY;
+    return this.backend ? this.backend.getClipY() : this.clipY;
   }
 
   public getClipWidth(): number {
-    return this.clipW;
+    return this.backend ? this.backend.getClipWidth() : this.clipW;
   }
 
   public getClipHeight(): number {
-    return this.clipH;
+    return this.backend ? this.backend.getClipHeight() : this.clipH;
   }
 
   public fillRect(x: number, y: number, width: number, height: number): void {
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.fillRect(x, y, width, height);
+    } else if (this.ctx) {
       this.ctx.fillRect(x, y, width, height);
     }
   }
 
   public drawRect(x: number, y: number, width: number, height: number): void {
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.drawRect(x, y, width, height);
+    } else if (this.ctx) {
       this.ctx.strokeRect(x, y, width, height);
     }
   }
 
   public drawRoundRect(x: number, y: number, width: number, height: number, arcWidth: number, arcHeight = arcWidth): void {
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.drawRoundRect(x, y, width, height, arcWidth, arcHeight);
+    } else if (this.ctx) {
       const radius = Math.min(arcWidth, arcHeight) / 2;
       this.ctx.beginPath();
       if (typeof this.ctx.roundRect === 'function') {
@@ -140,7 +219,9 @@ export class Graphics {
   }
 
   public fillRoundRect(x: number, y: number, width: number, height: number, arcWidth: number, arcHeight = arcWidth): void {
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.fillRoundRect(x, y, width, height, arcWidth, arcHeight);
+    } else if (this.ctx) {
       const radius = Math.min(arcWidth, arcHeight) / 2;
       this.ctx.beginPath();
       if (typeof this.ctx.roundRect === 'function') {
@@ -153,7 +234,9 @@ export class Graphics {
   }
 
   public fillArc(x: number, y: number, width: number, height: number, startAngle: number, arcAngle: number): void {
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.fillArc(x, y, width, height, startAngle, arcAngle);
+    } else if (this.ctx) {
       this.ctx.beginPath();
       const rx = width / 2;
       const ry = height / 2;
@@ -171,7 +254,9 @@ export class Graphics {
   }
 
   public drawArc(x: number, y: number, width: number, height: number, startAngle: number, arcAngle: number): void {
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.drawArc(x, y, width, height, startAngle, arcAngle);
+    } else if (this.ctx) {
       this.ctx.beginPath();
       const rx = width / 2;
       const ry = height / 2;
@@ -189,7 +274,9 @@ export class Graphics {
   }
 
   public drawLine(x1: number, y1: number, x2: number, y2: number): void {
-    if (this.ctx) {
+    if (this.backend) {
+      this.backend.drawLine(x1, y1, x2, y2);
+    } else if (this.ctx) {
       this.ctx.beginPath();
       this.ctx.moveTo(x1, y1);
       this.ctx.lineTo(x2, y2);
@@ -201,14 +288,12 @@ export class Graphics {
     let outX = x;
     let outY = y;
 
-    // Horizontal
     if ((anchor & Graphics.RIGHT) !== 0) {
       outX -= width;
     } else if ((anchor & Graphics.HCENTER) !== 0) {
       outX -= Math.floor(width / 2);
     }
 
-    // Vertical
     if ((anchor & Graphics.BOTTOM) !== 0) {
       outY -= height;
     } else if ((anchor & Graphics.VCENTER) !== 0) {
@@ -218,22 +303,32 @@ export class Graphics {
     return { x: outX, y: outY };
   }
 
-  public drawImage(image: Image, x: number, y: number, anchor = 0): void {
-    const pt = this.calculateAnchor(x, y, image.width, image.height, anchor);
-    if (this.ctx && image.element) {
-      this.ctx.drawImage(image.element, 0, 0, image.width, image.height, pt.x, pt.y, image.width, image.height);
+  public drawImage(image: Image | any, x: number, y: number, anchor = 0): void {
+    if (this.backend) {
+      this.backend.drawImage(image, x, y, anchor);
+      return;
+    }
+    const pt = this.calculateAnchor(x, y, image.width || image.naturalWidth || 0, image.height || image.naturalHeight || 0, anchor);
+    const el = image.element || image;
+    if (this.ctx && el) {
+      this.ctx.drawImage(el, 0, 0, image.width, image.height, pt.x, pt.y, image.width, image.height);
     }
   }
 
-  public drawScaledImage(image: Image, x: number, y: number, width: number, height: number, anchor = 0): void {
+  public drawScaledImage(image: Image | any, x: number, y: number, width: number, height: number, anchor = 0): void {
+    if (this.backend) {
+      this.backend.drawScaledImage(image, x, y, width, height, anchor);
+      return;
+    }
     const pt = this.calculateAnchor(x, y, width, height, anchor);
-    if (this.ctx && image.element) {
-      this.ctx.drawImage(image.element, 0, 0, image.width, image.height, pt.x, pt.y, width, height);
+    const el = image.element || image;
+    if (this.ctx && el) {
+      this.ctx.drawImage(el, 0, 0, image.width || width, image.height || height, pt.x, pt.y, width, height);
     }
   }
 
   public drawRegion(
-    image: Image,
+    image: Image | any,
     x_src: number,
     y_src: number,
     width: number,
@@ -243,7 +338,11 @@ export class Graphics {
     y_dst: number,
     anchor = 0
   ): void {
-    // If transformed, the bounding box might swap width/height (for 90 or 270 rot)
+    if (this.backend) {
+      this.backend.drawRegion(image, x_src, y_src, width, height, transform, x_dst, y_dst, anchor);
+      return;
+    }
+
     let destW = width;
     let destH = height;
     if (
@@ -257,13 +356,14 @@ export class Graphics {
     }
 
     const pt = this.calculateAnchor(x_dst, y_dst, destW, destH, anchor);
+    const el = image.element || image;
 
-    if (!this.ctx || !image.element) {
+    if (!this.ctx || !el) {
       return;
     }
 
     if (transform === Sprite.TRANS_NONE) {
-      this.ctx.drawImage(image.element, x_src, y_src, width, height, pt.x, pt.y, width, height);
+      this.ctx.drawImage(el, x_src, y_src, width, height, pt.x, pt.y, width, height);
       return;
     }
 
@@ -271,19 +371,19 @@ export class Graphics {
     this.ctx.translate(pt.x + destW / 2, pt.y + destH / 2);
 
     switch (transform) {
-      case Sprite.TRANS_MIRROR: // Horizontal flip
+      case Sprite.TRANS_MIRROR:
         this.ctx.scale(-1, 1);
         break;
-      case Sprite.TRANS_ROT180: // 180 deg
+      case Sprite.TRANS_ROT180:
         this.ctx.rotate(Math.PI);
         break;
-      case Sprite.TRANS_MIRROR_ROT180: // Vertical flip
+      case Sprite.TRANS_MIRROR_ROT180:
         this.ctx.scale(1, -1);
         break;
-      case Sprite.TRANS_ROT90: // 90 deg clockwise
+      case Sprite.TRANS_ROT90:
         this.ctx.rotate(Math.PI / 2);
         break;
-      case Sprite.TRANS_ROT270: // 270 deg clockwise
+      case Sprite.TRANS_ROT270:
         this.ctx.rotate((3 * Math.PI) / 2);
         break;
       case Sprite.TRANS_MIRROR_ROT90:
@@ -296,7 +396,7 @@ export class Graphics {
         break;
     }
 
-    this.ctx.drawImage(image.element, x_src, y_src, width, height, -width / 2, -height / 2, width, height);
+    this.ctx.drawImage(el, x_src, y_src, width, height, -width / 2, -height / 2, width, height);
     this.ctx.restore();
   }
 }

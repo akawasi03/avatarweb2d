@@ -30,260 +30,11 @@
     mod
   ));
 
-  // packages/j2me-compat/dist/sprite/Sprite.js
-  var require_Sprite = __commonJS({
-    "packages/j2me-compat/dist/sprite/Sprite.js"(exports) {
+  // packages/j2me-compat/dist/graphics/IRenderBackend.js
+  var require_IRenderBackend = __commonJS({
+    "packages/j2me-compat/dist/graphics/IRenderBackend.js"(exports) {
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
-      exports.Sprite = void 0;
-      var Sprite2 = class {
-        static TRANS_NONE = 0;
-        static TRANS_MIRROR_ROT180 = 1;
-        static TRANS_MIRROR = 2;
-        static TRANS_ROT180 = 3;
-        static TRANS_MIRROR_ROT270 = 4;
-        static TRANS_ROT90 = 5;
-        static TRANS_ROT270 = 6;
-        static TRANS_MIRROR_ROT90 = 7;
-      };
-      exports.Sprite = Sprite2;
-    }
-  });
-
-  // packages/j2me-compat/dist/graphics/Graphics.js
-  var require_Graphics = __commonJS({
-    "packages/j2me-compat/dist/graphics/Graphics.js"(exports) {
-      "use strict";
-      Object.defineProperty(exports, "__esModule", { value: true });
-      exports.Graphics = void 0;
-      var Sprite_js_1 = require_Sprite();
-      var Graphics7 = class _Graphics {
-        ctx;
-        static HCENTER = 1;
-        static VCENTER = 2;
-        static LEFT = 4;
-        static RIGHT = 8;
-        static TOP = 16;
-        static BOTTOM = 32;
-        static BASELINE = 64;
-        tx = 0;
-        ty = 0;
-        clipX = 0;
-        clipY = 0;
-        clipW = 99999;
-        clipH = 99999;
-        currentColor = 0;
-        constructor(ctx) {
-          this.ctx = ctx;
-        }
-        translate(x, y) {
-          this.tx += x;
-          this.ty += y;
-        }
-        getTranslateX() {
-          return this.tx;
-        }
-        getTranslateY() {
-          return this.ty;
-        }
-        setColor(rgb) {
-          this.currentColor = rgb;
-          const r = rgb >> 16 & 255;
-          const g = rgb >> 8 & 255;
-          const b = rgb & 255;
-          const colorStr = `rgb(${r},${g},${b})`;
-          if (this.ctx) {
-            this.ctx.fillStyle = colorStr;
-            this.ctx.strokeStyle = colorStr;
-          }
-        }
-        getColor() {
-          return this.currentColor;
-        }
-        setClip(x, y, width, height) {
-          this.clipX = x;
-          this.clipY = y;
-          this.clipW = width;
-          this.clipH = height;
-          if (this.ctx) {
-            this.ctx.restore();
-            this.ctx.save();
-            this.ctx.translate(this.tx, this.ty);
-            this.ctx.beginPath();
-            this.ctx.rect(x, y, width, height);
-            this.ctx.clip();
-            this.setColor(this.currentColor);
-          }
-        }
-        clipRect(x, y, width, height) {
-          const x1 = Math.max(this.clipX, x);
-          const y1 = Math.max(this.clipY, y);
-          const x2 = Math.min(this.clipX + this.clipW, x + width);
-          const y2 = Math.min(this.clipY + this.clipH, y + height);
-          this.setClip(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
-        }
-        getClipX() {
-          return this.clipX;
-        }
-        getClipY() {
-          return this.clipY;
-        }
-        getClipWidth() {
-          return this.clipW;
-        }
-        getClipHeight() {
-          return this.clipH;
-        }
-        fillRect(x, y, width, height) {
-          if (this.ctx) {
-            this.ctx.fillRect(x, y, width, height);
-          }
-        }
-        drawRect(x, y, width, height) {
-          if (this.ctx) {
-            this.ctx.strokeRect(x, y, width, height);
-          }
-        }
-        drawRoundRect(x, y, width, height, arcWidth, arcHeight = arcWidth) {
-          if (this.ctx) {
-            const radius = Math.min(arcWidth, arcHeight) / 2;
-            this.ctx.beginPath();
-            if (typeof this.ctx.roundRect === "function") {
-              this.ctx.roundRect(x, y, width, height, radius);
-            } else {
-              this.ctx.rect(x, y, width, height);
-            }
-            this.ctx.stroke();
-          }
-        }
-        fillRoundRect(x, y, width, height, arcWidth, arcHeight = arcWidth) {
-          if (this.ctx) {
-            const radius = Math.min(arcWidth, arcHeight) / 2;
-            this.ctx.beginPath();
-            if (typeof this.ctx.roundRect === "function") {
-              this.ctx.roundRect(x, y, width, height, radius);
-            } else {
-              this.ctx.rect(x, y, width, height);
-            }
-            this.ctx.fill();
-          }
-        }
-        fillArc(x, y, width, height, startAngle, arcAngle) {
-          if (this.ctx) {
-            this.ctx.beginPath();
-            const rx = width / 2;
-            const ry = height / 2;
-            const cx = x + rx;
-            const cy = y + ry;
-            const sa = startAngle * Math.PI / 180;
-            const ea = (startAngle + arcAngle) * Math.PI / 180;
-            if (typeof this.ctx.ellipse === "function") {
-              this.ctx.ellipse(cx, cy, rx, ry, 0, sa, ea);
-            } else if (typeof this.ctx.arc === "function") {
-              this.ctx.arc(cx, cy, rx, sa, ea);
-            }
-            this.ctx.fill();
-          }
-        }
-        drawArc(x, y, width, height, startAngle, arcAngle) {
-          if (this.ctx) {
-            this.ctx.beginPath();
-            const rx = width / 2;
-            const ry = height / 2;
-            const cx = x + rx;
-            const cy = y + ry;
-            const sa = startAngle * Math.PI / 180;
-            const ea = (startAngle + arcAngle) * Math.PI / 180;
-            if (typeof this.ctx.ellipse === "function") {
-              this.ctx.ellipse(cx, cy, rx, ry, 0, sa, ea);
-            } else if (typeof this.ctx.arc === "function") {
-              this.ctx.arc(cx, cy, rx, sa, ea);
-            }
-            this.ctx.stroke();
-          }
-        }
-        drawLine(x1, y1, x2, y2) {
-          if (this.ctx) {
-            this.ctx.beginPath();
-            this.ctx.moveTo(x1, y1);
-            this.ctx.lineTo(x2, y2);
-            this.ctx.stroke();
-          }
-        }
-        calculateAnchor(x, y, width, height, anchor) {
-          let outX = x;
-          let outY = y;
-          if ((anchor & _Graphics.RIGHT) !== 0) {
-            outX -= width;
-          } else if ((anchor & _Graphics.HCENTER) !== 0) {
-            outX -= Math.floor(width / 2);
-          }
-          if ((anchor & _Graphics.BOTTOM) !== 0) {
-            outY -= height;
-          } else if ((anchor & _Graphics.VCENTER) !== 0) {
-            outY -= Math.floor(height / 2);
-          }
-          return { x: outX, y: outY };
-        }
-        drawImage(image, x, y, anchor = 0) {
-          const pt = this.calculateAnchor(x, y, image.width, image.height, anchor);
-          if (this.ctx && image.element) {
-            this.ctx.drawImage(image.element, 0, 0, image.width, image.height, pt.x, pt.y, image.width, image.height);
-          }
-        }
-        drawScaledImage(image, x, y, width, height, anchor = 0) {
-          const pt = this.calculateAnchor(x, y, width, height, anchor);
-          if (this.ctx && image.element) {
-            this.ctx.drawImage(image.element, 0, 0, image.width, image.height, pt.x, pt.y, width, height);
-          }
-        }
-        drawRegion(image, x_src, y_src, width, height, transform, x_dst, y_dst, anchor = 0) {
-          let destW = width;
-          let destH = height;
-          if (transform === Sprite_js_1.Sprite.TRANS_ROT90 || transform === Sprite_js_1.Sprite.TRANS_ROT270 || transform === Sprite_js_1.Sprite.TRANS_MIRROR_ROT90 || transform === Sprite_js_1.Sprite.TRANS_MIRROR_ROT270) {
-            destW = height;
-            destH = width;
-          }
-          const pt = this.calculateAnchor(x_dst, y_dst, destW, destH, anchor);
-          if (!this.ctx || !image.element) {
-            return;
-          }
-          if (transform === Sprite_js_1.Sprite.TRANS_NONE) {
-            this.ctx.drawImage(image.element, x_src, y_src, width, height, pt.x, pt.y, width, height);
-            return;
-          }
-          this.ctx.save();
-          this.ctx.translate(pt.x + destW / 2, pt.y + destH / 2);
-          switch (transform) {
-            case Sprite_js_1.Sprite.TRANS_MIRROR:
-              this.ctx.scale(-1, 1);
-              break;
-            case Sprite_js_1.Sprite.TRANS_ROT180:
-              this.ctx.rotate(Math.PI);
-              break;
-            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT180:
-              this.ctx.scale(1, -1);
-              break;
-            case Sprite_js_1.Sprite.TRANS_ROT90:
-              this.ctx.rotate(Math.PI / 2);
-              break;
-            case Sprite_js_1.Sprite.TRANS_ROT270:
-              this.ctx.rotate(3 * Math.PI / 2);
-              break;
-            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT90:
-              this.ctx.scale(-1, 1);
-              this.ctx.rotate(Math.PI / 2);
-              break;
-            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT270:
-              this.ctx.scale(-1, 1);
-              this.ctx.rotate(3 * Math.PI / 2);
-              break;
-          }
-          this.ctx.drawImage(image.element, x_src, y_src, width, height, -width / 2, -height / 2, width, height);
-          this.ctx.restore();
-        }
-      };
-      exports.Graphics = Graphics7;
     }
   });
 
@@ -358,6 +109,987 @@
         }
       };
       exports.Image = Image8;
+    }
+  });
+
+  // packages/j2me-compat/dist/sprite/Sprite.js
+  var require_Sprite = __commonJS({
+    "packages/j2me-compat/dist/sprite/Sprite.js"(exports) {
+      "use strict";
+      Object.defineProperty(exports, "__esModule", { value: true });
+      exports.Sprite = void 0;
+      var Sprite2 = class {
+        static TRANS_NONE = 0;
+        static TRANS_MIRROR_ROT180 = 1;
+        static TRANS_MIRROR = 2;
+        static TRANS_ROT180 = 3;
+        static TRANS_MIRROR_ROT270 = 4;
+        static TRANS_ROT90 = 5;
+        static TRANS_ROT270 = 6;
+        static TRANS_MIRROR_ROT90 = 7;
+      };
+      exports.Sprite = Sprite2;
+    }
+  });
+
+  // packages/j2me-compat/dist/graphics/Graphics.js
+  var require_Graphics = __commonJS({
+    "packages/j2me-compat/dist/graphics/Graphics.js"(exports) {
+      "use strict";
+      Object.defineProperty(exports, "__esModule", { value: true });
+      exports.Graphics = void 0;
+      var Sprite_js_1 = require_Sprite();
+      var Graphics7 = class _Graphics {
+        static HCENTER = 1;
+        static VCENTER = 2;
+        static LEFT = 4;
+        static RIGHT = 8;
+        static TOP = 16;
+        static BOTTOM = 32;
+        static BASELINE = 64;
+        backend;
+        ctx;
+        tx = 0;
+        ty = 0;
+        clipX = 0;
+        clipY = 0;
+        clipW = 99999;
+        clipH = 99999;
+        currentColor = 0;
+        constructor(target) {
+          if (!target)
+            return;
+          if ("fillRect" in target && "drawRegion" in target && "flush" in target) {
+            this.backend = target;
+            const webgl = target;
+            if (webgl.textCtx) {
+              this.ctx = new Proxy(webgl.textCtx, {
+                get(tgt, prop) {
+                  webgl.markTextUsed();
+                  const val = tgt[prop];
+                  return typeof val === "function" ? val.bind(tgt) : val;
+                },
+                set(tgt, prop, value) {
+                  webgl.markTextUsed();
+                  tgt[prop] = value;
+                  return true;
+                }
+              });
+            }
+          } else {
+            this.ctx = target;
+          }
+        }
+        beginFrame(width, height) {
+          if (this.backend?.beginFrame) {
+            this.backend.beginFrame(width, height);
+          } else if (this.ctx) {
+            this.ctx.restore();
+            this.ctx.save();
+            this.ctx.clearRect(0, 0, width, height);
+            this.tx = 0;
+            this.ty = 0;
+          }
+        }
+        endFrame() {
+          if (this.backend?.endFrame) {
+            this.backend.endFrame();
+          }
+        }
+        flush() {
+          if (this.backend?.flush) {
+            this.backend.flush();
+          }
+        }
+        getMetrics() {
+          if (this.backend?.getMetrics) {
+            return this.backend.getMetrics();
+          }
+          return { drawCalls: 1, quadCount: 0, batchCount: 1 };
+        }
+        translate(x, y) {
+          this.tx += x;
+          this.ty += y;
+          if (this.backend) {
+            this.backend.translate(x, y);
+          }
+        }
+        getTranslateX() {
+          return this.backend ? this.backend.getTranslateX() : this.tx;
+        }
+        getTranslateY() {
+          return this.backend ? this.backend.getTranslateY() : this.ty;
+        }
+        setColor(rgb) {
+          this.currentColor = rgb;
+          if (this.backend) {
+            this.backend.setColor(rgb);
+          } else if (this.ctx) {
+            const r = rgb >> 16 & 255;
+            const g = rgb >> 8 & 255;
+            const b = rgb & 255;
+            const colorStr = `rgb(${r},${g},${b})`;
+            this.ctx.fillStyle = colorStr;
+            this.ctx.strokeStyle = colorStr;
+          }
+        }
+        getColor() {
+          return this.backend ? this.backend.getColor() : this.currentColor;
+        }
+        setClip(x, y, width, height) {
+          this.clipX = x;
+          this.clipY = y;
+          this.clipW = width;
+          this.clipH = height;
+          if (this.backend) {
+            this.backend.setClip(x, y, width, height);
+          } else if (this.ctx) {
+            this.ctx.restore();
+            this.ctx.save();
+            this.ctx.translate(this.tx, this.ty);
+            this.ctx.beginPath();
+            this.ctx.rect(x, y, width, height);
+            this.ctx.clip();
+            this.setColor(this.currentColor);
+          }
+        }
+        clipRect(x, y, width, height) {
+          const x1 = Math.max(this.clipX, x);
+          const y1 = Math.max(this.clipY, y);
+          const x2 = Math.min(this.clipX + this.clipW, x + width);
+          const y2 = Math.min(this.clipY + this.clipH, y + height);
+          this.setClip(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
+        }
+        getClipX() {
+          return this.backend ? this.backend.getClipX() : this.clipX;
+        }
+        getClipY() {
+          return this.backend ? this.backend.getClipY() : this.clipY;
+        }
+        getClipWidth() {
+          return this.backend ? this.backend.getClipWidth() : this.clipW;
+        }
+        getClipHeight() {
+          return this.backend ? this.backend.getClipHeight() : this.clipH;
+        }
+        fillRect(x, y, width, height) {
+          if (this.backend) {
+            this.backend.fillRect(x, y, width, height);
+          } else if (this.ctx) {
+            this.ctx.fillRect(x, y, width, height);
+          }
+        }
+        drawRect(x, y, width, height) {
+          if (this.backend) {
+            this.backend.drawRect(x, y, width, height);
+          } else if (this.ctx) {
+            this.ctx.strokeRect(x, y, width, height);
+          }
+        }
+        drawRoundRect(x, y, width, height, arcWidth, arcHeight = arcWidth) {
+          if (this.backend) {
+            this.backend.drawRoundRect(x, y, width, height, arcWidth, arcHeight);
+          } else if (this.ctx) {
+            const radius = Math.min(arcWidth, arcHeight) / 2;
+            this.ctx.beginPath();
+            if (typeof this.ctx.roundRect === "function") {
+              this.ctx.roundRect(x, y, width, height, radius);
+            } else {
+              this.ctx.rect(x, y, width, height);
+            }
+            this.ctx.stroke();
+          }
+        }
+        fillRoundRect(x, y, width, height, arcWidth, arcHeight = arcWidth) {
+          if (this.backend) {
+            this.backend.fillRoundRect(x, y, width, height, arcWidth, arcHeight);
+          } else if (this.ctx) {
+            const radius = Math.min(arcWidth, arcHeight) / 2;
+            this.ctx.beginPath();
+            if (typeof this.ctx.roundRect === "function") {
+              this.ctx.roundRect(x, y, width, height, radius);
+            } else {
+              this.ctx.rect(x, y, width, height);
+            }
+            this.ctx.fill();
+          }
+        }
+        fillArc(x, y, width, height, startAngle, arcAngle) {
+          if (this.backend) {
+            this.backend.fillArc(x, y, width, height, startAngle, arcAngle);
+          } else if (this.ctx) {
+            this.ctx.beginPath();
+            const rx = width / 2;
+            const ry = height / 2;
+            const cx = x + rx;
+            const cy = y + ry;
+            const sa = startAngle * Math.PI / 180;
+            const ea = (startAngle + arcAngle) * Math.PI / 180;
+            if (typeof this.ctx.ellipse === "function") {
+              this.ctx.ellipse(cx, cy, rx, ry, 0, sa, ea);
+            } else if (typeof this.ctx.arc === "function") {
+              this.ctx.arc(cx, cy, rx, sa, ea);
+            }
+            this.ctx.fill();
+          }
+        }
+        drawArc(x, y, width, height, startAngle, arcAngle) {
+          if (this.backend) {
+            this.backend.drawArc(x, y, width, height, startAngle, arcAngle);
+          } else if (this.ctx) {
+            this.ctx.beginPath();
+            const rx = width / 2;
+            const ry = height / 2;
+            const cx = x + rx;
+            const cy = y + ry;
+            const sa = startAngle * Math.PI / 180;
+            const ea = (startAngle + arcAngle) * Math.PI / 180;
+            if (typeof this.ctx.ellipse === "function") {
+              this.ctx.ellipse(cx, cy, rx, ry, 0, sa, ea);
+            } else if (typeof this.ctx.arc === "function") {
+              this.ctx.arc(cx, cy, rx, sa, ea);
+            }
+            this.ctx.stroke();
+          }
+        }
+        drawLine(x1, y1, x2, y2) {
+          if (this.backend) {
+            this.backend.drawLine(x1, y1, x2, y2);
+          } else if (this.ctx) {
+            this.ctx.beginPath();
+            this.ctx.moveTo(x1, y1);
+            this.ctx.lineTo(x2, y2);
+            this.ctx.stroke();
+          }
+        }
+        calculateAnchor(x, y, width, height, anchor) {
+          let outX = x;
+          let outY = y;
+          if ((anchor & _Graphics.RIGHT) !== 0) {
+            outX -= width;
+          } else if ((anchor & _Graphics.HCENTER) !== 0) {
+            outX -= Math.floor(width / 2);
+          }
+          if ((anchor & _Graphics.BOTTOM) !== 0) {
+            outY -= height;
+          } else if ((anchor & _Graphics.VCENTER) !== 0) {
+            outY -= Math.floor(height / 2);
+          }
+          return { x: outX, y: outY };
+        }
+        drawImage(image, x, y, anchor = 0) {
+          if (this.backend) {
+            this.backend.drawImage(image, x, y, anchor);
+            return;
+          }
+          const pt = this.calculateAnchor(x, y, image.width || image.naturalWidth || 0, image.height || image.naturalHeight || 0, anchor);
+          const el = image.element || image;
+          if (this.ctx && el) {
+            this.ctx.drawImage(el, 0, 0, image.width, image.height, pt.x, pt.y, image.width, image.height);
+          }
+        }
+        drawScaledImage(image, x, y, width, height, anchor = 0) {
+          if (this.backend) {
+            this.backend.drawScaledImage(image, x, y, width, height, anchor);
+            return;
+          }
+          const pt = this.calculateAnchor(x, y, width, height, anchor);
+          const el = image.element || image;
+          if (this.ctx && el) {
+            this.ctx.drawImage(el, 0, 0, image.width || width, image.height || height, pt.x, pt.y, width, height);
+          }
+        }
+        drawRegion(image, x_src, y_src, width, height, transform, x_dst, y_dst, anchor = 0) {
+          if (this.backend) {
+            this.backend.drawRegion(image, x_src, y_src, width, height, transform, x_dst, y_dst, anchor);
+            return;
+          }
+          let destW = width;
+          let destH = height;
+          if (transform === Sprite_js_1.Sprite.TRANS_ROT90 || transform === Sprite_js_1.Sprite.TRANS_ROT270 || transform === Sprite_js_1.Sprite.TRANS_MIRROR_ROT90 || transform === Sprite_js_1.Sprite.TRANS_MIRROR_ROT270) {
+            destW = height;
+            destH = width;
+          }
+          const pt = this.calculateAnchor(x_dst, y_dst, destW, destH, anchor);
+          const el = image.element || image;
+          if (!this.ctx || !el) {
+            return;
+          }
+          if (transform === Sprite_js_1.Sprite.TRANS_NONE) {
+            this.ctx.drawImage(el, x_src, y_src, width, height, pt.x, pt.y, width, height);
+            return;
+          }
+          this.ctx.save();
+          this.ctx.translate(pt.x + destW / 2, pt.y + destH / 2);
+          switch (transform) {
+            case Sprite_js_1.Sprite.TRANS_MIRROR:
+              this.ctx.scale(-1, 1);
+              break;
+            case Sprite_js_1.Sprite.TRANS_ROT180:
+              this.ctx.rotate(Math.PI);
+              break;
+            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT180:
+              this.ctx.scale(1, -1);
+              break;
+            case Sprite_js_1.Sprite.TRANS_ROT90:
+              this.ctx.rotate(Math.PI / 2);
+              break;
+            case Sprite_js_1.Sprite.TRANS_ROT270:
+              this.ctx.rotate(3 * Math.PI / 2);
+              break;
+            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT90:
+              this.ctx.scale(-1, 1);
+              this.ctx.rotate(Math.PI / 2);
+              break;
+            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT270:
+              this.ctx.scale(-1, 1);
+              this.ctx.rotate(3 * Math.PI / 2);
+              break;
+          }
+          this.ctx.drawImage(el, x_src, y_src, width, height, -width / 2, -height / 2, width, height);
+          this.ctx.restore();
+        }
+      };
+      exports.Graphics = Graphics7;
+    }
+  });
+
+  // packages/j2me-compat/dist/graphics/WebGL2Renderer.js
+  var require_WebGL2Renderer = __commonJS({
+    "packages/j2me-compat/dist/graphics/WebGL2Renderer.js"(exports) {
+      "use strict";
+      Object.defineProperty(exports, "__esModule", { value: true });
+      exports.WebGL2Renderer = void 0;
+      var Image_js_1 = require_Image();
+      var Sprite_js_1 = require_Sprite();
+      var Graphics_js_1 = require_Graphics();
+      var VERTEX_SHADER_SRC = `#version 300 es
+precision highp float;
+
+in vec2 a_position;
+in vec2 a_texcoord;
+in vec4 a_color;
+in float a_texid;
+
+uniform vec2 u_resolution;
+
+out vec2 v_texcoord;
+out vec4 v_color;
+out float v_texid;
+
+void main() {
+  vec2 zeroToOne = a_position / u_resolution;
+  vec2 zeroToTwo = zeroToOne * 2.0;
+  vec2 clipSpace = zeroToTwo - 1.0;
+  gl_Position = vec4(clipSpace.x, -clipSpace.y, 0.0, 1.0);
+
+  v_texcoord = a_texcoord;
+  v_color = a_color;
+  v_texid = a_texid;
+}
+`;
+      var FRAGMENT_SHADER_SRC = `#version 300 es
+precision mediump float;
+
+in vec2 v_texcoord;
+in vec4 v_color;
+in float v_texid;
+
+uniform sampler2D u_textures[8];
+
+out vec4 fragColor;
+
+void main() {
+  int tid = int(round(v_texid));
+  vec4 texColor = vec4(1.0);
+
+  if (tid == 0) {
+    texColor = texture(u_textures[0], v_texcoord);
+  } else if (tid == 1) {
+    texColor = texture(u_textures[1], v_texcoord);
+  } else if (tid == 2) {
+    texColor = texture(u_textures[2], v_texcoord);
+  } else if (tid == 3) {
+    texColor = texture(u_textures[3], v_texcoord);
+  } else if (tid == 4) {
+    texColor = texture(u_textures[4], v_texcoord);
+  } else if (tid == 5) {
+    texColor = texture(u_textures[5], v_texcoord);
+  } else if (tid == 6) {
+    texColor = texture(u_textures[6], v_texcoord);
+  } else if (tid == 7) {
+    texColor = texture(u_textures[7], v_texcoord);
+  }
+
+  vec4 finalColor = (tid < 0) ? v_color : (texColor * v_color);
+  if (finalColor.a < 0.005) {
+    discard;
+  }
+  fragColor = finalColor;
+}
+`;
+      var MAX_QUADS = 4096;
+      var FLOATS_PER_VERTEX = 9;
+      var VERTICES_PER_QUAD = 4;
+      var FLOATS_PER_QUAD = FLOATS_PER_VERTEX * VERTICES_PER_QUAD;
+      var INDICES_PER_QUAD = 6;
+      var WebGL2Renderer2 = class {
+        gl;
+        program;
+        uResolutionLoc = null;
+        uTexturesLoc = null;
+        vao = null;
+        vbo = null;
+        ibo = null;
+        vertexData;
+        quadCount = 0;
+        // Multi-texture slot assignment (0..7)
+        activeTextures = [null, null, null, null, null, null, null, null];
+        activeTextureElements = [null, null, null, null, null, null, null, null];
+        textureCache = /* @__PURE__ */ new WeakMap();
+        // 2D Text Overlay Canvas for seamless J2ME/Canvas 2D compatibility
+        textCanvas = null;
+        textCtx = null;
+        has2DText = false;
+        // Metrics
+        metrics = {
+          drawCalls: 0,
+          quadCount: 0,
+          batchCount: 0
+        };
+        // State
+        width = 1024;
+        height = 768;
+        tx = 0;
+        ty = 0;
+        currentColor = 0;
+        currentR = 0;
+        currentG = 0;
+        currentB = 0;
+        currentA = 1;
+        clipX = 0;
+        clipY = 0;
+        clipW = 99999;
+        clipH = 99999;
+        isClipping = false;
+        constructor(gl) {
+          this.gl = gl;
+          this.vertexData = new Float32Array(MAX_QUADS * FLOATS_PER_QUAD);
+          this.program = this.createProgram(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
+          this.initBuffers();
+          this.initGLState();
+          if (typeof document !== "undefined") {
+            this.textCanvas = document.createElement("canvas");
+            this.textCanvas.width = this.width;
+            this.textCanvas.height = this.height;
+            this.textCtx = this.textCanvas.getContext("2d");
+          }
+        }
+        markTextUsed() {
+          this.has2DText = true;
+        }
+        createShader(type, src) {
+          const gl = this.gl;
+          const shader = gl.createShader(type);
+          if (!shader)
+            throw new Error("Failed to create WebGL shader");
+          gl.shaderSource(shader, src);
+          gl.compileShader(shader);
+          if (!gl.getShaderParameter(shader, gl.COMPILE_STATUS)) {
+            const err = gl.getShaderInfoLog(shader);
+            gl.deleteShader(shader);
+            throw new Error(`Shader compile error: ${err}`);
+          }
+          return shader;
+        }
+        createProgram(vertSrc, fragSrc) {
+          const gl = this.gl;
+          const vs = this.createShader(gl.VERTEX_SHADER, vertSrc);
+          const fs = this.createShader(gl.FRAGMENT_SHADER, fragSrc);
+          const prog = gl.createProgram();
+          if (!prog)
+            throw new Error("Failed to create WebGL program");
+          gl.attachShader(prog, vs);
+          gl.attachShader(prog, fs);
+          gl.linkProgram(prog);
+          if (!gl.getProgramParameter(prog, gl.LINK_STATUS)) {
+            const err = gl.getProgramInfoLog(prog);
+            gl.deleteProgram(prog);
+            throw new Error(`Program link error: ${err}`);
+          }
+          gl.deleteShader(vs);
+          gl.deleteShader(fs);
+          this.uResolutionLoc = gl.getUniformLocation(prog, "u_resolution");
+          this.uTexturesLoc = gl.getUniformLocation(prog, "u_textures");
+          return prog;
+        }
+        initBuffers() {
+          const gl = this.gl;
+          this.vao = gl.createVertexArray();
+          gl.bindVertexArray(this.vao);
+          this.vbo = gl.createBuffer();
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+          gl.bufferData(gl.ARRAY_BUFFER, this.vertexData.byteLength, gl.DYNAMIC_DRAW);
+          const indexData = new Uint16Array(MAX_QUADS * INDICES_PER_QUAD);
+          for (let i = 0; i < MAX_QUADS; i++) {
+            const vOff = i * 4;
+            const iOff = i * 6;
+            indexData[iOff + 0] = vOff + 0;
+            indexData[iOff + 1] = vOff + 1;
+            indexData[iOff + 2] = vOff + 2;
+            indexData[iOff + 3] = vOff + 2;
+            indexData[iOff + 4] = vOff + 3;
+            indexData[iOff + 5] = vOff + 0;
+          }
+          this.ibo = gl.createBuffer();
+          gl.bindBuffer(gl.ELEMENT_ARRAY_BUFFER, this.ibo);
+          gl.bufferData(gl.ELEMENT_ARRAY_BUFFER, indexData, gl.STATIC_DRAW);
+          const stride = FLOATS_PER_VERTEX * 4;
+          gl.enableVertexAttribArray(0);
+          gl.vertexAttribPointer(0, 2, gl.FLOAT, false, stride, 0);
+          gl.enableVertexAttribArray(1);
+          gl.vertexAttribPointer(1, 2, gl.FLOAT, false, stride, 8);
+          gl.enableVertexAttribArray(2);
+          gl.vertexAttribPointer(2, 4, gl.FLOAT, false, stride, 16);
+          gl.enableVertexAttribArray(3);
+          gl.vertexAttribPointer(3, 1, gl.FLOAT, false, stride, 32);
+          gl.bindVertexArray(null);
+        }
+        initGLState() {
+          const gl = this.gl;
+          gl.enable(gl.BLEND);
+          gl.blendFunc(gl.SRC_ALPHA, gl.ONE_MINUS_SRC_ALPHA);
+          gl.disable(gl.DEPTH_TEST);
+        }
+        beginFrame(width, height) {
+          this.width = width;
+          this.height = height;
+          const gl = this.gl;
+          gl.viewport(0, 0, width, height);
+          gl.useProgram(this.program);
+          if (this.uResolutionLoc) {
+            gl.uniform2f(this.uResolutionLoc, width, height);
+          }
+          if (this.uTexturesLoc) {
+            gl.uniform1iv(this.uTexturesLoc, [0, 1, 2, 3, 4, 5, 6, 7]);
+          }
+          this.metrics.drawCalls = 0;
+          this.metrics.quadCount = 0;
+          this.metrics.batchCount = 0;
+          this.tx = 0;
+          this.ty = 0;
+          this.clipX = 0;
+          this.clipY = 0;
+          this.clipW = width;
+          this.clipH = height;
+          this.isClipping = false;
+          gl.disable(gl.SCISSOR_TEST);
+          gl.clearColor(0, 0, 0, 1);
+          gl.clear(gl.COLOR_BUFFER_BIT);
+          if (this.textCanvas && this.textCtx) {
+            if (this.textCanvas.width !== width || this.textCanvas.height !== height) {
+              this.textCanvas.width = width;
+              this.textCanvas.height = height;
+            } else {
+              this.textCtx.clearRect(0, 0, width, height);
+            }
+            this.has2DText = false;
+          }
+        }
+        endFrame() {
+          this.flush();
+          if (this.textCanvas && this.has2DText) {
+            const tex = this.getOrCreateTexture(this.textCanvas);
+            if (tex) {
+              const gl = this.gl;
+              gl.bindTexture(gl.TEXTURE_2D, tex);
+              gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, this.textCanvas);
+              const slot = this.assignTextureSlot(tex, this.textCanvas);
+              this.addQuad(0, 0, 0, 0, this.width, 0, 1, 0, this.width, this.height, 1, 1, 0, this.height, 0, 1, 1, 1, 1, 1, slot);
+              this.flush();
+            }
+          }
+          if (this.isClipping) {
+            this.gl.disable(this.gl.SCISSOR_TEST);
+            this.isClipping = false;
+          }
+        }
+        flush() {
+          if (this.quadCount === 0)
+            return;
+          const gl = this.gl;
+          gl.useProgram(this.program);
+          gl.bindVertexArray(this.vao);
+          gl.bindBuffer(gl.ARRAY_BUFFER, this.vbo);
+          const subLength = this.quadCount * FLOATS_PER_QUAD;
+          gl.bufferSubData(gl.ARRAY_BUFFER, 0, this.vertexData.subarray(0, subLength));
+          for (let slot = 0; slot < 8; slot++) {
+            gl.activeTexture(gl.TEXTURE0 + slot);
+            gl.bindTexture(gl.TEXTURE_2D, this.activeTextures[slot]);
+          }
+          const indexCount = this.quadCount * INDICES_PER_QUAD;
+          gl.drawElements(gl.TRIANGLES, indexCount, gl.UNSIGNED_SHORT, 0);
+          this.metrics.drawCalls++;
+          this.metrics.quadCount += this.quadCount;
+          this.metrics.batchCount++;
+          this.quadCount = 0;
+          for (let i = 0; i < 8; i++) {
+            this.activeTextures[i] = null;
+            this.activeTextureElements[i] = null;
+          }
+          gl.bindVertexArray(null);
+        }
+        getMetrics() {
+          return { ...this.metrics };
+        }
+        getOrCreateTexture(imageSource) {
+          if (!imageSource)
+            return null;
+          let tex = this.textureCache.get(imageSource);
+          if (!tex) {
+            const gl = this.gl;
+            tex = gl.createTexture();
+            gl.bindTexture(gl.TEXTURE_2D, tex);
+            gl.pixelStorei(gl.UNPACK_PREMULTIPLY_ALPHA_WEBGL, false);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MIN_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_MAG_FILTER, gl.NEAREST);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_S, gl.CLAMP_TO_EDGE);
+            gl.texParameteri(gl.TEXTURE_2D, gl.TEXTURE_WRAP_T, gl.CLAMP_TO_EDGE);
+            gl.texImage2D(gl.TEXTURE_2D, 0, gl.RGBA, gl.RGBA, gl.UNSIGNED_BYTE, imageSource);
+            this.textureCache.set(imageSource, tex);
+          }
+          return tex;
+        }
+        assignTextureSlot(tex, imageElement) {
+          for (let i = 0; i < 8; i++) {
+            if (this.activeTextures[i] === tex) {
+              return i;
+            }
+          }
+          for (let i = 0; i < 8; i++) {
+            if (this.activeTextures[i] === null) {
+              this.activeTextures[i] = tex;
+              this.activeTextureElements[i] = imageElement;
+              return i;
+            }
+          }
+          this.flush();
+          this.activeTextures[0] = tex;
+          this.activeTextureElements[0] = imageElement;
+          return 0;
+        }
+        addQuad(x0, y0, u0, v0, x1, y1, u1, v1, x2, y2, u2, v2, x3, y3, u3, v3, r, g, b, a, texId) {
+          if (this.quadCount >= MAX_QUADS) {
+            this.flush();
+          }
+          const off = this.quadCount * FLOATS_PER_QUAD;
+          const v = this.vertexData;
+          v[off + 0] = x0;
+          v[off + 1] = y0;
+          v[off + 2] = u0;
+          v[off + 3] = v0;
+          v[off + 4] = r;
+          v[off + 5] = g;
+          v[off + 6] = b;
+          v[off + 7] = a;
+          v[off + 8] = texId;
+          v[off + 9] = x1;
+          v[off + 10] = y1;
+          v[off + 11] = u1;
+          v[off + 12] = v1;
+          v[off + 13] = r;
+          v[off + 14] = g;
+          v[off + 15] = b;
+          v[off + 16] = a;
+          v[off + 17] = texId;
+          v[off + 18] = x2;
+          v[off + 19] = y2;
+          v[off + 20] = u2;
+          v[off + 21] = v2;
+          v[off + 22] = r;
+          v[off + 23] = g;
+          v[off + 24] = b;
+          v[off + 25] = a;
+          v[off + 26] = texId;
+          v[off + 27] = x3;
+          v[off + 28] = y3;
+          v[off + 29] = u3;
+          v[off + 30] = v3;
+          v[off + 31] = r;
+          v[off + 32] = g;
+          v[off + 33] = b;
+          v[off + 34] = a;
+          v[off + 35] = texId;
+          this.quadCount++;
+        }
+        // --- IRenderBackend Implementation ---
+        translate(x, y) {
+          this.tx += x;
+          this.ty += y;
+        }
+        getTranslateX() {
+          return this.tx;
+        }
+        getTranslateY() {
+          return this.ty;
+        }
+        setColor(rgb) {
+          this.currentColor = rgb;
+          this.currentR = (rgb >> 16 & 255) / 255;
+          this.currentG = (rgb >> 8 & 255) / 255;
+          this.currentB = (rgb & 255) / 255;
+          this.currentA = 1;
+        }
+        getColor() {
+          return this.currentColor;
+        }
+        setClip(x, y, width, height) {
+          this.flush();
+          this.clipX = x;
+          this.clipY = y;
+          this.clipW = width;
+          this.clipH = height;
+          const gl = this.gl;
+          const sx = Math.max(0, Math.round(this.tx + x));
+          const sy = Math.max(0, Math.round(this.height - (this.ty + y + height)));
+          const sw = Math.max(0, Math.round(width));
+          const sh = Math.max(0, Math.round(height));
+          gl.enable(gl.SCISSOR_TEST);
+          gl.scissor(sx, sy, sw, sh);
+          this.isClipping = true;
+        }
+        clipRect(x, y, width, height) {
+          const x1 = Math.max(this.clipX, x);
+          const y1 = Math.max(this.clipY, y);
+          const x2 = Math.min(this.clipX + this.clipW, x + width);
+          const y2 = Math.min(this.clipY + this.clipH, y + height);
+          this.setClip(x1, y1, Math.max(0, x2 - x1), Math.max(0, y2 - y1));
+        }
+        getClipX() {
+          return this.clipX;
+        }
+        getClipY() {
+          return this.clipY;
+        }
+        getClipWidth() {
+          return this.clipW;
+        }
+        getClipHeight() {
+          return this.clipH;
+        }
+        fillRect(x, y, width, height) {
+          const px = this.tx + x;
+          const py = this.ty + y;
+          this.addQuad(px, py, 0, 0, px + width, py, 0, 0, px + width, py + height, 0, 0, px, py + height, 0, 0, this.currentR, this.currentG, this.currentB, this.currentA, -1);
+        }
+        drawRect(x, y, width, height) {
+          this.fillRect(x, y, width, 1);
+          this.fillRect(x, y + height - 1, width, 1);
+          this.fillRect(x, y + 1, 1, Math.max(0, height - 2));
+          this.fillRect(x + width - 1, y + 1, 1, Math.max(0, height - 2));
+        }
+        drawLine(x1, y1, x2, y2) {
+          const px1 = this.tx + x1;
+          const py1 = this.ty + y1;
+          const px2 = this.tx + x2;
+          const py2 = this.ty + y2;
+          const dx = px2 - px1;
+          const dy = py2 - py1;
+          const len = Math.hypot(dx, dy);
+          if (len === 0) {
+            this.fillRect(x1, y1, 1, 1);
+            return;
+          }
+          const nx = -dy / len;
+          const ny = dx / len;
+          this.addQuad(px1 - nx * 0.5, py1 - ny * 0.5, 0, 0, px2 - nx * 0.5, py2 - ny * 0.5, 0, 0, px2 + nx * 0.5, py2 + ny * 0.5, 0, 0, px1 + nx * 0.5, py1 + ny * 0.5, 0, 0, this.currentR, this.currentG, this.currentB, this.currentA, -1);
+        }
+        fillRoundRect(x, y, width, height, arcWidth, arcHeight = arcWidth) {
+          const r = Math.min(arcWidth, arcHeight) / 2;
+          this.fillRect(x + r, y, width - 2 * r, height);
+          this.fillRect(x, y + r, r, height - 2 * r);
+          this.fillRect(x + width - r, y + r, r, height - 2 * r);
+          this.fillRect(x + 1, y + 1, r - 1, r - 1);
+          this.fillRect(x + width - r, y + 1, r - 1, r - 1);
+          this.fillRect(x + 1, y + height - r, r - 1, r - 1);
+          this.fillRect(x + width - r, y + height - r, r - 1, r - 1);
+        }
+        drawRoundRect(x, y, width, height, arcWidth, arcHeight = arcWidth) {
+          const r = Math.min(arcWidth, arcHeight) / 2;
+          this.fillRect(x + r, y, width - 2 * r, 1);
+          this.fillRect(x + r, y + height - 1, width - 2 * r, 1);
+          this.fillRect(x, y + r, 1, height - 2 * r);
+          this.fillRect(x + width - 1, y + r, 1, height - 2 * r);
+          this.drawLine(x + 1, y + r, x + r, y + 1);
+          this.drawLine(x + width - 1, y + r, x + width - r, y + 1);
+          this.drawLine(x + 1, y + height - r, x + r, y + height - 1);
+          this.drawLine(x + width - 1, y + height - r, x + width - r, y + height - 1);
+        }
+        fillArc(x, y, width, height, startAngle, arcAngle) {
+          const segments = 16;
+          const rx = width / 2;
+          const ry = height / 2;
+          const cx = this.tx + x + rx;
+          const cy = this.ty + y + ry;
+          const sa = startAngle * Math.PI / 180;
+          const ea = (startAngle + arcAngle) * Math.PI / 180;
+          const step = (ea - sa) / segments;
+          for (let i = 0; i < segments; i++) {
+            const a1 = sa + i * step;
+            const a2 = sa + (i + 1) * step;
+            const p1x = cx + rx * Math.cos(a1);
+            const p1y = cy + ry * Math.sin(a1);
+            const p2x = cx + rx * Math.cos(a2);
+            const p2y = cy + ry * Math.sin(a2);
+            this.addQuad(cx, cy, 0, 0, p1x, p1y, 0, 0, p2x, p2y, 0, 0, cx, cy, 0, 0, this.currentR, this.currentG, this.currentB, this.currentA, -1);
+          }
+        }
+        drawArc(x, y, width, height, startAngle, arcAngle) {
+          const segments = 16;
+          const rx = width / 2;
+          const ry = height / 2;
+          const cx = x + rx;
+          const cy = y + ry;
+          const sa = startAngle * Math.PI / 180;
+          const ea = (startAngle + arcAngle) * Math.PI / 180;
+          const step = (ea - sa) / segments;
+          for (let i = 0; i < segments; i++) {
+            const a1 = sa + i * step;
+            const a2 = sa + (i + 1) * step;
+            this.drawLine(cx + rx * Math.cos(a1), cy + ry * Math.sin(a1), cx + rx * Math.cos(a2), cy + ry * Math.sin(a2));
+          }
+        }
+        calculateAnchor(x, y, width, height, anchor) {
+          let outX = x;
+          let outY = y;
+          if ((anchor & Graphics_js_1.Graphics.RIGHT) !== 0) {
+            outX -= width;
+          } else if ((anchor & Graphics_js_1.Graphics.HCENTER) !== 0) {
+            outX -= Math.floor(width / 2);
+          }
+          if ((anchor & Graphics_js_1.Graphics.BOTTOM) !== 0) {
+            outY -= height;
+          } else if ((anchor & Graphics_js_1.Graphics.VCENTER) !== 0) {
+            outY -= Math.floor(height / 2);
+          }
+          return { x: outX, y: outY };
+        }
+        getImageElement(image) {
+          if (!image)
+            return null;
+          if (image instanceof Image_js_1.Image) {
+            return image.element;
+          }
+          if ("naturalWidth" in image || "width" in image) {
+            return image;
+          }
+          return image.element || null;
+        }
+        getImageDimensions(image) {
+          if (image instanceof Image_js_1.Image) {
+            return { w: image.width, h: image.height };
+          }
+          const w = image?.naturalWidth || image?.width || 0;
+          const h = image?.naturalHeight || image?.height || 0;
+          return { w, h };
+        }
+        drawImage(image, x, y, anchor = 0) {
+          const dim = this.getImageDimensions(image);
+          if (dim.w === 0 || dim.h === 0)
+            return;
+          this.drawScaledImage(image, x, y, dim.w, dim.h, anchor);
+        }
+        drawScaledImage(image, x, y, width, height, anchor = 0) {
+          const el = this.getImageElement(image);
+          if (!el)
+            return;
+          const pt = this.calculateAnchor(x, y, width, height, anchor);
+          const px = this.tx + pt.x;
+          const py = this.ty + pt.y;
+          const tex = this.getOrCreateTexture(el);
+          if (!tex)
+            return;
+          const slot = this.assignTextureSlot(tex, el);
+          this.addQuad(px, py, 0, 0, px + width, py, 1, 0, px + width, py + height, 1, 1, px, py + height, 0, 1, 1, 1, 1, 1, slot);
+        }
+        drawRegion(image, x_src, y_src, width, height, transform, x_dst, y_dst, anchor = 0) {
+          const el = this.getImageElement(image);
+          if (!el)
+            return;
+          let destW = width;
+          let destH = height;
+          if (transform === Sprite_js_1.Sprite.TRANS_ROT90 || transform === Sprite_js_1.Sprite.TRANS_ROT270 || transform === Sprite_js_1.Sprite.TRANS_MIRROR_ROT90 || transform === Sprite_js_1.Sprite.TRANS_MIRROR_ROT270) {
+            destW = height;
+            destH = width;
+          }
+          const pt = this.calculateAnchor(x_dst, y_dst, destW, destH, anchor);
+          const px = this.tx + pt.x;
+          const py = this.ty + pt.y;
+          const tex = this.getOrCreateTexture(el);
+          if (!tex)
+            return;
+          const slot = this.assignTextureSlot(tex, el);
+          const dim = this.getImageDimensions(image);
+          const imgW = dim.w || 1;
+          const imgH = dim.h || 1;
+          const u0 = x_src / imgW;
+          const v0 = y_src / imgH;
+          const u1 = (x_src + width) / imgW;
+          const v1 = (y_src + height) / imgH;
+          let uvTL = { u: u0, v: v0 };
+          let uvTR = { u: u1, v: v0 };
+          let uvBR = { u: u1, v: v1 };
+          let uvBL = { u: u0, v: v1 };
+          switch (transform) {
+            case Sprite_js_1.Sprite.TRANS_NONE:
+              break;
+            case Sprite_js_1.Sprite.TRANS_MIRROR:
+              uvTL = { u: u1, v: v0 };
+              uvTR = { u: u0, v: v0 };
+              uvBR = { u: u0, v: v1 };
+              uvBL = { u: u1, v: v1 };
+              break;
+            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT180:
+              uvTL = { u: u0, v: v1 };
+              uvTR = { u: u1, v: v1 };
+              uvBR = { u: u1, v: v0 };
+              uvBL = { u: u0, v: v0 };
+              break;
+            case Sprite_js_1.Sprite.TRANS_ROT180:
+              uvTL = { u: u1, v: v1 };
+              uvTR = { u: u0, v: v1 };
+              uvBR = { u: u0, v: v0 };
+              uvBL = { u: u1, v: v0 };
+              break;
+            case Sprite_js_1.Sprite.TRANS_ROT90:
+              uvTL = { u: u0, v: v1 };
+              uvTR = { u: u0, v: v0 };
+              uvBR = { u: u1, v: v0 };
+              uvBL = { u: u1, v: v1 };
+              break;
+            case Sprite_js_1.Sprite.TRANS_ROT270:
+              uvTL = { u: u1, v: v0 };
+              uvTR = { u: u1, v: v1 };
+              uvBR = { u: u0, v: v1 };
+              uvBL = { u: u0, v: v0 };
+              break;
+            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT90:
+              uvTL = { u: u1, v: v1 };
+              uvTR = { u: u1, v: v0 };
+              uvBR = { u: u0, v: v0 };
+              uvBL = { u: u0, v: v1 };
+              break;
+            case Sprite_js_1.Sprite.TRANS_MIRROR_ROT270:
+              uvTL = { u: u0, v: v0 };
+              uvTR = { u: u0, v: v1 };
+              uvBR = { u: u1, v: v1 };
+              uvBL = { u: u1, v: v0 };
+              break;
+          }
+          this.addQuad(px, py, uvTL.u, uvTL.v, px + destW, py, uvTR.u, uvTR.v, px + destW, py + destH, uvBR.u, uvBR.v, px, py + destH, uvBL.u, uvBL.v, 1, 1, 1, 1, slot);
+        }
+      };
+      exports.WebGL2Renderer = WebGL2Renderer2;
     }
   });
 
@@ -565,6 +1297,8 @@
         for (var p in m) if (p !== "default" && !Object.prototype.hasOwnProperty.call(exports2, p)) __createBinding(exports2, m, p);
       };
       Object.defineProperty(exports, "__esModule", { value: true });
+      __exportStar(require_IRenderBackend(), exports);
+      __exportStar(require_WebGL2Renderer(), exports);
       __exportStar(require_Graphics(), exports);
       __exportStar(require_Image(), exports);
       __exportStar(require_Sprite(), exports);
@@ -1163,6 +1897,9 @@
     }
   });
 
+  // packages/game-client/src/web-entry.ts
+  var import_j2me_compat9 = __toESM(require_dist());
+
   // packages/game-client/src/core/GameMidlet.ts
   var import_j2me_compat5 = __toESM(require_dist());
 
@@ -1173,15 +1910,21 @@
     currentScreen;
     graphics;
     isRunning = false;
-    lastTick = 0;
-    FPS = 20;
-    FRAME_TIME = 1e3 / 20;
-    // 50ms per frame
-    constructor(ctx) {
+    lastTime = 0;
+    accumulator = 0;
+    TICK_RATE = 20;
+    // 20 simulation ticks/sec
+    TICK_INTERVAL = 1e3 / 20;
+    // 50ms per tick
+    // Frame timing & FPS tracking
+    currentFPS = 60;
+    frameCount = 0;
+    fpsLastTime = 0;
+    constructor(target) {
       super();
-      this.width = 240;
-      this.height = 320;
-      this.graphics = new import_j2me_compat.Graphics(ctx);
+      this.width = 1024;
+      this.height = 768;
+      this.graphics = new import_j2me_compat.Graphics(target);
       _GameCanvas.instance = this;
     }
     setCurrentScreen(screen) {
@@ -1201,24 +1944,44 @@
     }
     startLoop(onFrame) {
       this.isRunning = true;
-      this.lastTick = Date.now();
-      const loop = () => {
+      this.lastTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+      this.fpsLastTime = this.lastTime;
+      this.accumulator = 0;
+      const loop = (currentTime) => {
         if (!this.isRunning) return;
-        const now = Date.now();
-        const elapsed = now - this.lastTick;
-        if (elapsed >= this.FRAME_TIME) {
-          this.lastTick = now - elapsed % this.FRAME_TIME;
-          this.tick();
-          this.repaint();
-          if (onFrame) onFrame();
+        const now = currentTime || (typeof performance !== "undefined" ? performance.now() : Date.now());
+        let elapsed = now - this.lastTime;
+        if (elapsed > 250) {
+          elapsed = 250;
         }
+        this.lastTime = now;
+        this.accumulator += elapsed;
+        while (this.accumulator >= this.TICK_INTERVAL) {
+          this.tick();
+          this.accumulator -= this.TICK_INTERVAL;
+        }
+        const alpha = Math.max(0, Math.min(1, this.accumulator / this.TICK_INTERVAL));
+        this.graphics.beginFrame(this.width, this.height);
+        this.paint(this.graphics, alpha);
+        this.graphics.endFrame();
+        this.frameCount++;
+        if (now - this.fpsLastTime >= 1e3) {
+          this.currentFPS = Math.round(this.frameCount * 1e3 / (now - this.fpsLastTime));
+          this.frameCount = 0;
+          this.fpsLastTime = now;
+        }
+        if (onFrame) onFrame();
         if (typeof requestAnimationFrame !== "undefined") {
           requestAnimationFrame(loop);
         } else {
-          setTimeout(loop, 10);
+          setTimeout(() => loop(Date.now()), 16);
         }
       };
-      loop();
+      if (typeof requestAnimationFrame !== "undefined") {
+        requestAnimationFrame(loop);
+      } else {
+        setTimeout(() => loop(Date.now()), 16);
+      }
     }
     stopLoop() {
       this.isRunning = false;
@@ -1228,14 +1991,15 @@
         this.currentScreen.update();
       }
     }
-    paint(g) {
-      g.translate(0, 0);
+    paint(g, alpha = 1) {
       if (this.currentScreen) {
-        this.currentScreen.paint(g);
+        this.currentScreen.paint(g, alpha);
       }
     }
     repaint() {
-      this.paint(this.graphics);
+      this.graphics.beginFrame(this.width, this.height);
+      this.paint(this.graphics, 1);
+      this.graphics.endFrame();
     }
     keyPressed(keyCode) {
       if (this.currentScreen) {
@@ -2363,8 +3127,8 @@
     worldMapScreen;
     skinPainter;
     font;
-    constructor(ctx) {
-      this.canvas = new GameCanvas(ctx);
+    constructor(target) {
+      this.canvas = new GameCanvas(target);
       this.font = new BitmapFont();
       this.skinPainter = new UISkinPainter(this.font);
       this.loginScreen = new LoginScreen(this.skinPainter, this.font);
@@ -4033,6 +4797,8 @@
       name: "T\xF4i",
       x: 120,
       y: 200,
+      prevX: 120,
+      prevY: 200,
       direct: 0,
       // 0: Down, 1: Up, 2: Left, 3: Right
       gender: 0,
@@ -4416,6 +5182,12 @@
       });
     }
     update() {
+      this.localPlayer.prevX = this.localPlayer.x;
+      this.localPlayer.prevY = this.localPlayer.y;
+      for (const p of this.remotePlayers.values()) {
+        p.prevX = p.lastX ?? p.x;
+        p.prevY = p.lastY ?? p.y;
+      }
       this.animTick++;
       this.tickerX -= 1;
       const tickerWidth = this.tickerText.length * 7;
@@ -4767,10 +5539,13 @@
         }
       }
     }
-    paint(g) {
+    paint(g, alpha = 1) {
       const screenW = typeof window !== "undefined" && window.gameMidlet?.canvas?.width || 640;
       const screenH = typeof window !== "undefined" && window.gameMidlet?.canvas?.height || 360;
-      this.tilemapRenderer.updateCamera(this.localPlayer.x, this.localPlayer.y, screenW, screenH);
+      const curAlpha = typeof alpha === "number" ? Math.max(0, Math.min(1, alpha)) : 1;
+      const interpLocalX = Math.round(this.localPlayer.prevX + (this.localPlayer.x - this.localPlayer.prevX) * curAlpha);
+      const interpLocalY = Math.round(this.localPlayer.prevY + (this.localPlayer.y - this.localPlayer.prevY) * curAlpha);
+      this.tilemapRenderer.updateCamera(interpLocalX, interpLocalY, screenW, screenH);
       const camX = this.tilemapRenderer.cameraX;
       const camY = this.tilemapRenderer.cameraY;
       this.tilemapRenderer.paint(g, screenW, screenH);
@@ -4788,8 +5563,8 @@
         type: "avatar",
         id: this.localPlayer.id,
         name: this.localPlayer.name,
-        x: this.localPlayer.x,
-        y: this.localPlayer.y,
+        x: interpLocalX,
+        y: interpLocalY,
         wearing: this.localPlayer.wearing,
         direct: this.localPlayer.direct,
         frame: this.localPlayer.frame,
@@ -4803,14 +5578,18 @@
         if (!seenIds.has(rp.id)) {
           seenIds.add(rp.id);
           let displayName = rp.name;
+          const rpPrevX = rp.prevX ?? rp.lastX ?? rp.x;
+          const rpPrevY = rp.prevY ?? rp.lastY ?? rp.y;
+          const interpRPX = Math.round(rpPrevX + (rp.x - rpPrevX) * curAlpha);
+          const interpRPY = Math.round(rpPrevY + (rp.y - rpPrevY) * curAlpha);
           if (displayName.includes("Lovanga")) {
             displayName = "Ti\xEAn tri Lovanga";
           }
           entities.push({
             id: rp.id,
             name: displayName,
-            x: rp.x,
-            y: rp.y,
+            x: interpRPX,
+            y: interpRPY,
             wearing: rp.wearing,
             direct: rp.direct,
             frame: rp.frame || 0,
@@ -5091,9 +5870,28 @@
       console.error("Canvas #gameCanvas not found!");
       return;
     }
-    const ctx = canvas.getContext("2d");
-    ctx.imageSmoothingEnabled = false;
-    const midlet = new GameMidlet(ctx);
+    let backend = null;
+    const gl = canvas.getContext("webgl2", {
+      alpha: false,
+      antialias: false,
+      depth: false,
+      stencil: false,
+      preserveDrawingBuffer: false,
+      powerPreference: "high-performance"
+    });
+    if (gl) {
+      console.log("[WebClient] WebGL 2 hardware acceleration enabled!");
+      backend = new import_j2me_compat9.WebGL2Renderer(gl);
+      window.__RENDER_BACKEND = "webgl2";
+    } else {
+      console.warn("[WebClient] WebGL 2 not available, falling back to Canvas 2D");
+      const ctx = canvas.getContext("2d");
+      if (ctx)
+        backend = ctx;
+      window.__RENDER_BACKEND = "canvas2d";
+    }
+    const midlet = new GameMidlet(backend);
+    window.getRenderMetrics = () => midlet.canvas.graphics.getMetrics();
     window.gameMidlet = midlet;
     const wsHost = window.location.hostname || "127.0.0.1";
     const gatewayUrl = `ws://${wsHost}:19129`;
@@ -5256,7 +6054,6 @@
         canvas.height = winH;
         midlet.canvas.resize(winW, winH);
       }
-      ctx.imageSmoothingEnabled = false;
     }
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
