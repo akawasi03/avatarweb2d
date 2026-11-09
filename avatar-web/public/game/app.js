@@ -3413,9 +3413,9 @@
         camX = Math.floor((mapWidthPx - screenW) / 2);
       }
       if (mapHeightPx > screenH) {
-        camY = Math.max(0, Math.min(mapHeightPx - screenH, camY));
+        camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
       } else {
-        camY = Math.floor((mapHeightPx - screenH) / 2);
+        camY = mapHeightPx - screenH;
       }
       this.cameraX = camX;
       this.cameraY = camY;
@@ -3782,8 +3782,9 @@
     isEmoteOpen = false;
     img12Plus;
     menuOptions = [
+      "Ch\u1ECDn khu v\u1EF1c (World Map)",
+      "\u0110\u1ED5i ph\xF2ng (Khu)",
       "R\u01B0\u01A1ng \u0111\u1ED3 (Inventory)",
-      "\u0110\u1ED5i khu",
       "Xem th\xF4ng tin",
       "Ch\u1EA1y nhanh (B\u1EADt/T\u1EAFt)",
       "To\xE0n m\xE0n h\xECnh",
@@ -4240,6 +4241,13 @@
       } else if (keyCode === 81 || keyCode === 113) {
         this.isMenuOpen = !this.isMenuOpen;
         return;
+      } else if (keyCode === 27 || keyCode === 77 || keyCode === 109) {
+        if (this.isMenuOpen) {
+          this.isMenuOpen = false;
+        } else if (typeof window !== "undefined" && window.openWorldMap) {
+          window.openWorldMap();
+        }
+        return;
       }
       if (moved) {
         this.targetMoveX = void 0;
@@ -4353,47 +4361,9 @@
         this.isEmoteOpen = false;
         return;
       }
-      if (y <= 26) {
-        if (x >= 6 && x <= 50) {
-          this.isMenuOpen = !this.isMenuOpen;
-          this.isEmoteOpen = false;
-          return;
-        }
-        if (x >= 54 && x <= 76) {
-          alert("H\u1ED9p th\u01B0: B\u1EA1n kh\xF4ng c\xF3 th\u01B0 m\u1EDBi n\xE0o t\u1EEB Th\u1ECB Tr\u01B0\u1EDFng.");
-          return;
-        }
-        if (x >= 80 && x <= 102) {
-          this.promptChat();
-          return;
-        }
-        if (x >= screenW - 80 && x <= screenW - 58) {
-          const nextArea = (this.currentAreaId + 1) % 10;
-          this.networkSession.sendJoinPark(this.currentMapId, nextArea, this.localPlayer.x, this.localPlayer.y);
-          return;
-        }
-        if (x >= screenW - 54 && x <= screenW - 32) {
-          this.isRunningFast = !this.isRunningFast;
-          return;
-        }
-        if (x >= screenW - 28 && x <= screenW - 6) {
-          this.isEmoteOpen = !this.isEmoteOpen;
-          this.isMenuOpen = false;
-          return;
-        }
-        return;
-      }
-      if (y >= screenH - 24) {
-        if (x <= 80) {
-          this.promptChat();
-        } else if (x >= screenW - 140 && x <= screenW - 40) {
-          const nextArea = (this.currentAreaId + 1) % 10;
-          this.networkSession.sendJoinPark(this.currentMapId, nextArea, this.localPlayer.x, this.localPlayer.y);
-        } else if (x > screenW - 40) {
-          if (typeof window !== "undefined" && window.toggleFullscreen) {
-            window.toggleFullscreen();
-          }
-        }
+      if (x >= 6 && x <= 56 && y >= 6 && y <= 30) {
+        this.isMenuOpen = !this.isMenuOpen;
+        this.isEmoteOpen = false;
         return;
       }
       const worldTargetX = x + this.tilemapRenderer.cameraX;
@@ -4434,7 +4404,9 @@
       this.isMenuOpen = false;
       switch (index) {
         case 0: {
-          this.networkSession.sendViewChest(this.localPlayer.id);
+          if (typeof window !== "undefined" && window.openWorldMap) {
+            window.openWorldMap();
+          }
           break;
         }
         case 1: {
@@ -4443,21 +4415,25 @@
           break;
         }
         case 2: {
+          this.networkSession.sendViewChest(this.localPlayer.id);
+          break;
+        }
+        case 3: {
           const u = this.localPlayer.name;
           alert(`Nh\xE2n v\u1EADt: ${u} | ID: ${this.localPlayer.id} | Xu: ${this.userXu} | L\u01B0\u1EE3ng: ${this.userLuong} | B\u1EA3n \u0111\u1ED3: ${this.currentMapId} - Khu: ${this.currentAreaId}`);
           break;
         }
-        case 3: {
+        case 4: {
           this.isRunningFast = !this.isRunningFast;
           break;
         }
-        case 4: {
+        case 5: {
           if (typeof window !== "undefined" && window.toggleFullscreen) {
             window.toggleFullscreen();
           }
           break;
         }
-        case 5: {
+        case 6: {
           break;
         }
       }
@@ -4601,103 +4577,12 @@
           }
         }
       }
-      g.setColor(988970);
-      g.fillRect(0, 0, screenW, 26);
-      g.setColor(1976635);
-      g.drawLine(0, 26, screenW, 26);
       g.setColor(1402304);
-      g.fillRoundRect(6, 3, 44, 20, 4);
+      g.fillRoundRect(8, 8, 44, 20, 4);
       g.setColor(9489145);
-      g.drawRoundRect(6, 3, 44, 20, 4);
+      g.drawRoundRect(8, 8, 44, 20, 4);
       if (this.font) {
-        this.font.drawString(g, "MENU", 28, 7, 2);
-      }
-      g.setColor(165063);
-      g.fillRoundRect(54, 3, 22, 20, 4);
-      g.setColor(8246268);
-      g.drawRoundRect(54, 3, 22, 20, 4);
-      if (this.font) {
-        this.font.drawString(g, "\u2709", 65, 6, 2);
-      }
-      g.setColor(15680580);
-      g.fillArc(70, 2, 6, 6, 0, 360);
-      g.setColor(2001125);
-      g.fillRoundRect(80, 3, 22, 20, 4);
-      g.setColor(12312315);
-      g.drawRoundRect(80, 3, 22, 20, 4);
-      if (this.font) {
-        this.font.drawString(g, "\u{1F4AC}", 91, 6, 2);
-      }
-      g.setColor(1013358);
-      g.fillRoundRect(screenW - 80, 3, 22, 20, 4);
-      g.setColor(6220500);
-      g.drawRoundRect(screenW - 80, 3, 22, 20, 4);
-      if (this.font) {
-        this.font.drawString(g, "\u{1F9ED}", screenW - 69, 6, 2);
-      }
-      g.setColor(this.isRunningFast ? 16088064 : 3359061);
-      g.fillRoundRect(screenW - 54, 3, 22, 20, 4);
-      g.setColor(this.isRunningFast ? 16769154 : 6583435);
-      g.drawRoundRect(screenW - 54, 3, 22, 20, 4);
-      if (this.font) {
-        this.font.drawString(g, "\u{1F3C3}", screenW - 43, 6, 2);
-      }
-      g.setColor(14251782);
-      g.fillRoundRect(screenW - 28, 3, 22, 20, 4);
-      g.setColor(16639626);
-      g.drawRoundRect(screenW - 28, 3, 22, 20, 4);
-      if (this.font) {
-        this.font.drawString(g, "\u{1F60A}", screenW - 17, 6, 2);
-      }
-      const tickerClipX = 108;
-      const tickerClipW = Math.max(40, screenW - 196);
-      g.setColor(132631);
-      g.fillRect(tickerClipX, 3, tickerClipW, 20);
-      g.setColor(1976635);
-      g.drawRect(tickerClipX, 3, tickerClipW, 20);
-      const ctx = g.ctx;
-      if (ctx) {
-        ctx.save();
-        ctx.beginPath();
-        ctx.rect(tickerClipX + 2, 3, tickerClipW - 4, 20);
-        ctx.clip();
-        ctx.font = "bold 11px Arial, sans-serif";
-        ctx.fillStyle = "#fde047";
-        ctx.textBaseline = "middle";
-        ctx.fillText(this.tickerText, this.tickerX, 13);
-        ctx.restore();
-      }
-      if (this.img12Plus) {
-        g.drawImage(this.img12Plus, 6, screenH - 24, 0);
-      } else {
-        g.setColor(2171169);
-        g.fillRoundRect(6, screenH - 22, 28, 18, 3);
-        g.setColor(16777215);
-        g.drawRoundRect(6, screenH - 22, 28, 18, 3);
-        if (this.font) {
-          this.font.drawString(g, "12+", 20, screenH - 19, 2);
-        }
-      }
-      g.setColor(988970);
-      g.fillRect(40, screenH - 24, screenW - 40, 24);
-      g.setColor(1976635);
-      g.drawLine(0, screenH - 24, screenW, screenH - 24);
-      if (ctx) {
-        ctx.save();
-        ctx.font = "bold 11px Arial, sans-serif";
-        ctx.textBaseline = "middle";
-        ctx.textAlign = "left";
-        ctx.fillStyle = "#38bdf8";
-        ctx.fillText("Chat (C)", 46, screenH - 12);
-        ctx.textAlign = "center";
-        ctx.fillStyle = "#94a3b8";
-        ctx.fillText(`Khu ${this.currentAreaId} | ${this.remotePlayers.size + 1} online`, Math.floor(screenW / 2), screenH - 12);
-        ctx.textAlign = "right";
-        ctx.fillStyle = "#f87171";
-        ctx.fillText("R\u1EDDi khu", screenW - 32, screenH - 12);
-        ctx.fillStyle = "#e2e8f0";
-        ctx.fillText("\u26F6", screenW - 12, screenH - 12);
-        ctx.restore();
+        this.font.drawString(g, "MENU", 30, 12, 2);
       }
       if (this.isMenuOpen) {
         const mw = 170;
@@ -4853,9 +4738,9 @@
       midlet.canvas.setCurrentScreen(worldScreen);
       window.__SCENE = "world";
       const chatBar = document.getElementById("in-game-chat-bar");
-      if (chatBar) chatBar.style.display = "flex";
+      if (chatBar) chatBar.style.display = "none";
       const topBar = document.querySelector(".game-top-bar");
-      if (topBar) topBar.style.display = "flex";
+      if (topBar) topBar.style.display = "none";
       resizeCanvas();
       const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
       if (statusEl) {

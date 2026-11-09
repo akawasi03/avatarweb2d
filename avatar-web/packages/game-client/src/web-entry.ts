@@ -171,12 +171,12 @@ async function startWebClient() {
 
 
 
-    // Show in-game docked chat bar and top navigation bar
+    // Ensure in-game docked chat bar and top bar remain hidden for authentic fullscreen
     const chatBar = document.getElementById('in-game-chat-bar');
-    if (chatBar) chatBar.style.display = 'flex';
+    if (chatBar) chatBar.style.display = 'none';
 
     const topBar = document.querySelector('.game-top-bar') as HTMLElement;
-    if (topBar) topBar.style.display = 'flex';
+    if (topBar) topBar.style.display = 'none';
 
     resizeCanvas();
 

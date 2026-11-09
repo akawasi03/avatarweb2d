@@ -868,16 +868,7 @@ if (!$view) {
     }
 
     .game-top-bar {
-      height: 42px;
-      flex-shrink: 0;
-      background: rgba(15, 23, 42, 0.95);
-      border-bottom: 1px solid rgba(255,255,255,0.1);
-      display: flex;
-      align-items: center;
-      justify-content: space-between;
-      padding: 0 16px;
-      color: #ffffff;
-      font-size: 13px;
+      display: none !important;
     }
 
     .game-bar-left {
@@ -964,16 +955,7 @@ if (!$view) {
     }
 
     #in-game-chat-bar {
-      flex-shrink: 0;
-      height: 38px;
-      background: #0b1329;
-      border-top: 1px solid rgba(56, 189, 248, 0.25);
-      display: none; /* Managed by client: flex in world, none in worldmap */
-      align-items: center;
-      padding: 0 16px;
-      gap: 10px;
-      box-sizing: border-box;
-      z-index: 10;
+      display: none !important;
     }
 
     .chat-label-badge {

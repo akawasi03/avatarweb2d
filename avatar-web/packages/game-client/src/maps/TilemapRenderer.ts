@@ -367,9 +367,10 @@ export class TilemapRenderer {
     }
 
     if (mapHeightPx > screenH) {
-      camY = Math.max(0, Math.min(mapHeightPx - screenH, camY));
+      camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
     } else {
-      camY = Math.floor((mapHeightPx - screenH) / 2);
+      // Road sits flush against the bottom edge of the screen (đường sát xuống dưới)
+      camY = mapHeightPx - screenH;
     }
 
     this.cameraX = camX;

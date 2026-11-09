@@ -60,8 +60,9 @@ export class GameWorldScreen extends GameScreen {
   public img12Plus?: Image;
 
   public menuOptions = [
+    'Chọn khu vực (World Map)',
+    'Đổi phòng (Khu)',
     'Rương đồ (Inventory)',
-    'Đổi khu',
     'Xem thông tin',
     'Chạy nhanh (Bật/Tắt)',
     'Toàn màn hình',
@@ -615,6 +616,15 @@ export class GameWorldScreen extends GameScreen {
       this.isMenuOpen = !this.isMenuOpen;
       return;
     }
+    // ESC or 'm' or 'M': World Map / Exit menu
+    else if (keyCode === 27 || keyCode === 77 || keyCode === 109) {
+      if (this.isMenuOpen) {
+        this.isMenuOpen = false;
+      } else if (typeof window !== 'undefined' && (window as any).openWorldMap) {
+        (window as any).openWorldMap();
+      }
+      return;
+    }
 
     if (moved) {
       this.targetMoveX = undefined;
@@ -750,61 +760,10 @@ export class GameWorldScreen extends GameScreen {
       return;
     }
 
-    // 3. Top HUD Buttons
-    if (y <= 26) {
-      // [ MENU ] button: x=6..50
-      if (x >= 6 && x <= 50) {
-        this.isMenuOpen = !this.isMenuOpen;
-        this.isEmoteOpen = false;
-        return;
-      }
-      // [ ✉ ] Mail button: x=54..76
-      if (x >= 54 && x <= 76) {
-        alert('Hộp thư: Bạn không có thư mới nào từ Thị Trưởng.');
-        return;
-      }
-      // [ 💬 ] Chat button: x=80..102
-      if (x >= 80 && x <= 102) {
-        this.promptChat();
-        return;
-      }
-      // [ 🧭 ] Area switch button: x=screenW-80..screenW-58
-      if (x >= screenW - 80 && x <= screenW - 58) {
-        const nextArea = (this.currentAreaId + 1) % 10;
-        this.networkSession.sendJoinPark(this.currentMapId, nextArea, this.localPlayer.x, this.localPlayer.y);
-        return;
-      }
-      // [ 🏃 ] Speed toggle button: x=screenW-54..screenW-32
-      if (x >= screenW - 54 && x <= screenW - 32) {
-        this.isRunningFast = !this.isRunningFast;
-        return;
-      }
-      // [ 😊 ] Emote button: x=screenW-28..screenW-6
-      if (x >= screenW - 28 && x <= screenW - 6) {
-        this.isEmoteOpen = !this.isEmoteOpen;
-        this.isMenuOpen = false;
-        return;
-      }
-      return;
-    }
-
-    // 4. Bottom Bar & Softkeys
-    if (y >= screenH - 24) {
-      // Left softkey: Chat
-      if (x <= 80) {
-        this.promptChat();
-      }
-      // Right softkey: Rời khu / Đổi khu
-      else if (x >= screenW - 140 && x <= screenW - 40) {
-        const nextArea = (this.currentAreaId + 1) % 10;
-        this.networkSession.sendJoinPark(this.currentMapId, nextArea, this.localPlayer.x, this.localPlayer.y);
-      }
-      // Fullscreen toggle: x >= screenW - 40
-      else if (x > screenW - 40) {
-        if (typeof window !== 'undefined' && (window as any).toggleFullscreen) {
-          (window as any).toggleFullscreen();
-        }
-      }
+    // 3. Top-left [ MENU ] button
+    if (x >= 6 && x <= 56 && y >= 6 && y <= 30) {
+      this.isMenuOpen = !this.isMenuOpen;
+      this.isEmoteOpen = false;
       return;
     }
 
@@ -855,31 +814,37 @@ export class GameWorldScreen extends GameScreen {
   public onSelectMenuItem(index: number): void {
     this.isMenuOpen = false;
     switch (index) {
-      case 0: { // Rương đồ (Inventory)
-        this.networkSession.sendViewChest(this.localPlayer.id);
+      case 0: { // Chọn khu vực (World Map)
+        if (typeof window !== 'undefined' && (window as any).openWorldMap) {
+          (window as any).openWorldMap();
+        }
         break;
       }
-      case 1: { // Đổi khu
+      case 1: { // Đổi phòng (Khu)
         const nextArea = (this.currentAreaId + 1) % 10;
         this.networkSession.sendJoinPark(this.currentMapId, nextArea, this.localPlayer.x, this.localPlayer.y);
         break;
       }
-      case 2: { // Xem thông tin
+      case 2: { // Rương đồ (Inventory)
+        this.networkSession.sendViewChest(this.localPlayer.id);
+        break;
+      }
+      case 3: { // Xem thông tin
         const u = this.localPlayer.name;
         alert(`Nhân vật: ${u} | ID: ${this.localPlayer.id} | Xu: ${this.userXu} | Lượng: ${this.userLuong} | Bản đồ: ${this.currentMapId} - Khu: ${this.currentAreaId}`);
         break;
       }
-      case 3: { // Chạy nhanh
+      case 4: { // Chạy nhanh
         this.isRunningFast = !this.isRunningFast;
         break;
       }
-      case 4: { // Toàn màn hình
+      case 5: { // Toàn màn hình
         if (typeof window !== 'undefined' && (window as any).toggleFullscreen) {
           (window as any).toggleFullscreen();
         }
         break;
       }
-      case 5: { // Đóng menu
+      case 6: { // Đóng menu
         break;
       }
     }
@@ -1068,135 +1033,13 @@ export class GameWorldScreen extends GameScreen {
       }
     }
 
-    // 6. Top Bar matching the user's reference screenshot
-    g.setColor(0x0f172a); // Slate 900
-    g.fillRect(0, 0, screenW, 26);
-    g.setColor(0x1e293b);
-    g.drawLine(0, 26, screenW, 26);
-
-    // Left Buttons:
-    // [ MENU ] button
+    // 6. Floating compact [ MENU ] pill at top-left
     g.setColor(0x1565C0);
-    g.fillRoundRect(6, 3, 44, 20, 4);
+    g.fillRoundRect(8, 8, 44, 20, 4);
     g.setColor(0x90CAF9);
-    g.drawRoundRect(6, 3, 44, 20, 4);
+    g.drawRoundRect(8, 8, 44, 20, 4);
     if (this.font) {
-      this.font.drawString(g, 'MENU', 28, 7, 2);
-    }
-
-    // [ ✉ ] Mail button
-    g.setColor(0x0284c7);
-    g.fillRoundRect(54, 3, 22, 20, 4);
-    g.setColor(0x7dd3fc);
-    g.drawRoundRect(54, 3, 22, 20, 4);
-    if (this.font) {
-      this.font.drawString(g, '✉', 65, 6, 2);
-    }
-    // Notification red badge
-    g.setColor(0xef4444);
-    g.fillArc(70, 2, 6, 6, 0, 360);
-
-    // [ 💬 ] Chat button
-    g.setColor(0x1E88E5);
-    g.fillRoundRect(80, 3, 22, 20, 4);
-    g.setColor(0xBBDEFB);
-    g.drawRoundRect(80, 3, 22, 20, 4);
-    if (this.font) {
-      this.font.drawString(g, '💬', 91, 6, 2);
-    }
-
-    // Right Buttons:
-    // [ 🧭 ] Area/Map button
-    g.setColor(0x0f766e);
-    g.fillRoundRect(screenW - 80, 3, 22, 20, 4);
-    g.setColor(0x5eead4);
-    g.drawRoundRect(screenW - 80, 3, 22, 20, 4);
-    if (this.font) {
-      this.font.drawString(g, '🧭', screenW - 69, 6, 2);
-    }
-
-    // [ 🏃 ] Speed run button
-    g.setColor(this.isRunningFast ? 0xF57C00 : 0x334155);
-    g.fillRoundRect(screenW - 54, 3, 22, 20, 4);
-    g.setColor(this.isRunningFast ? 0xFFE082 : 0x64748b);
-    g.drawRoundRect(screenW - 54, 3, 22, 20, 4);
-    if (this.font) {
-      this.font.drawString(g, '🏃', screenW - 43, 6, 2);
-    }
-
-    // [ 😊 ] Emote button
-    g.setColor(0xd97706);
-    g.fillRoundRect(screenW - 28, 3, 22, 20, 4);
-    g.setColor(0xfde68a);
-    g.drawRoundRect(screenW - 28, 3, 22, 20, 4);
-    if (this.font) {
-      this.font.drawString(g, '😊', screenW - 17, 6, 2);
-    }
-
-    // Center Marquee News Ticker - Inset Dark Slot with High Contrast Gold Text
-    const tickerClipX = 108;
-    const tickerClipW = Math.max(40, screenW - 196);
-    g.setColor(0x020617);
-    g.fillRect(tickerClipX, 3, tickerClipW, 20);
-    g.setColor(0x1e293b);
-    g.drawRect(tickerClipX, 3, tickerClipW, 20);
-
-    const ctx = g.ctx as CanvasRenderingContext2D | undefined;
-    if (ctx) {
-      ctx.save();
-      ctx.beginPath();
-      ctx.rect(tickerClipX + 2, 3, tickerClipW - 4, 20);
-      ctx.clip();
-      ctx.font = 'bold 11px Arial, sans-serif';
-      ctx.fillStyle = '#fde047'; // Bright gold for 100% readability
-      ctx.textBaseline = 'middle';
-      ctx.fillText(this.tickerText, this.tickerX, 13);
-      ctx.restore();
-    }
-
-    // 7. Bottom-Left 12+ Badge
-    if (this.img12Plus) {
-      g.drawImage(this.img12Plus, 6, screenH - 24, 0);
-    } else {
-      g.setColor(0x212121);
-      g.fillRoundRect(6, screenH - 22, 28, 18, 3);
-      g.setColor(0xFFFFFF);
-      g.drawRoundRect(6, screenH - 22, 28, 18, 3);
-      if (this.font) {
-        this.font.drawString(g, '12+', 20, screenH - 19, 2);
-      }
-    }
-
-    // 8. Bottom Bar & Softkeys
-    g.setColor(0x0f172a);
-    g.fillRect(40, screenH - 24, screenW - 40, 24);
-    g.setColor(0x1e293b);
-    g.drawLine(0, screenH - 24, screenW, screenH - 24);
-
-    if (ctx) {
-      ctx.save();
-      ctx.font = 'bold 11px Arial, sans-serif';
-      ctx.textBaseline = 'middle';
-
-      // Chat (C)
-      ctx.textAlign = 'left';
-      ctx.fillStyle = '#38bdf8';
-      ctx.fillText('Chat (C)', 46, screenH - 12);
-
-      // Area & online counter
-      ctx.textAlign = 'center';
-      ctx.fillStyle = '#94a3b8';
-      ctx.fillText(`Khu ${this.currentAreaId} | ${this.remotePlayers.size + 1} online`, Math.floor(screenW / 2), screenH - 12);
-
-      // Rời khu
-      ctx.textAlign = 'right';
-      ctx.fillStyle = '#f87171';
-      ctx.fillText('Rời khu', screenW - 32, screenH - 12);
-
-      // Fullscreen ⛶
-      ctx.fillStyle = '#e2e8f0';
-      ctx.fillText('⛶', screenW - 12, screenH - 12);
-      ctx.restore();
+      this.font.drawString(g, 'MENU', 30, 12, 2);
     }
 
     // 9. In-game Menu Popup
