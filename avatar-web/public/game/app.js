@@ -57,7 +57,7 @@
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Graphics = void 0;
       var Sprite_js_1 = require_Sprite();
-      var Graphics8 = class _Graphics {
+      var Graphics7 = class _Graphics {
         ctx;
         static HCENTER = 1;
         static VCENTER = 2;
@@ -283,7 +283,7 @@
           this.ctx.restore();
         }
       };
-      exports.Graphics = Graphics8;
+      exports.Graphics = Graphics7;
     }
   });
 
@@ -293,7 +293,7 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Image = void 0;
-      var Image9 = class _Image {
+      var Image8 = class _Image {
         width;
         height;
         data;
@@ -357,7 +357,7 @@
           return new _Image(width, height, bytes);
         }
       };
-      exports.Image = Image9;
+      exports.Image = Image8;
     }
   });
 
@@ -1164,7 +1164,7 @@
   });
 
   // packages/game-client/src/core/GameMidlet.ts
-  var import_j2me_compat6 = __toESM(require_dist());
+  var import_j2me_compat5 = __toESM(require_dist());
 
   // packages/game-client/src/runtime/GameCanvas.ts
   var import_j2me_compat = __toESM(require_dist());
@@ -1599,182 +1599,153 @@
   };
 
   // packages/game-client/src/gameplay/WorldMapScreen.ts
-  var import_j2me_compat4 = __toESM(require_dist());
   var WORLD_REGIONS = [
     {
       id: 0,
       index: 0,
       key: "residential",
       name: "Khu nh\xE0 \u1EDF",
-      col: 8,
-      row: 5,
-      partId: 819,
       mapId: 21,
       spawnX: 120,
       spawnY: 72,
-      animTick: 0
+      normPinX: 0.252,
+      normPinY: 0.188,
+      normTextX: 0.252,
+      normTextY: 0.136
     },
     {
       id: 1,
       index: 1,
       key: "ecological",
       name: "Khu sinh th\xE1i",
-      col: 25,
-      row: 6,
-      partId: 820,
       mapId: 13,
       spawnX: 120,
       spawnY: 72,
-      animTick: 0
+      normPinX: 0.785,
+      normPinY: 0.224,
+      normTextX: 0.785,
+      normTextY: 0.178
     },
     {
       id: 2,
       index: 2,
       key: "airport",
       name: "S\xE2n bay",
-      col: 30,
-      row: 8,
-      partId: 821,
       mapId: 20,
       spawnX: 120,
       spawnY: 144,
-      animTick: 0
+      normPinX: 0.938,
+      normPinY: 0.305,
+      normTextX: 0.938,
+      normTextY: 0.26
     },
     {
       id: 3,
       index: 3,
       key: "entertainment",
       name: "Khu gi\u1EA3i tr\xED",
-      col: 14,
-      row: 12,
-      partId: 822,
       mapId: 9,
       spawnX: 120,
       spawnY: 72,
-      animTick: 0
+      normPinX: 0.442,
+      normPinY: 0.46,
+      normTextX: 0.442,
+      normTextY: 0.338
     },
     {
       id: 4,
       index: 4,
       key: "shopping",
       name: "Khu mua s\u1EAFm",
-      col: 23,
-      row: 12,
-      partId: 823,
       mapId: 23,
       spawnX: 120,
       spawnY: 72,
-      animTick: 0
+      normPinX: 0.722,
+      normPinY: 0.472,
+      normTextX: 0.722,
+      normTextY: 0.426
     },
     {
       id: 5,
       index: 5,
       key: "park",
       name: "C\xF4ng vi\xEAn",
-      col: 7,
-      row: 15,
-      partId: 824,
       mapId: 11,
       spawnX: 120,
       spawnY: 72,
-      animTick: 0
+      normPinX: 0.228,
+      normPinY: 0.602,
+      normTextX: 0.228,
+      normTextY: 0.552
     },
     {
       id: 6,
       index: 6,
       key: "suburbs",
       name: "Khu ngo\u1EA1i \xF4",
-      col: 17,
-      row: 21,
-      partId: 825,
       mapId: 17,
       spawnX: 120,
       spawnY: 72,
-      animTick: 0
+      normPinX: 0.536,
+      normPinY: 0.835,
+      normTextX: 0.536,
+      normTextY: 0.795
     },
     {
       id: 7,
       index: 7,
       key: "farm",
       name: "N\xF4ng tr\u1EA1i",
-      col: 26,
-      row: 21,
-      partId: 826,
       mapId: 25,
       spawnX: 120,
       spawnY: 72,
-      animTick: 0
+      normPinX: 0.814,
+      normPinY: 0.838,
+      normTextX: 0.814,
+      normTextY: 0.798
     }
   ];
   var WorldMapScreen = class extends GameScreen {
-    // Original Assets
-    ctImage;
-    // main/ct.png (tileset: 16 x 1121, 70 tiles)
-    kImage;
-    // effect/k.png (40x320: 8 frames of 40x40)
+    // HD Assets
+    minimapImage;
     bpImage;
-    // effect/b_p.png (48x56: selection balloon pointer)
+    // effect/b_p.png (selected balloon: 96x112)
+    kImage;
+    // effect/k.png (building frames: 80x640)
     sicImage;
-    // effect/sIc.png (15x18: small unselected flag)
+    // effect/sic.png (unselected pin badge: 30x36)
     cl0Image;
-    // effect/cl0.png (34x17 cloud)
+    // clmini0.png
     cl1Image;
-    // effect/cl1.png (54x24 cloud)
+    // cl00.png
+    btnHamburger;
+    // Top-left menu button
+    btnMail;
+    // Top-left mail button with badge
     skinPainter;
     font;
-    // Tilemap (citiMap: 34 cols x 26 rows = 884 bytes)
-    mapCols = 34;
-    // s in ea.java
-    mapRows = 26;
-    // t in ea.java
-    tileSize = 16;
-    // u in ea.java
-    tilemapData = new Uint8Array(884);
-    // Screen & Viewport
-    screenW = 240;
-    screenH = 320;
-    c = 0;
-    // offset X when screen > map
-    d = 0;
-    // offset Y when screen > map
-    maxCamX = 0;
-    // A in ea.java
-    maxCamY = 0;
-    // E in ea.java
-    // Camera & Smooth interpolation
-    camX = 0;
-    // f in ea.java
-    camY = 0;
-    // g in ea.java
-    targetCamX = 0;
-    // x in ea.java
-    targetCamY = 0;
-    // B in ea.java
-    camXVel = 0;
-    // y in ea.java
-    camYVel = 0;
-    // C in ea.java
-    // Drag & Swipe physics
-    isPointerDown = false;
-    pointerStartX = 0;
-    pointerStartY = 0;
-    camStartX = 0;
-    camStartY = 0;
-    dragVelocityX = 0;
-    dragVelocityY = 0;
-    lastDragX = 0;
-    lastDragY = 0;
-    hasDragged = false;
-    // Selected Region & Animations
+    // Viewport dimensions
+    screenW = 1024;
+    screenH = 768;
+    // Selection & Animation
     regions = [];
     selectedIdx = 3;
-    // ea.b().e = 3 (Khu giải trí) in ae.java line 1519
-    clouds = [];
+    // Default: Khu giải trí
+    hoveredIdx = -1;
     animTick = 0;
-    // Transition & Action
+    // Clouds
+    clouds = [];
+    // Marquee announcement
+    marqueeText = "HOT:Inuyasa/Kagome \u0111\xE3 t\u1EEB 00:00 08/11 \u0111\u1EBFn 23:59 09/11, N\u1EA1p t\xEDch lu\u1EF9 nh\u1EADn qu\xE0 kh\u1EE7ng... Ch\xE0o m\u1EEBng c\u01B0 d\xE2n \u0111\u1EBFn v\u1EDBi Th\xE0nh ph\u1ED1 Avatar Di\u1EC7u K\u1EF3!";
+    marqueeOffset = 100;
+    marqueeWidth = 1200;
+    // Traveling / Connecting state
     isTraveling = false;
     travelTicks = 0;
     selectedRegion = null;
+    // Top-left button hitboxes
+    hamburgerBounds = { x: 14, y: 8, w: 46, h: 46 };
+    mailBounds = { x: 70, y: 8, w: 48, h: 48 };
     // Callbacks
     onSelectRegion;
     onBackToHome;
@@ -1787,156 +1758,104 @@
       this.loadAssets();
     }
     initClouds() {
-      this.clouds = [];
-      const totalW = this.mapCols * this.tileSize;
-      const totalH = this.mapRows * this.tileSize;
-      for (let i = 0; i < 7; i++) {
-        this.clouds.push({
-          x: Math.round(i * (totalW / 10) + 50),
-          y: Math.round(Math.floor(Math.random() * 10) * (totalH / 10) + 20),
-          type: Math.floor(Math.random() * 2)
-        });
-      }
+      this.clouds = [
+        { x: 120, y: 60, speed: 0.35, scale: 0.85, alpha: 0.65, type: 0 },
+        { x: 380, y: 460, speed: 0.45, scale: 1.1, alpha: 0.7, type: 0 },
+        // Center buildings cloud
+        { x: 720, y: 110, speed: 0.3, scale: 0.9, alpha: 0.6, type: 1 },
+        { x: 50, y: 660, speed: 0.4, scale: 0.95, alpha: 0.65, type: 0 },
+        // Bottom-left river cloud
+        { x: 920, y: 520, speed: 0.32, scale: 1, alpha: 0.6, type: 1 }
+      ];
     }
     async loadAssets() {
+      const loadImage = (src) => {
+        return new Promise((resolve) => {
+          const img = new window.Image();
+          img.crossOrigin = "anonymous";
+          img.onload = () => resolve(img);
+          img.onerror = () => {
+            console.warn(`[WorldMapScreen] Failed to load image: ${src}`);
+            resolve(img);
+          };
+          img.src = src;
+        });
+      };
       try {
-        const [citiMapRes, ctRes, kRes, bpRes, sicRes, cl0Res, cl1Res] = await Promise.all([
-          fetch("/assets/normal/citiMap"),
-          fetch("/assets/main/ct.png"),
-          fetch("/assets/effect/k.png"),
-          fetch("/assets/effect/b_p.png"),
-          fetch("/assets/effect/sIc.png"),
-          fetch("/assets/effect/cl0.png"),
-          fetch("/assets/effect/cl1.png")
+        const [
+          minimap,
+          bp,
+          k,
+          sic,
+          cl0,
+          cl1,
+          hamb,
+          mail
+        ] = await Promise.all([
+          loadImage("/assets/maps/minimap_hd.png"),
+          loadImage("/assets/ui/b_p_hd.png"),
+          loadImage("/assets/ui/k_hd.png"),
+          loadImage("/assets/ui/sic_hd.png"),
+          loadImage("/assets/ui/clmini_hd.png"),
+          loadImage("/assets/ui/cl00_hd.png"),
+          loadImage("/assets/ui/btn_hamburger.png"),
+          loadImage("/assets/ui/btn_mail.png")
         ]);
-        if (citiMapRes.ok) {
-          const buf = await citiMapRes.arrayBuffer();
-          this.tilemapData = new Uint8Array(buf);
-        }
-        const [ctBuf, kBuf, bpBuf, sicBuf, cl0Buf, cl1Buf] = await Promise.all([
-          ctRes.arrayBuffer(),
-          kRes.arrayBuffer(),
-          bpRes.arrayBuffer(),
-          sicRes.arrayBuffer(),
-          cl0Res.arrayBuffer(),
-          cl1Res.arrayBuffer()
-        ]);
-        this.ctImage = await import_j2me_compat4.Image.createImage(new Uint8Array(ctBuf));
-        this.kImage = await import_j2me_compat4.Image.createImage(new Uint8Array(kBuf));
-        this.bpImage = await import_j2me_compat4.Image.createImage(new Uint8Array(bpBuf));
-        this.sicImage = await import_j2me_compat4.Image.createImage(new Uint8Array(sicBuf));
-        this.cl0Image = await import_j2me_compat4.Image.createImage(new Uint8Array(cl0Buf));
-        this.cl1Image = await import_j2me_compat4.Image.createImage(new Uint8Array(cl1Buf));
-        console.log("[WorldMapScreen] Loaded original Java ME CityMap assets successfully!");
-        this.centerOnSelected(true);
+        this.minimapImage = minimap;
+        this.bpImage = bp;
+        this.kImage = k;
+        this.sicImage = sic;
+        this.cl0Image = cl0;
+        this.cl1Image = cl1;
+        this.btnHamburger = hamb;
+        this.btnMail = mail;
+        console.log("[WorldMapScreen] All HD World Map assets loaded successfully!");
       } catch (e) {
-        console.warn("[WorldMapScreen] Asset loading warning:", e);
+        console.warn("[WorldMapScreen] Asset load error:", e);
       }
     }
     onResize(width, height) {
-      this.screenW = width;
-      this.screenH = height;
-      const totalW = this.mapCols * this.tileSize;
-      const totalH = this.mapRows * this.tileSize;
-      this.c = Math.max(0, Math.floor((width - totalW) / 2));
-      this.d = Math.max(0, Math.floor((height - 24 - totalH) / 2));
-      this.maxCamX = Math.max(0, totalW - width);
-      this.maxCamY = Math.max(0, totalH - height + 24);
-      this.clampTargetCamera();
-    }
-    centerOnSelected(immediate = false) {
-      const r = this.regions[this.selectedIdx];
-      if (!r) return;
-      this.targetCamX = Math.round(r.col * this.tileSize + 8 - this.screenW / 2);
-      this.targetCamY = Math.round(r.row * this.tileSize - this.screenH / 2);
-      this.clampTargetCamera();
-      if (immediate) {
-        this.camX = this.targetCamX;
-        this.camY = this.targetCamY;
-        this.camXVel = 0;
-        this.camYVel = 0;
-      }
-    }
-    clampTargetCamera() {
-      if (this.targetCamX < 0) this.targetCamX = 0;
-      if (this.targetCamX > this.maxCamX) this.targetCamX = this.maxCamX;
-      if (this.targetCamY < 0) this.targetCamY = 0;
-      if (this.targetCamY > this.maxCamY) this.targetCamY = this.maxCamY;
+      this.screenW = Math.max(320, width);
+      this.screenH = Math.max(240, height);
+      const uiScale = Math.min(1, Math.max(0.65, this.screenH / 700));
+      const btnSize = Math.round(48 * uiScale);
+      this.hamburgerBounds = { x: 12, y: 8, w: btnSize, h: btnSize };
+      this.mailBounds = { x: 18 + btnSize, y: 8, w: btnSize, h: btnSize };
     }
     update() {
       this.animTick++;
+      for (const c of this.clouds) {
+        c.x += c.speed;
+        if (c.x > this.screenW + 250) {
+          c.x = -350;
+          c.y = Math.floor(Math.random() * (this.screenH - 120)) + 30;
+        }
+      }
+      this.marqueeOffset -= 1.4;
+      if (this.marqueeOffset < -this.marqueeWidth) {
+        this.marqueeOffset = this.screenW;
+      }
       if (this.isTraveling) {
         this.travelTicks++;
-        if (this.travelTicks > 24 && this.selectedRegion && this.onSelectRegion) {
-          const reg = this.selectedRegion;
-          this.selectedRegion = null;
+        if (this.travelTicks >= 15 && this.selectedRegion) {
           this.isTraveling = false;
-          this.travelTicks = 0;
-          this.onSelectRegion(reg);
-        }
-        return;
-      }
-      for (let i = 0; i < this.regions.length; i++) {
-        if (i !== this.selectedIdx) {
-          this.regions[i].animTick = (this.regions[i].animTick + 1) % 9;
-        }
-      }
-      if (!this.isPointerDown) {
-        if (Math.abs(this.dragVelocityX) > 0.5) {
-          this.targetCamX += this.dragVelocityX;
-          this.dragVelocityX *= 0.85;
-        } else {
-          this.dragVelocityX = 0;
-        }
-        if (Math.abs(this.dragVelocityY) > 0.5) {
-          this.targetCamY += this.dragVelocityY;
-          this.dragVelocityY *= 0.85;
-        } else {
-          this.dragVelocityY = 0;
-        }
-        this.clampTargetCamera();
-      }
-      if (this.camY !== this.targetCamY) {
-        const diffY = this.targetCamY - this.camY << 2;
-        this.camYVel += diffY;
-        this.camY += this.camYVel >> 4;
-        this.camYVel &= 15;
-      }
-      if (this.camX !== this.targetCamX) {
-        const diffX = this.targetCamX - this.camX << 2;
-        this.camXVel += diffX;
-        this.camX += this.camXVel >> 4;
-        this.camXVel &= 15;
-      }
-      if (this.camX < 0) {
-        this.camX = 0;
-        this.targetCamX = 0;
-      }
-      if (this.camX > this.maxCamX) {
-        this.camX = this.maxCamX;
-        this.targetCamX = this.maxCamX;
-      }
-      if (this.camY < 0) {
-        this.camY = 0;
-        this.targetCamY = 0;
-      }
-      if (this.camY > this.maxCamY) {
-        this.camY = this.maxCamY;
-        this.targetCamY = this.maxCamY;
-      }
-      const totalW = this.mapCols * this.tileSize;
-      const totalH = this.mapRows * this.tileSize;
-      for (const cloud of this.clouds) {
-        cloud.x -= cloud.type + (this.animTick % 5 === 1 ? 1 : 0);
-        if (cloud.x < -this.c - 50) {
-          cloud.x = this.c + Math.floor(Math.random() * 4) * 50 + totalW;
-          cloud.y = Math.floor(Math.random() * 10) * Math.floor(totalH / 10) + 10;
-          cloud.type = Math.floor(Math.random() * 2);
+          if (this.onSelectRegion) {
+            this.onSelectRegion(this.selectedRegion);
+          }
         }
       }
     }
+    confirmSelection() {
+      if (this.isTraveling) return;
+      const r = this.regions[this.selectedIdx];
+      if (r) {
+        this.selectedRegion = r;
+        this.isTraveling = true;
+        this.travelTicks = 0;
+      }
+    }
     /**
-     * Directional arrow key navigation (o.java lines 12-73)
+     * Directional arrow key navigation between regions
      */
     handleKeyNav(direction) {
       if (this.isTraveling) return;
@@ -1968,19 +1887,7 @@
         else if (n2 === 7) n2 = 6;
         else if (n2 === 4) n2 = 3;
       }
-      if (n2 !== this.selectedIdx) {
-        this.selectedIdx = n2;
-        this.centerOnSelected();
-      }
-    }
-    confirmSelection() {
-      if (this.isTraveling) return;
-      const r = this.regions[this.selectedIdx];
-      if (r) {
-        this.selectedRegion = r;
-        this.isTraveling = true;
-        this.travelTicks = 0;
-      }
+      this.selectedIdx = n2;
     }
     keyPressed(keyCode) {
       if (this.isTraveling) return;
@@ -2010,12 +1917,12 @@
           this.handleKeyNav("right");
           break;
         case 13:
-        // ENTER / FIRE / KEY 5
+        // ENTER / SPACE / FIRE
+        case 32:
         case 53:
-        case -7:
           this.confirmSelection();
           break;
-        case -6:
+        case 27:
           if (this.onBackToHome) {
             this.onBackToHome();
           }
@@ -2024,244 +1931,272 @@
     }
     pointerPressed(x, y) {
       if (this.isTraveling) return;
-      const softkeyY = this.screenH - 24;
-      if (y >= softkeyY) {
-        if (x < 70) {
-          if (this.onBackToHome) {
-            this.onBackToHome();
-          }
-          return;
+      if (x >= this.hamburgerBounds.x && x <= this.hamburgerBounds.x + this.hamburgerBounds.w && y >= this.hamburgerBounds.y && y <= this.hamburgerBounds.y + this.hamburgerBounds.h) {
+        if (this.onBackToHome) {
+          this.onBackToHome();
         }
-        if (x >= Math.floor(this.screenW / 2) - 40 && x <= Math.floor(this.screenW / 2) + 40) {
-          this.confirmSelection();
-          return;
-        }
+        return;
       }
+      if (x >= this.mailBounds.x && x <= this.mailBounds.x + this.mailBounds.w && y >= this.mailBounds.y && y <= this.mailBounds.y + this.mailBounds.h) {
+        alert("H\xF2m th\u01B0 th\xF4ng b\xE1o: Th\xE0nh ph\u1ED1 Avatar ch\xE0o \u0111\xF3n b\u1EA1n tham gia s\u1EF1 ki\u1EC7n \u0111\u1EB7c bi\u1EC7t!");
+        return;
+      }
+      const scale = Math.min(1, Math.max(0.65, this.screenH / 700));
+      const hitRadius = Math.round(52 * scale);
       for (let i = 0; i < this.regions.length; i++) {
         const r = this.regions[i];
-        const boxX = this.c + r.col * this.tileSize + Math.floor(this.tileSize / 2) - 24 - this.camX;
-        const boxY = this.d + r.row * this.tileSize - 56 - this.camY;
-        const boxW = 48;
-        const boxH = 56;
-        if (x >= boxX && x <= boxX + boxW && y >= boxY && y <= boxY + boxH) {
+        const px = Math.round(r.normPinX * this.screenW);
+        const py = Math.round(r.normPinY * this.screenH);
+        const tx = Math.round(r.normTextX * this.screenW);
+        const ty = Math.round(r.normTextY * this.screenH);
+        const distPin = Math.hypot(x - px, y - py);
+        const distText = Math.hypot(x - tx, y - ty);
+        if (distPin <= hitRadius || distText <= hitRadius) {
           if (this.selectedIdx === i) {
             this.confirmSelection();
           } else {
             this.selectedIdx = i;
-            this.centerOnSelected();
           }
           return;
         }
       }
-      this.isPointerDown = true;
-      this.pointerStartX = x;
-      this.pointerStartY = y;
-      this.camStartX = this.camX;
-      this.camStartY = this.camY;
-      this.lastDragX = x;
-      this.lastDragY = y;
-      this.dragVelocityX = 0;
-      this.dragVelocityY = 0;
-      this.hasDragged = false;
-    }
-    pointerDragged(x, y) {
-      if (!this.isPointerDown || this.isTraveling) return;
-      const dx = x - this.pointerStartX;
-      const dy = y - this.pointerStartY;
-      if (Math.abs(dx) > 4 || Math.abs(dy) > 4) {
-        this.hasDragged = true;
-      }
-      this.dragVelocityX = this.lastDragX - x;
-      this.dragVelocityY = this.lastDragY - y;
-      this.lastDragX = x;
-      this.lastDragY = y;
-      this.targetCamX = this.camStartX - dx;
-      this.targetCamY = this.camStartY - dy;
-      this.clampTargetCamera();
-    }
-    pointerReleased(x, y) {
-      this.isPointerDown = false;
     }
     pointerMoved(x, y) {
+      const scale = Math.min(1, Math.max(0.65, this.screenH / 700));
+      const hitRadius = Math.round(50 * scale);
+      this.hoveredIdx = -1;
+      for (let i = 0; i < this.regions.length; i++) {
+        const r = this.regions[i];
+        const px = Math.round(r.normPinX * this.screenW);
+        const py = Math.round(r.normPinY * this.screenH);
+        const tx = Math.round(r.normTextX * this.screenW);
+        const ty = Math.round(r.normTextY * this.screenH);
+        if (Math.hypot(x - px, y - py) <= hitRadius || Math.hypot(x - tx, y - ty) <= hitRadius) {
+          this.hoveredIdx = i;
+          break;
+        }
+      }
     }
     paint(g) {
       const ctx = g.ctx;
-      g.setColor(0);
-      g.fillRect(0, 0, this.screenW, this.screenH);
-      const transX = this.c - this.camX;
-      const transY = this.d - this.camY;
-      g.translate(transX, transY);
-      if (this.ctImage && this.tilemapData.length >= 884) {
-        const minCol = Math.max(0, Math.floor((this.camX - this.c) / this.tileSize));
-        const maxCol = Math.min(this.mapCols - 1, Math.ceil((this.camX - this.c + this.screenW) / this.tileSize));
-        const minRow = Math.max(0, Math.floor((this.camY - this.d) / this.tileSize));
-        const maxRow = Math.min(this.mapRows - 1, Math.ceil((this.camY - this.d + this.screenH) / this.tileSize));
-        for (let row = minRow; row <= maxRow; row++) {
-          for (let col = minCol; col <= maxCol; col++) {
-            const tileVal = this.tilemapData[row * this.mapCols + col];
-            const sy = tileVal % 70 * this.tileSize;
-            g.drawRegion(
-              this.ctImage,
-              0,
-              sy,
-              this.tileSize,
-              this.tileSize,
-              0,
-              col * this.tileSize,
-              row * this.tileSize,
-              0
-            );
-          }
-        }
+      if (!ctx) return;
+      if (this.minimapImage && this.minimapImage.complete && this.minimapImage.naturalWidth > 0) {
+        ctx.drawImage(this.minimapImage, 0, 0, this.screenW, this.screenH);
+      } else {
+        ctx.fillStyle = "#6bb252";
+        ctx.fillRect(0, 0, this.screenW, this.screenH);
       }
-      for (let i = 0; i < this.regions.length; i++) {
-        const r = this.regions[i];
-        const pinCenterX = r.col * this.tileSize + Math.floor(this.tileSize / 2);
-        const pinBottomY = r.row * this.tileSize;
-        if (i === this.selectedIdx) {
-          if (this.bpImage) {
-            g.drawImage(this.bpImage, pinCenterX - 24, pinBottomY - 56, 0);
-          }
-          if (this.kImage) {
-            g.drawRegion(
-              this.kImage,
-              0,
-              i * 40,
-              40,
-              40,
-              0,
-              pinCenterX - 20,
-              pinBottomY - 12 - 40,
-              0
-            );
-          }
-        } else {
-          const bob = Math.floor(r.animTick / 3);
-          if (this.sicImage) {
-            g.drawImage(this.sicImage, pinCenterX - 7, pinBottomY - bob - 18, 0);
-          }
-        }
-      }
-      for (let i = 0; i < this.regions.length; i++) {
-        const r = this.regions[i];
-        let n4 = r.col * this.tileSize;
-        let n5 = r.row * this.tileSize;
-        if (n5 < this.camY + 50) n5 = this.camY + 50;
-        if (n5 > this.camY + this.screenH - 20) n5 = this.camY + this.screenH - 20;
-        if (n4 < this.camX + 20) n4 = this.camX + 20;
-        if (n4 > this.camX + this.screenW - 47) n4 = this.camX + this.screenW - 47;
-        const isSelected = i === this.selectedIdx;
-        const bob = Math.floor(r.animTick / 3);
-        const labelY = n5 - (isSelected ? 70 : 35) - (isSelected ? 0 : bob);
-        const labelX = n4 + 10;
-        this.renderTextWithOutline(g, r.name, labelX, labelY, isSelected);
-      }
-      for (const cloud of this.clouds) {
-        if (cloud.x > this.camX - 30 && cloud.x < this.camX + 30 + this.screenW && cloud.y > this.camY - 20 && cloud.y < this.camY + 20 + this.screenH) {
-          const cloudImg = cloud.type === 0 ? this.cl0Image : this.cl1Image;
-          if (cloudImg) {
-            g.drawImage(cloudImg, cloud.x, cloud.y, 0);
-          }
-        }
-      }
-      g.translate(-transX, -transY);
-      this.renderHud(g);
+      this.drawClouds(ctx);
+      this.drawRegions(ctx);
+      this.drawTopMarquee(ctx);
+      this.drawTopButtons(ctx);
       if (this.isTraveling && this.selectedRegion) {
-        this.renderTravelingPopup(g);
+        this.drawConnectingOverlay(ctx, this.selectedRegion.name);
       }
     }
-    renderTextWithOutline(g, text, x, y, isSelected) {
-      const ctx = g.ctx;
-      if (ctx) {
+    drawClouds(ctx) {
+      for (const c of this.clouds) {
+        const img = c.type === 0 && this.cl0Image?.complete ? this.cl0Image : this.cl1Image;
+        if (!img || !img.complete || img.naturalWidth === 0) continue;
         ctx.save();
-        ctx.font = "bold 11px Arial, sans-serif";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.strokeStyle = "#000000";
-        ctx.lineWidth = 3;
-        ctx.strokeText(text, x, y);
-        ctx.fillStyle = isSelected ? "#ffffff" : "#f8fafc";
-        ctx.fillText(text, x, y);
-        ctx.restore();
-      } else if (this.font) {
-        this.font.drawString(g, text, x, y, 2);
-      }
-    }
-    renderHud(g) {
-      const ctx = g.ctx;
-      if (ctx) {
-        ctx.save();
-        ctx.fillStyle = "rgba(0, 0, 0, 0.7)";
-        ctx.fillRect(4, 4, 26, 14);
-        ctx.strokeStyle = "#64748b";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(4, 4, 26, 14);
-        ctx.font = "bold 10px Arial, sans-serif";
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "center";
-        ctx.textBaseline = "middle";
-        ctx.fillText("12+", 17, 11);
-        ctx.restore();
-      }
-      if (ctx) {
-        ctx.save();
-        ctx.font = "bold 11px monospace, sans-serif";
-        ctx.fillStyle = "#22c55e";
-        ctx.textAlign = "right";
-        ctx.textBaseline = "top";
-        ctx.fillText("2.5.8", this.screenW - 6, 6);
-        ctx.restore();
-      }
-      const barH = 22;
-      const barY = this.screenH - barH;
-      if (ctx) {
-        ctx.save();
-        ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
-        ctx.fillRect(0, barY, this.screenW, barH);
-        ctx.strokeStyle = "rgba(255, 255, 255, 0.15)";
-        ctx.lineWidth = 1;
-        ctx.strokeRect(0, barY, this.screenW, barH);
-        ctx.font = "bold 12px Arial, sans-serif";
-        ctx.textBaseline = "middle";
-        ctx.fillStyle = "#ffffff";
-        ctx.textAlign = "left";
-        ctx.fillText("Menu", 8, barY + barH / 2);
-        ctx.fillStyle = "#fde047";
-        ctx.textAlign = "center";
-        ctx.fillText("Ch\u1ECDn", Math.floor(this.screenW / 2), barY + barH / 2);
+        ctx.globalAlpha = c.alpha;
+        const cw = Math.round(img.naturalWidth * c.scale * (this.screenH / 800));
+        const ch = Math.round(img.naturalHeight * c.scale * (this.screenH / 800));
+        ctx.drawImage(img, Math.round(c.x), Math.round(c.y), cw, ch);
         ctx.restore();
       }
     }
-    renderTravelingPopup(g) {
-      const ctx = g.ctx;
-      if (!ctx || !this.selectedRegion) return;
+    drawRegions(ctx) {
+      const scale = Math.min(1, Math.max(0.68, this.screenH / 700));
+      for (let i = 0; i < this.regions.length; i++) {
+        if (i !== this.selectedIdx) {
+          this.drawSingleRegion(ctx, this.regions[i], i, false, scale);
+        }
+      }
+      if (this.selectedIdx >= 0 && this.selectedIdx < this.regions.length) {
+        this.drawSingleRegion(ctx, this.regions[this.selectedIdx], this.selectedIdx, true, scale);
+      }
+    }
+    drawSingleRegion(ctx, r, index, isSelected, scale) {
+      const screenX = Math.round(r.normPinX * this.screenW);
+      const screenY = Math.round(r.normPinY * this.screenH);
+      if (isSelected) {
+        const bw = Math.round(96 * scale);
+        const bh = Math.round(112 * scale);
+        const bx = screenX - Math.floor(bw / 2);
+        const by = screenY - bh;
+        if (this.bpImage && this.bpImage.complete && this.bpImage.naturalWidth > 0) {
+          ctx.drawImage(this.bpImage, bx, by, bw, bh);
+        } else {
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#38bdf8";
+          ctx.lineWidth = 2;
+          ctx.beginPath();
+          ctx.roundRect(bx, by, bw, bh - 16, 12);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        if (this.kImage && this.kImage.complete && this.kImage.naturalWidth > 0) {
+          const frameW = 80;
+          const frameH = 80;
+          const kw = Math.round(80 * scale);
+          const kh = Math.round(80 * scale);
+          const kx = bx + Math.floor((bw - kw) / 2);
+          const ky = by + Math.floor((bw - kw) / 2) + Math.round(4 * scale);
+          ctx.drawImage(
+            this.kImage,
+            0,
+            index * frameH,
+            frameW,
+            frameH,
+            kx,
+            ky,
+            kw,
+            kh
+          );
+        }
+        const fontSize = Math.round(16 * scale + 2);
+        const textY = by - Math.round(6 * scale);
+        this.drawYellowText(ctx, r.name, screenX, textY, fontSize, 3.5);
+      } else {
+        const bob = Math.sin(this.animTick * 0.12 + index * 0.9) * (3.5 * scale);
+        const pw = Math.round(30 * scale);
+        const ph = Math.round(36 * scale);
+        const px = screenX - Math.floor(pw / 2);
+        const py = screenY - ph + Math.round(bob);
+        if (index === this.hoveredIdx) {
+          ctx.save();
+          ctx.shadowColor = "#facc15";
+          ctx.shadowBlur = 10;
+          ctx.fillStyle = "rgba(250, 204, 21, 0.4)";
+          ctx.beginPath();
+          ctx.arc(screenX, screenY - ph / 2 + bob, pw / 2 + 6, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.restore();
+        }
+        if (this.sicImage && this.sicImage.complete && this.sicImage.naturalWidth > 0) {
+          ctx.drawImage(this.sicImage, px, py, pw, ph);
+        } else {
+          ctx.save();
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#22c55e";
+          ctx.lineWidth = 1.5;
+          ctx.beginPath();
+          ctx.arc(screenX, py + 12, 12, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.stroke();
+          ctx.restore();
+        }
+        const fontSize = Math.round(13 * scale + 2);
+        const textY = py - Math.round(6 * scale);
+        this.drawYellowText(ctx, r.name, screenX, textY, fontSize, 2.5);
+      }
+    }
+    /**
+     * Authentic Avatar Yellow Text with Black Stroke
+     */
+    drawYellowText(ctx, text, x, y, fontSize, strokeWidth) {
       ctx.save();
-      ctx.fillStyle = "rgba(0, 0, 0, 0.6)";
+      ctx.font = `bold ${fontSize}px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, Arial, sans-serif`;
+      ctx.textAlign = "center";
+      ctx.textBaseline = "bottom";
+      ctx.lineJoin = "round";
+      ctx.miterLimit = 2;
+      ctx.lineWidth = strokeWidth;
+      ctx.strokeStyle = "#000000";
+      ctx.strokeText(text, x, y);
+      ctx.fillStyle = "#FFF017";
+      ctx.fillText(text, x, y);
+      ctx.restore();
+    }
+    drawTopMarquee(ctx) {
+      const bannerH = 34;
+      const bannerY = 0;
+      const bannerStartX = this.mailBounds.x + this.mailBounds.w + 16;
+      const bannerW = Math.max(100, this.screenW - bannerStartX);
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.65)";
+      ctx.fillRect(bannerStartX, bannerY, bannerW, bannerH);
+      ctx.fillStyle = "rgba(255, 255, 255, 0.12)";
+      ctx.fillRect(bannerStartX, bannerY, bannerW, 1);
+      ctx.beginPath();
+      ctx.rect(bannerStartX + 8, bannerY, bannerW - 16, bannerH);
+      ctx.clip();
+      ctx.font = 'bold 13px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.textBaseline = "middle";
+      const textY = bannerY + Math.floor(bannerH / 2);
+      let curX = bannerStartX + this.marqueeOffset;
+      if (this.marqueeWidth === 1200) {
+        this.marqueeWidth = ctx.measureText(this.marqueeText).width + 80;
+      }
+      const hotPrefix = "HOT:";
+      const restText = this.marqueeText.slice(hotPrefix.length);
+      ctx.fillStyle = "#ef4444";
+      ctx.fillText(hotPrefix, curX, textY);
+      const prefixW = ctx.measureText(hotPrefix).width;
+      ctx.fillStyle = "#ffffff";
+      ctx.fillText(restText, curX + prefixW, textY);
+      ctx.restore();
+    }
+    drawTopButtons(ctx) {
+      if (this.btnHamburger && this.btnHamburger.complete && this.btnHamburger.naturalWidth > 0) {
+        ctx.drawImage(
+          this.btnHamburger,
+          this.hamburgerBounds.x,
+          this.hamburgerBounds.y,
+          this.hamburgerBounds.w,
+          this.hamburgerBounds.h
+        );
+      } else {
+        ctx.save();
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(this.hamburgerBounds.x, this.hamburgerBounds.y, this.hamburgerBounds.w, this.hamburgerBounds.h, 10);
+        ctx.fill();
+        ctx.restore();
+      }
+      if (this.btnMail && this.btnMail.complete && this.btnMail.naturalWidth > 0) {
+        ctx.drawImage(
+          this.btnMail,
+          this.mailBounds.x,
+          this.mailBounds.y,
+          this.mailBounds.w,
+          this.mailBounds.h
+        );
+      } else {
+        ctx.save();
+        ctx.fillStyle = "#ffffff";
+        ctx.beginPath();
+        ctx.roundRect(this.mailBounds.x, this.mailBounds.y, this.mailBounds.w, this.mailBounds.h, 10);
+        ctx.fill();
+        ctx.restore();
+      }
+    }
+    drawConnectingOverlay(ctx, regionName) {
+      ctx.save();
+      ctx.fillStyle = "rgba(0, 0, 0, 0.55)";
       ctx.fillRect(0, 0, this.screenW, this.screenH);
-      const popW = Math.min(220, this.screenW - 30);
-      const popH = 64;
-      const popX = Math.floor((this.screenW - popW) / 2);
-      const popY = Math.floor((this.screenH - popH) / 2);
+      const dialogW = Math.min(360, this.screenW - 40);
+      const dialogH = 100;
+      const dx = Math.floor((this.screenW - dialogW) / 2);
+      const dy = Math.floor((this.screenH - dialogH) / 2);
       ctx.fillStyle = "#0f172a";
-      ctx.fillRect(popX, popY, popW, popH);
       ctx.strokeStyle = "#38bdf8";
       ctx.lineWidth = 2;
-      ctx.strokeRect(popX, popY, popW, popH);
-      const dots = ".".repeat(Math.floor(this.travelTicks / 5) % 4);
-      ctx.font = "bold 12px Arial, sans-serif";
-      ctx.fillStyle = "#ffffff";
+      ctx.beginPath();
+      ctx.roundRect(dx, dy, dialogW, dialogH, 14);
+      ctx.fill();
+      ctx.stroke();
+      ctx.fillStyle = "#facc15";
+      ctx.font = 'bold 15px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
       ctx.textAlign = "center";
       ctx.textBaseline = "middle";
-      ctx.fillText(`\u0110ang v\xE0o ${this.selectedRegion.name}${dots}`, popX + popW / 2, popY + 24);
-      const barW = popW - 40;
-      const barH = 6;
-      const barX = popX + 20;
-      const barY = popY + 44;
-      ctx.fillStyle = "#1e293b";
-      ctx.fillRect(barX, barY, barW, barH);
-      const progress = Math.min(1, this.travelTicks / 24);
-      ctx.fillStyle = "#38bdf8";
-      ctx.fillRect(barX, barY, Math.round(barW * progress), barH);
+      ctx.fillText(`\u0110ang di chuy\u1EC3n \u0111\u1EBFn ${regionName}...`, dx + dialogW / 2, dy + 42);
+      ctx.fillStyle = "#94a3b8";
+      ctx.font = '12px -apple-system, BlinkMacSystemFont, "Segoe UI", Roboto, sans-serif';
+      ctx.fillText("\u0110ang t\u1EA3i t\xE0i nguy\xEAn b\u1EA3n \u0111\u1ED3 v\xE0 k\u1EBFt n\u1ED1i m\xE1y ch\u1EE7...", dx + dialogW / 2, dy + 68);
       ctx.restore();
     }
   };
@@ -2371,7 +2306,7 @@
   };
 
   // packages/game-client/src/assets/AvArchiveLoader.ts
-  var import_j2me_compat5 = __toESM(require_dist());
+  var import_j2me_compat4 = __toESM(require_dist());
   var AvArchiveLoader = class _AvArchiveLoader {
     static KEY = new TextEncoder().encode("NguyenVanMinh");
     entries = /* @__PURE__ */ new Map();
@@ -2413,7 +2348,7 @@
       const fileName = name.endsWith(".png") ? name : `${name}.png`;
       const bytes = this.getFileBytes(fileName);
       if (!bytes) return null;
-      return import_j2me_compat5.Image.createImage(bytes);
+      return import_j2me_compat4.Image.createImage(bytes);
     }
     getEntryNames() {
       return Array.from(this.entries.keys());
@@ -2441,11 +2376,11 @@
     }
     async initAssets(logoPngBytes, fontMetadataBytes, fontPngBytes, bgAvBytes) {
       if (logoPngBytes) {
-        this.splashScreen.logoImage = await import_j2me_compat6.Image.createImage(logoPngBytes);
+        this.splashScreen.logoImage = await import_j2me_compat5.Image.createImage(logoPngBytes);
       }
       if (fontMetadataBytes && fontPngBytes) {
         this.font.loadMetadata(fontMetadataBytes);
-        this.font.fontImage = await import_j2me_compat6.Image.createImage(fontPngBytes);
+        this.font.fontImage = await import_j2me_compat5.Image.createImage(fontPngBytes);
       }
       if (bgAvBytes) {
         const bgLoader = new AvArchiveLoader();
@@ -3166,10 +3101,10 @@
   };
 
   // packages/game-client/src/gameplay/GameWorldScreen.ts
-  var import_j2me_compat9 = __toESM(require_dist());
+  var import_j2me_compat8 = __toESM(require_dist());
 
   // packages/game-client/src/maps/TilemapRenderer.ts
-  var import_j2me_compat7 = __toESM(require_dist());
+  var import_j2me_compat6 = __toESM(require_dist());
   var TilemapRenderer = class _TilemapRenderer {
     static TILE_SIZE = 24;
     // i = 24 in ir.java
@@ -3332,20 +3267,20 @@
         };
         console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles (${widthTiles * 24}x${heightTiles * 24}px)`);
         const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
-        this.tilesetImage = await import_j2me_compat7.Image.createImage(tilesetUrl);
+        this.tilesetImage = await import_j2me_compat6.Image.createImage(tilesetUrl);
         this.bgImage = void 0;
         this.cloudImage = void 0;
         const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
         if (bgType !== -1) {
           try {
             const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
-            this.bgImage = await import_j2me_compat7.Image.createImage(bgUrl);
+            this.bgImage = await import_j2me_compat6.Image.createImage(bgUrl);
           } catch (err) {
           }
         }
         try {
           const cloudUrl = `/assets/bg/${nightSuffix}.png`;
-          this.cloudImage = await import_j2me_compat7.Image.createImage(cloudUrl);
+          this.cloudImage = await import_j2me_compat6.Image.createImage(cloudUrl);
         } catch (err) {
         }
       } catch (err) {
@@ -3437,7 +3372,7 @@
   };
 
   // packages/game-client/src/characters/AvatarRenderer.ts
-  var import_j2me_compat8 = __toESM(require_dist());
+  var import_j2me_compat7 = __toESM(require_dist());
   var AvatarRenderer = class {
     static partsMap = /* @__PURE__ */ new Map();
     static slicesMap = /* @__PURE__ */ new Map();
@@ -3449,7 +3384,7 @@
       if (this.isInitialized) return;
       try {
         try {
-          this.shadowImage = await import_j2me_compat8.Image.createImage("/assets/effect/s0.png");
+          this.shadowImage = await import_j2me_compat7.Image.createImage("/assets/effect/s0.png");
         } catch (err) {
           console.warn("[AvatarRenderer] Could not load shadow image:", err);
         }
@@ -3479,7 +3414,7 @@
         return this.atlasImages.get(imageId);
       }
       try {
-        const img = await import_j2me_compat8.Image.createImage(`/res/big/${imageId}.png`);
+        const img = await import_j2me_compat7.Image.createImage(`/res/big/${imageId}.png`);
         this.atlasImages.set(imageId, img);
         return img;
       } catch (err) {
@@ -3492,7 +3427,7 @@
         return this.itemImages.get(itemId);
       }
       try {
-        const img = await import_j2me_compat8.Image.createImage(`/res/item/${itemId}.png`);
+        const img = await import_j2me_compat7.Image.createImage(`/res/item/${itemId}.png`);
         this.itemImages.set(itemId, img);
         return img;
       } catch (err) {
@@ -3535,7 +3470,7 @@
         g.fillArc(x - 9, y - 2, 18, 6, 0, 360);
       }
       const isMirrored = direct === 2;
-      const transform = isMirrored ? import_j2me_compat8.Sprite.TRANS_MIRROR : import_j2me_compat8.Sprite.TRANS_NONE;
+      const transform = isMirrored ? import_j2me_compat7.Sprite.TRANS_MIRROR : import_j2me_compat7.Sprite.TRANS_NONE;
       const partsToRender = [];
       for (const partId of wearing) {
         const part = this.partsMap.get(partId);
@@ -3916,7 +3851,7 @@
         AvatarRenderer.preloadWearing(npc.wearing);
       }
       this.tilemapRenderer.loadMap(this.currentMapId).catch(console.error);
-      import_j2me_compat9.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
+      import_j2me_compat8.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
       });
     }
     onResize(_width, _height) {
@@ -4763,6 +4698,8 @@
       window.__SCENE = "worldmap";
       const chatBar = document.getElementById("in-game-chat-bar");
       if (chatBar) chatBar.style.display = "none";
+      const topBar = document.querySelector(".game-top-bar");
+      if (topBar) topBar.style.display = "none";
       resizeCanvas();
       const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
       if (statusEl) {
@@ -4776,6 +4713,8 @@
       window.__SCENE = "world";
       const chatBar = document.getElementById("in-game-chat-bar");
       if (chatBar) chatBar.style.display = "flex";
+      const topBar = document.querySelector(".game-top-bar");
+      if (topBar) topBar.style.display = "flex";
       resizeCanvas();
       const statusEl = document.getElementById("login-status") || document.getElementById("gamePlayerInfo");
       if (statusEl) {
@@ -4881,13 +4820,20 @@
       const rect = parent.getBoundingClientRect();
       const winW = Math.floor(rect.width > 0 ? rect.width : window.innerWidth);
       const winH = Math.floor(rect.height > 0 ? rect.height : window.innerHeight);
-      const scale = Math.max(1, Math.round(winH / 340));
-      const logicalW = Math.max(320, Math.round(winW / scale));
-      const logicalH = Math.max(240, Math.round(winH / scale));
-      canvas.width = logicalW;
-      canvas.height = logicalH;
-      midlet.canvas.resize(logicalW, logicalH);
-      ctx.imageSmoothingEnabled = false;
+      if (window.__SCENE === "worldmap") {
+        canvas.width = winW;
+        canvas.height = winH;
+        midlet.canvas.resize(winW, winH);
+        ctx.imageSmoothingEnabled = true;
+      } else {
+        const scale = Math.max(1, Math.round(winH / 340));
+        const logicalW = Math.max(320, Math.round(winW / scale));
+        const logicalH = Math.max(240, Math.round(winH / scale));
+        canvas.width = logicalW;
+        canvas.height = logicalH;
+        midlet.canvas.resize(logicalW, logicalH);
+        ctx.imageSmoothingEnabled = false;
+      }
     }
     window.addEventListener("resize", resizeCanvas);
     resizeCanvas();
