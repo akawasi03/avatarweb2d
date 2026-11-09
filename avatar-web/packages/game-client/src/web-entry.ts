@@ -1,3 +1,6 @@
+import { FarmModel } from './farm/FarmModel.js';
+import { FarmNetworkHandler } from './farm/FarmNetworkHandler.js';
+import { FarmScreen } from './farm/FarmScreen.js';
 import { WebGL2Renderer } from '@avatar/j2me-compat';
 import { GameMidlet } from './core/GameMidlet.js';
 
@@ -54,6 +57,9 @@ declare global {
 
 
     closeGame?: () => void;
+    farmScreen?: FarmScreen;
+    farmModel?: FarmModel;
+    enterFarm?: (userId?: number) => void;
 
 
 
@@ -236,6 +242,22 @@ async function startWebClient() {
 
   window.gameWorldScreen = worldScreen;
 
+  // Initialize Farm System (Map 25)
+  const farmNetworkHandler = new FarmNetworkHandler(network);
+  const farmScreen = new FarmScreen(farmNetworkHandler, midlet.skinPainter, midlet.font);
+  window.farmScreen = farmScreen;
+  window.farmModel = farmNetworkHandler.model;
+  window.enterFarm = (userId?: number) => {
+    farmScreen.localPlayer.name = worldScreen.localPlayer.name;
+    farmScreen.localPlayer.wearing = worldScreen.localPlayer.wearing;
+    farmNetworkHandler.enterFarm(userId || network.myUserId || 1);
+    midlet.canvas.setCurrentScreen(farmScreen);
+    window.__SCENE = 'farm';
+  };
+  farmScreen.onExitToWorldMap = () => {
+    showWorldMap();
+  };
+
 
 
 
@@ -333,6 +355,14 @@ async function startWebClient() {
 
 
   midlet.worldMapScreen.onSelectRegion = (region) => {
+    if (region.mapId === 25) {
+      console.log('[WebClient] Entering Farm Screen (Map 25)...');
+      if (window.enterFarm) {
+        window.enterFarm(network.myUserId || 1);
+      }
+      return;
+    }
+
 
 
 

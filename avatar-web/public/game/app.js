@@ -44,7 +44,7 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Image = void 0;
-      var Image8 = class _Image {
+      var Image9 = class _Image {
         width;
         height;
         data;
@@ -108,7 +108,7 @@
           return new _Image(width, height, bytes);
         }
       };
-      exports.Image = Image8;
+      exports.Image = Image9;
     }
   });
 
@@ -118,7 +118,7 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Sprite = void 0;
-      var Sprite2 = class {
+      var Sprite3 = class {
         static TRANS_NONE = 0;
         static TRANS_MIRROR_ROT180 = 1;
         static TRANS_MIRROR = 2;
@@ -128,7 +128,7 @@
         static TRANS_ROT270 = 6;
         static TRANS_MIRROR_ROT90 = 7;
       };
-      exports.Sprite = Sprite2;
+      exports.Sprite = Sprite3;
     }
   });
 
@@ -139,7 +139,7 @@
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Graphics = void 0;
       var Sprite_js_1 = require_Sprite();
-      var Graphics7 = class _Graphics {
+      var Graphics8 = class _Graphics {
         static HCENTER = 1;
         static VCENTER = 2;
         static LEFT = 4;
@@ -450,7 +450,7 @@
           this.ctx.restore();
         }
       };
-      exports.Graphics = Graphics7;
+      exports.Graphics = Graphics8;
     }
   });
 
@@ -1964,15 +1964,1578 @@ void main() {
     }
   });
 
+  // packages/game-client/src/farm/FarmModel.ts
+  var CROP_DEFINITIONS = {
+    0: {
+      id: 0,
+      name: "C\xE0 Chua",
+      growMinutes: 260,
+      harvestYield: 75,
+      seedPriceXu: 24,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 4, 5, 6, 37]
+    },
+    1: {
+      id: 1,
+      name: "C\xE0 R\u1ED1t",
+      growMinutes: 380,
+      harvestYield: 108,
+      seedPriceXu: 36,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 7, 8, 9, 38]
+    },
+    2: {
+      id: 2,
+      name: "Kh\xF3m",
+      growMinutes: 600,
+      harvestYield: 165,
+      seedPriceXu: 50,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 10, 11, 12, 39]
+    },
+    3: {
+      id: 3,
+      name: "D\u01B0a H\u1EA5u",
+      growMinutes: 480,
+      harvestYield: 138,
+      seedPriceXu: 45,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 13, 14, 15, 40]
+    },
+    4: {
+      id: 4,
+      name: "Nho",
+      growMinutes: 960,
+      harvestYield: 240,
+      seedPriceXu: 80,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 16, 17, 18, 41]
+    },
+    5: {
+      id: 5,
+      name: "Hoa H\u1ED3ng",
+      growMinutes: 120,
+      harvestYield: 45,
+      seedPriceXu: 20,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 19, 20, 21, 42]
+    },
+    6: {
+      id: 6,
+      name: "L\xFAa",
+      growMinutes: 2280,
+      harvestYield: 720,
+      seedPriceXu: 120,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 22, 23, 24, 43]
+    },
+    7: {
+      id: 7,
+      name: "Xo\xE0i",
+      growMinutes: 1440,
+      harvestYield: 360,
+      seedPriceXu: 100,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 25, 26, 27, 44]
+    },
+    8: {
+      id: 8,
+      name: "Thanh Long",
+      growMinutes: 720,
+      harvestYield: 189,
+      seedPriceXu: 60,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 28, 29, 30, 45]
+    },
+    9: {
+      id: 9,
+      name: "Hoa H\u01B0\u1EDBng D\u01B0\u01A1ng",
+      growMinutes: 720,
+      harvestYield: 189,
+      seedPriceXu: 65,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 31, 32, 33, 46]
+    },
+    10: {
+      id: 10,
+      name: "Hoa Tulip",
+      growMinutes: 360,
+      harvestYield: 108,
+      seedPriceXu: 40,
+      sellPriceXu: 10,
+      stageImgs: [0, 1, 2, 3, 34, 35, 36, 47]
+    }
+  };
+  var FarmModel = class _FarmModel {
+    userId = 0;
+    ownerName = "";
+    landSize = 0;
+    maxLandPlots = 30;
+    // 5 columns x 6 rows = 30 plots
+    lands = [];
+    animals = [];
+    starFruitLevel = 10;
+    starFruitFruit = 0;
+    barnSize = 10;
+    fishPondSize = 10;
+    seeds = /* @__PURE__ */ new Map();
+    crops = /* @__PURE__ */ new Map();
+    fertilizers = /* @__PURE__ */ new Map();
+    specialCrops = /* @__PURE__ */ new Map();
+    userXu = 0;
+    userLuong = 0;
+    farmLevel = 1;
+    farmPercent = 0;
+    // Farm grid layout anchor: centered on Map 25
+    static GRID_COLS = 6;
+    static GRID_ROWS = 5;
+    static CELL_WIDTH = 48;
+    static CELL_HEIGHT = 28;
+    static GRID_ORIGIN_X = 140;
+    static GRID_ORIGIN_Y = 160;
+    constructor() {
+      this.resetPlots(8);
+    }
+    resetPlots(activeCount) {
+      this.landSize = activeCount;
+      this.lands = [];
+      for (let i = 0; i < this.maxLandPlots; i++) {
+        const col = i % _FarmModel.GRID_COLS;
+        const row = Math.floor(i / _FarmModel.GRID_COLS);
+        const posX = _FarmModel.GRID_ORIGIN_X + col * _FarmModel.CELL_WIDTH;
+        const posY = _FarmModel.GRID_ORIGIN_Y + row * _FarmModel.CELL_HEIGHT;
+        this.lands.push({
+          index: i,
+          type: i < activeCount ? -1 : -2,
+          plantedMinutes: 0,
+          sucKhoe: 100,
+          isWatered: false,
+          isFertilized: false,
+          isHarvestable: false,
+          col,
+          row,
+          posX,
+          posY
+        });
+      }
+    }
+    updateFromJoinPayload(data) {
+      this.userId = data.userId;
+      this.barnSize = data.barnSize || 10;
+      this.fishPondSize = data.fishPondSize || 10;
+      this.starFruitLevel = data.starFruit?.level || 10;
+      this.starFruitFruit = data.starFruit?.fruit || 0;
+      this.landSize = data.landItems.length;
+      this.resetPlots(data.landItems.length);
+      const now = Date.now();
+      for (let i = 0; i < data.landItems.length; i++) {
+        const item = data.landItems[i];
+        if (this.lands[i]) {
+          this.lands[i].type = item.type;
+          this.lands[i].plantedMinutes = item.plantedMinutes || 0;
+          this.lands[i].sucKhoe = item.sucKhoe !== void 0 ? item.sucKhoe : 100;
+          this.lands[i].isWatered = !!item.isWatered;
+          this.lands[i].isFertilized = !!item.isFertilized;
+          this.lands[i].isHarvestable = !!item.isHarvestable;
+          this.lands[i].localPlantedTimestamp = now - this.lands[i].plantedMinutes * 60 * 1e3;
+        }
+      }
+      this.animals = [];
+      if (data.animals) {
+        for (let i = 0; i < data.animals.length; i++) {
+          const a = data.animals[i];
+          const sx = 440 + i % 3 * 30;
+          const sy = 160 + Math.floor(i / 3) * 25;
+          this.animals.push({
+            ...a,
+            x: sx,
+            y: sy,
+            targetX: sx,
+            targetY: sy,
+            animFrame: 0,
+            moveTimer: 0
+          });
+        }
+      }
+    }
+    updateFromInventoryPayload(data) {
+      this.seeds.clear();
+      for (const s of data.seeds) {
+        if (s.quantity > 0) this.seeds.set(s.id, s.quantity);
+      }
+      this.crops.clear();
+      for (const c of data.crops) {
+        if (c.quantity > 0) this.crops.set(c.id, c.quantity);
+      }
+      this.fertilizers.clear();
+      for (const f of data.fertilizers) {
+        if (f.quantity > 0) this.fertilizers.set(f.id, f.quantity);
+      }
+      this.specialCrops.clear();
+      for (const sp of data.specialCrops) {
+        if (sp.quantity > 0) this.specialCrops.set(sp.id, sp.quantity);
+      }
+      this.userXu = data.xu;
+      this.farmLevel = data.farmLevel;
+      this.farmPercent = data.farmPercent;
+    }
+    getGrowthStage(cell) {
+      if (cell.type < 0) return -1;
+      const meta = CROP_DEFINITIONS[cell.type];
+      if (!meta) return 0;
+      if (cell.isHarvestable || cell.plantedMinutes >= meta.growMinutes) {
+        return 7;
+      }
+      const ratio = Math.max(0, Math.min(1, cell.plantedMinutes / meta.growMinutes));
+      return Math.min(6, Math.floor(ratio * 7));
+    }
+    getCropSpriteId(cell) {
+      if (cell.type < 0) return -1;
+      const meta = CROP_DEFINITIONS[cell.type];
+      if (!meta) return 0;
+      const stage = this.getGrowthStage(cell);
+      return meta.stageImgs[stage] !== void 0 ? meta.stageImgs[stage] : meta.stageImgs[0];
+    }
+  };
+
+  // packages/game-client/src/farm/FarmNetworkHandler.ts
+  var FarmNetworkHandler = class {
+    model;
+    network;
+    onFarmDataUpdated;
+    onInventoryUpdated;
+    onPlantSeedSuccess;
+    onHarvestSuccess;
+    onOpenLandSuccess;
+    onNotification;
+    constructor(network, model) {
+      this.network = network;
+      this.model = model || new FarmModel();
+      this.bindEvents();
+    }
+    bindEvents() {
+      this.network.on("farm_join", (data) => {
+        console.log(`[FarmNetwork] Received farm_join for User ${data.userId}:`, data);
+        this.model.updateFromJoinPayload(data);
+        if (this.onFarmDataUpdated) {
+          this.onFarmDataUpdated(this.model);
+        }
+      });
+      this.network.on("farm_inventory", (data) => {
+        console.log("[FarmNetwork] Received farm_inventory:", data);
+        this.model.updateFromInventoryPayload(data);
+        if (this.onInventoryUpdated) {
+          this.onInventoryUpdated(this.model);
+        }
+      });
+      this.network.on("plant_seed", (data) => {
+        console.log(`[FarmNetwork] Plant seed confirmed: Cell ${data.cellIndex}, Seed ${data.seedId}`);
+        if (this.model.lands[data.cellIndex]) {
+          const cell = this.model.lands[data.cellIndex];
+          cell.type = data.seedId;
+          cell.plantedMinutes = 0;
+          cell.sucKhoe = 100;
+          cell.isWatered = false;
+          cell.isFertilized = false;
+          cell.isHarvestable = false;
+          cell.localPlantedTimestamp = Date.now();
+          const curSeeds = this.model.seeds.get(data.seedId) || 0;
+          if (curSeeds > 0) {
+            this.model.seeds.set(data.seedId, curSeeds - 1);
+          }
+        }
+        if (this.onPlantSeedSuccess) {
+          this.onPlantSeedSuccess(data.cellIndex, data.seedId);
+        }
+      });
+      this.network.on("tree_harvest", (data) => {
+        console.log(`[FarmNetwork] Tree harvest confirmed: Cell ${data.cellIndex}, Yield: ${data.yieldCount}`);
+        if (this.model.lands[data.cellIndex]) {
+          const cell = this.model.lands[data.cellIndex];
+          const oldType = cell.type;
+          cell.type = -1;
+          cell.plantedMinutes = 0;
+          cell.isHarvestable = false;
+          if (oldType >= 0) {
+            const curCrops = this.model.crops.get(oldType) || 0;
+            this.model.crops.set(oldType, curCrops + data.yieldCount);
+          }
+        }
+        if (this.onHarvestSuccess) {
+          this.onHarvestSuccess(data.cellIndex, data.yieldCount);
+        }
+      });
+      this.network.on("open_land", (data) => {
+        console.log(`[FarmNetwork] Open land confirmed: Slot ${data.slot}`);
+        if (this.model.landSize < this.model.maxLandPlots) {
+          const nextIdx = this.model.landSize;
+          if (this.model.lands[nextIdx]) {
+            this.model.lands[nextIdx].type = -1;
+          }
+          this.model.landSize++;
+        }
+        if (data.xu > 0) this.model.userXu = data.xu;
+        if (data.luong > 0) this.model.userLuong = data.luong;
+        if (this.onOpenLandSuccess) {
+          this.onOpenLandSuccess(data.slot, data.xu, data.luong);
+        }
+        if (this.onNotification) {
+          this.onNotification(data.msg || "\u0110\xE3 m\u1EDF \xF4 \u0111\u1EA5t th\xE0nh c\xF4ng!");
+        }
+      });
+      this.network.on("server_dialog", (dialog) => {
+        if (this.onNotification) {
+          this.onNotification(dialog.content || dialog.title);
+        }
+      });
+    }
+    // --- Network Action Requests ---
+    enterFarm(userId = this.network.myUserId) {
+      console.log(`[FarmNetwork] Entering Farm for User: ${userId}`);
+      this.model.userId = userId;
+      this.network.sendGetHandler(10);
+      this.network.sendJoinFarm(userId);
+      this.network.sendGetFarmInventory();
+    }
+    plantSeed(cellIndex, seedId) {
+      if (!this.model.lands[cellIndex] || this.model.lands[cellIndex].type !== -1) {
+        if (this.onNotification) this.onNotification("\xD4 \u0111\u1EA5t kh\xF4ng th\u1EC3 gieo h\u1EA1t!");
+        return;
+      }
+      const seedCount = this.model.seeds.get(seedId) || 0;
+      if (seedCount <= 0) {
+        if (this.onNotification) this.onNotification("B\u1EA1n \u0111\xE3 h\u1EBFt h\u1EA1t gi\u1ED1ng n\xE0y trong kho!");
+        return;
+      }
+      this.network.sendPlantSeed(this.model.userId, cellIndex, seedId);
+    }
+    harvestCrop(cellIndex) {
+      const cell = this.model.lands[cellIndex];
+      if (!cell || cell.type < 0) {
+        return;
+      }
+      this.network.sendTreeHarvest(this.model.userId, cellIndex);
+    }
+    openLand(typeBuy = 1) {
+      this.network.sendOpenLand(this.model.userId, typeBuy);
+    }
+    buySeed(seedId, quantity = 1, currencyType = 1) {
+      this.network.sendBuyFarmItem(seedId, quantity, currencyType);
+      setTimeout(() => {
+        this.network.sendGetFarmInventory();
+      }, 400);
+    }
+    requestInventory() {
+      this.network.sendGetFarmInventory();
+    }
+  };
+
+  // packages/game-client/src/farm/FarmScreen.ts
+  var import_j2me_compat2 = __toESM(require_dist());
+
+  // packages/game-client/src/ui/GameScreen.ts
+  var GameScreen = class {
+    leftCmd;
+    centerCmd;
+    rightCmd;
+    isVisible = false;
+    show() {
+      this.isVisible = true;
+    }
+    hide() {
+      this.isVisible = false;
+    }
+    keyPressed(keyCode) {
+    }
+    keyReleased(keyCode) {
+    }
+    pointerPressed(x, y) {
+    }
+    pointerReleased(x, y) {
+    }
+    pointerMoved(x, y) {
+    }
+    pointerDragged(x, y) {
+    }
+    onResize(width, height) {
+    }
+  };
+
+  // packages/game-client/src/characters/AvatarRenderer.ts
+  var import_j2me_compat = __toESM(require_dist());
+  var AvatarRenderer = class _AvatarRenderer {
+    static partsMap = /* @__PURE__ */ new Map();
+    static slicesMap = /* @__PURE__ */ new Map();
+    static atlasImages = /* @__PURE__ */ new Map();
+    static itemImages = /* @__PURE__ */ new Map();
+    static shadowImage;
+    static isInitialized = false;
+    static async init() {
+      if (this.isInitialized) return;
+      try {
+        try {
+          this.shadowImage = await import_j2me_compat.Image.createImage("/assets/effect/s0.png");
+        } catch (err) {
+          console.warn("[AvatarRenderer] Could not load shadow image:", err);
+        }
+        const partsRes = await fetch("/assets/data/avatar_parts.json");
+        if (partsRes.ok) {
+          const partsJson = await partsRes.json();
+          for (const [idStr, p] of Object.entries(partsJson)) {
+            this.partsMap.set(parseInt(idStr, 10), p);
+          }
+          console.log(`[AvatarRenderer] Loaded ${this.partsMap.size} avatar parts.`);
+        }
+        const slicesRes = await fetch("/assets/data/avatar_img_data.json");
+        if (slicesRes.ok) {
+          const slicesJson = await slicesRes.json();
+          for (const [idStr, s] of Object.entries(slicesJson)) {
+            this.slicesMap.set(parseInt(idStr, 10), s);
+          }
+          console.log(`[AvatarRenderer] Loaded ${this.slicesMap.size} image slices.`);
+        }
+        this.isInitialized = true;
+      } catch (err) {
+        console.error("[AvatarRenderer] Init error:", err);
+      }
+    }
+    static async getAtlasImage(imageId) {
+      if (this.atlasImages.has(imageId)) {
+        return this.atlasImages.get(imageId);
+      }
+      try {
+        const img = await import_j2me_compat.Image.createImage(`/res/big/${imageId}.png`);
+        this.atlasImages.set(imageId, img);
+        return img;
+      } catch (err) {
+        console.warn(`[AvatarRenderer] Failed to load atlas image ${imageId}:`, err);
+        return void 0;
+      }
+    }
+    static async getItemImage(itemId) {
+      if (this.itemImages.has(itemId)) {
+        return this.itemImages.get(itemId);
+      }
+      try {
+        const img = await import_j2me_compat.Image.createImage(`/res/item/${itemId}.png`);
+        this.itemImages.set(itemId, img);
+        return img;
+      } catch (err) {
+        console.warn(`[AvatarRenderer] Failed to load item image ${itemId}:`, err);
+        return void 0;
+      }
+    }
+    /**
+     * Preload textures for a list of wearing items
+     */
+    /**
+     * Categorize any avatar part into the authentic 10-layer rendering order:
+     * 1: Cánh sau (Wings, Cape, Backpack, Tails, Back Auras)
+     * 2: Thân (Base body / skin)
+     * 3: Quần (Pants, shorts, skirts)
+     * 4: Áo (Shirts, jackets, dresses, tops)
+     * 5: Đầu (Head shape: tròn, mập, nhọn)
+     * 6: Khuôn mặt (Facial expressions, mouth, blushing, face masks)
+     * 7: Mắt (Eyes: đen, xanh, etc.)
+     * 8: Tóc (Hair)
+     * 9: Nón (Hats, caps, helmets, crowns, hairpins, glasses, earrings)
+     * 10: Cầm tay (Handheld items: weapons, balloons, candies, flowers, lanterns, flags)
+     */
+    static getPartLayer(part) {
+      const name = (part.name || "").toLowerCase();
+      const z = part.zorder ?? 0;
+      const isBackItem = (name.includes("c\xE1nh") || name.includes("phi phong") || name.includes("\xE1o cho\xE0ng") || name.includes("\u0111u\xF4i") || name.includes("balo") || name.includes("c\u1EB7p s\xE1ch") || name.includes("h\xE0o quang") || name.includes("\u0111\u0129a bay") || name.includes("phi thuy\u1EC1n")) && !(name.includes("c\xE0i t\xF3c") || name.includes("v\u01B0\u01A1ng mi\u1EC7n") || name.includes("m\u1EA3nh gh\xE9p") || name.includes("thu\u1ED1c") || name.includes("k\xEDnh"));
+      if (isBackItem || z === 3 || z === 5 || z === 6) {
+        return 1;
+      }
+      if (z === 8 || name.includes("th\xE2n") && !name.includes("\xE1o") && !name.includes("ki\u1EBFm")) {
+        return 2;
+      }
+      const isPants = (z === 10 || name.includes("qu\u1EA7n") || name.includes("v\xE1y") || name.includes("short") || name.includes("qu\u1EA7n \u0111\xF9i") || name.includes("qu\u1EA7n t\xE2y")) && !name.includes("\xE1o");
+      if (isPants) {
+        return 3;
+      }
+      const isShirt = (z === 20 || name.includes("\xE1o") || name.includes("s\u01A1 mi") || name.includes("thun") || name.includes("comple") || name.includes("vest") || name.includes("\u0111\u1EA7m") || name.includes("y\u1EBFm")) && !name.includes("cho\xE0ng");
+      if (isShirt) {
+        return 4;
+      }
+      const isHead = (z === 30 || name.includes("tr\xF2n") || name.includes("m\u1EADp") || name.includes("nh\u1ECDn") || name.includes("m\u1EB7t tr\xF2n") || name.includes("m\u1EB7t nh\u1ECDn") || name.includes("\u0111\u1EA7u tr\u1ECDc")) && !name.includes("m\u1EAFt") && !name.includes("m\u0169") && !name.includes("n\xF3n");
+      if (isHead) {
+        return 5;
+      }
+      const isFace = (z === 52 || name.includes("kh\u1EA9u trang") || name.includes("l\xEAu l\xEAu") || name.includes("m\xE1 h\u1ED3ng") || name.includes("m\u0169i h\u1EC1") || name.includes("m\u1EB7t n\u1EA1") || name.includes("r\xE2u") || name.includes("ng\u1EADm")) && !name.includes("m\u1EAFt");
+      if (isFace) {
+        return 6;
+      }
+      const isEyes = (z === 40 || name.startsWith("mat ") || name.includes("m\u1EAFt") || name === "\u0111en" || name === "xanh n\u01B0\u1EDBc bi\u1EC3n" || name === "n\xE2u") && !name.includes("k\xEDnh");
+      if (isEyes) {
+        return 7;
+      }
+      const isHair = (z === 50 || name.includes("t\xF3c") || name.includes("d\u1EF1ng \u0111\u1EE9ng") || name.includes("tr\u1EBB con") || name.includes("b\xFAp b\xEA") || name.includes("s\xE0nh \u0111i\u1EC7u")) && !(name.includes("c\xE0i t\xF3c") || name.includes("k\u1EB9p t\xF3c") || name.includes("hoa c\xE0i t\xF3c") || name.includes("b\u0103ng \u0111\xF4") || name.includes("n\xF3n") || name.includes("m\u0169"));
+      if (isHair) {
+        return 8;
+      }
+      const isHat = z === 53 || z === 54 || z === 60 || name.includes("n\xF3n") || name.includes("m\u0169") || name.includes("v\u01B0\u01A1ng mi\u1EC7n") || name.includes("k\xEDnh") || name.includes("b\u0103ng \u0111\xF4") || name.includes("tai m\xE8o") || name.includes("s\u1EEBng") || name.includes("tai chu\u1ED9t") || name.includes("c\xE0i t\xF3c") || name.includes("k\u1EB9p t\xF3c") || name.includes("b\xF4ng tai") || name.includes("hoa c\xE0i");
+      if (isHat) {
+        return 9;
+      }
+      const isHandheld = z === 70 || name.includes("c\u1EA7m") || name.includes("bong b\xF3ng") || name.includes("k\u1EB9o") || name.includes("hoa") || name.includes("ki\u1EBFm") || name.includes("\u0111\xE0n") || name.includes("chong ch\xF3ng") || name.includes("qu\u1EA1t") || name.includes("g\u1EADy") || name.includes("tr\u01B0\u1EE3ng") || name.includes("khi\xEAn") || name.includes("c\u1EDD") || name.includes("c\u1EE5c v\xE0ng") || name.includes("kem") || name.includes("v\u0169 kh\xED") || name.includes("l\u1ED3ng \u0111\xE8n") || name.includes("thi\u1EC7p");
+      if (isHandheld) {
+        return 10;
+      }
+      if (z <= 5) return 1;
+      if (z <= 10) return 3;
+      if (z <= 20) return 4;
+      if (z <= 30) return 5;
+      if (z <= 40) return 7;
+      if (z <= 50) return 8;
+      if (z <= 60) return 9;
+      return 10;
+    }
+    static async preloadWearing(wearing) {
+      const listToPreload = [...wearing, 0, 4];
+      for (const partId of listToPreload) {
+        const part = this.partsMap.get(partId);
+        if (!part || !part.animation) continue;
+        for (const frame of part.animation) {
+          const imgId = frame.img;
+          if (imgId >= 2e3) {
+            this.getItemImage(imgId).catch(() => {
+            });
+          } else if (imgId >= 0) {
+            const slice = this.slicesMap.get(imgId);
+            if (slice) {
+              this.getAtlasImage(slice.image_id).catch(() => {
+              });
+            }
+          }
+        }
+      }
+    }
+    /**
+     * Render multi-layered animated avatar according to Java client logic (hn.java, ld.java, fa.java)
+     */
+    static paintAvatar(g, x, y, wearing, direct, frame = 0, name, isLocal = false, font, chatMessage) {
+      if (this.shadowImage) {
+        const shadowX = x - Math.floor(this.shadowImage.getWidth() / 2);
+        const shadowY = y - 3;
+        g.drawImage(this.shadowImage, shadowX, shadowY, 0);
+      } else {
+        g.setColor(3355443);
+        g.fillArc(x - 9, y - 2, 18, 6, 0, 360);
+      }
+      const isMirrored = direct === 2;
+      const transform = isMirrored ? import_j2me_compat.Sprite.TRANS_MIRROR : import_j2me_compat.Sprite.TRANS_NONE;
+      const wearingList = [...wearing];
+      let hasHead = false;
+      let hasEyes = false;
+      for (const partId of wearingList) {
+        const part = this.partsMap.get(partId);
+        if (part) {
+          const layer = _AvatarRenderer.getPartLayer(part);
+          if (layer === 5) hasHead = true;
+          if (layer === 7) hasEyes = true;
+        }
+      }
+      if (!hasHead) {
+        wearingList.push(0);
+      }
+      if (!hasEyes) {
+        wearingList.push(4);
+      }
+      const partsToRender = [];
+      for (const partId of wearingList) {
+        const part = this.partsMap.get(partId);
+        if (part) {
+          partsToRender.push(part);
+        }
+      }
+      partsToRender.sort((a, b) => {
+        const layerA = _AvatarRenderer.getPartLayer(a);
+        const layerB = _AvatarRenderer.getPartLayer(b);
+        if (layerA !== layerB) {
+          return layerA - layerB;
+        }
+        return a.zorder - b.zorder;
+      });
+      for (const part of partsToRender) {
+        if (!part.animation || part.animation.length === 0) continue;
+        const frameData = part.animation[frame % part.animation.length];
+        if (!frameData) continue;
+        const imgId = frameData.img;
+        const dx = frameData.dx;
+        const dy = frameData.dy;
+        if (imgId >= 2e3) {
+          const itemImg = this.itemImages.get(imgId);
+          if (itemImg) {
+            const w = itemImg.getWidth();
+            const h = itemImg.getHeight();
+            const drawX = isMirrored ? x - dx - w : x + dx;
+            const drawY = y + dy;
+            g.drawRegion(itemImg, 0, 0, w, h, transform, drawX, drawY, 0);
+          } else {
+            this.getItemImage(imgId);
+          }
+        } else if (imgId >= 0) {
+          const slice = this.slicesMap.get(imgId);
+          if (slice) {
+            const atlasImg = this.atlasImages.get(slice.image_id);
+            if (atlasImg) {
+              const drawX = isMirrored ? x - dx - slice.w : x + dx;
+              const drawY = y + dy;
+              g.drawRegion(
+                atlasImg,
+                slice.x,
+                slice.y,
+                slice.w,
+                slice.h,
+                transform,
+                drawX,
+                drawY,
+                0
+              );
+            } else {
+              this.getAtlasImage(slice.image_id);
+            }
+          }
+        }
+      }
+      if (name) {
+        const tagY = y - 46;
+        const ctx = g.ctx;
+        const nameW = font ? font.stringWidth(name) : name.length * 6;
+        const tagX = x - Math.floor(nameW / 2);
+        if (ctx) {
+          ctx.save();
+          ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(tagX - 4, tagY - 1, nameW + 8, 14, 3);
+          } else {
+            ctx.rect(tagX - 4, tagY - 1, nameW + 8, 14);
+          }
+          ctx.fill();
+          ctx.strokeStyle = isLocal ? "#facc15" : "rgba(255, 255, 255, 0.2)";
+          ctx.lineWidth = 1;
+          ctx.stroke();
+          ctx.font = "bold 11px Arial, sans-serif";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          ctx.fillStyle = "#000000";
+          ctx.fillText(name, x + 1, tagY + 7);
+          if (isLocal) {
+            ctx.fillStyle = "#fde047";
+          } else if (name.includes("Lovanga") || name.includes("T\xE0i X\u1EC9u") || name.includes("V\xE9 s\u1ED1") || name.includes("\u0111\u1EA5u gi\xE1") || name.includes("quay s\u1ED1")) {
+            ctx.fillStyle = "#38bdf8";
+          } else {
+            ctx.fillStyle = "#ffffff";
+          }
+          ctx.fillText(name, x, tagY + 6);
+          ctx.restore();
+        } else if (font) {
+          font.drawString(g, name, x, tagY, 2);
+        }
+      }
+      if (chatMessage && chatMessage.length > 0) {
+        const ctx = g.ctx;
+        const maxBubbleW = 140;
+        let lines = [];
+        if (font) {
+          lines = font.splitText(chatMessage, maxBubbleW - 14);
+        } else {
+          lines = [chatMessage];
+        }
+        if (lines.length > 2) {
+          lines = [lines[0], lines[1].slice(0, 16) + "..."];
+        }
+        let maxLineW = 30;
+        if (font) {
+          for (const l of lines) {
+            maxLineW = Math.max(maxLineW, font.stringWidth(l));
+          }
+        } else if (ctx) {
+          ctx.font = "11px Arial, sans-serif";
+          for (const l of lines) {
+            maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
+          }
+        }
+        const bubbleW = Math.min(maxBubbleW, Math.round(maxLineW + 14));
+        const bubbleH = lines.length * 13 + 6;
+        const bx = x - Math.floor(bubbleW / 2);
+        const by = y - 56 - bubbleH;
+        if (ctx) {
+          ctx.save();
+          ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
+          ctx.shadowBlur = 4;
+          ctx.shadowOffsetY = 2;
+          ctx.fillStyle = "#ffffff";
+          ctx.strokeStyle = "#1e293b";
+          ctx.lineWidth = 1;
+          ctx.beginPath();
+          if (typeof ctx.roundRect === "function") {
+            ctx.roundRect(bx, by, bubbleW, bubbleH, 4);
+          } else {
+            ctx.rect(bx, by, bubbleW, bubbleH);
+          }
+          ctx.fill();
+          ctx.stroke();
+          ctx.beginPath();
+          ctx.moveTo(x - 3, by + bubbleH);
+          ctx.lineTo(x, by + bubbleH + 4);
+          ctx.lineTo(x + 3, by + bubbleH);
+          ctx.fillStyle = "#ffffff";
+          ctx.fill();
+          ctx.strokeStyle = "#1e293b";
+          ctx.stroke();
+          ctx.restore();
+          ctx.save();
+          ctx.font = "10px Arial, sans-serif";
+          ctx.fillStyle = "#0f172a";
+          ctx.textAlign = "center";
+          ctx.textBaseline = "middle";
+          for (let i = 0; i < lines.length; i++) {
+            ctx.fillText(lines[i], x, by + 7 + i * 13);
+          }
+          ctx.restore();
+        }
+      }
+    }
+  };
+
+  // packages/game-client/src/farm/FarmActionController.ts
+  var FarmActionController = class {
+    model;
+    handler;
+    currentTool = "hand" /* HAND */;
+    selectedSeedId = 0;
+    // Default: Cà chua
+    focusedCellIndex = 0;
+    // Active UI Modals
+    isSeedPickerOpen = false;
+    isShopOpen = false;
+    isWarehouseOpen = false;
+    isNeighborListOpen = false;
+    onActionFeedback;
+    constructor(model, handler) {
+      this.model = model;
+      this.handler = handler;
+    }
+    setTool(tool) {
+      this.currentTool = tool;
+      const nameMap = {
+        ["hand" /* HAND */]: "Ki\u1EC3m tra",
+        ["plant" /* PLANT */]: "Gieo h\u1EA1t",
+        ["water" /* WATER */]: "T\u01B0\u1EDBi n\u01B0\u1EDBc",
+        ["harvest" /* HARVEST */]: "Thu ho\u1EA1ch",
+        ["open_land" /* OPEN_LAND */]: "M\u1EDF \u0111\u1EA5t"
+      };
+      if (this.onActionFeedback) {
+        this.onActionFeedback(`C\xF4ng c\u1EE5: ${nameMap[tool]}`);
+      }
+    }
+    selectSeed(seedId) {
+      this.selectedSeedId = seedId;
+      this.currentTool = "plant" /* PLANT */;
+      this.isSeedPickerOpen = false;
+      const cropName = CROP_DEFINITIONS[seedId]?.name || `H\u1EA1t #${seedId}`;
+      if (this.onActionFeedback) {
+        this.onActionFeedback(`\u0110\xE3 ch\u1ECDn h\u1EA1t gi\u1ED1ng: ${cropName}`);
+      }
+    }
+    handleCellClick(cellIndex) {
+      this.focusedCellIndex = cellIndex;
+      const cell = this.model.lands[cellIndex];
+      if (!cell) return;
+      if (cell.type === -2) {
+        if (cellIndex === this.model.landSize) {
+          this.handler.openLand(1);
+          if (this.onActionFeedback) {
+            this.onActionFeedback("\u0110ang g\u1EEDi y\xEAu c\u1EA7u m\u1EDF \xF4 \u0111\u1EA5t...", "#facc15");
+          }
+        } else {
+          if (this.onActionFeedback) {
+            this.onActionFeedback("Vui l\xF2ng m\u1EDF \xF4 \u0111\u1EA5t theo th\u1EE9 t\u1EF1 l\u1EA7n l\u01B0\u1EE3t!", "#ef4444");
+          }
+        }
+        return;
+      }
+      if (cell.type === -1) {
+        const availSeeds = this.model.seeds.get(this.selectedSeedId) || 0;
+        if (availSeeds > 0) {
+          this.handler.plantSeed(cellIndex, this.selectedSeedId);
+          const name2 = CROP_DEFINITIONS[this.selectedSeedId]?.name || "c\xE2y";
+          if (this.onActionFeedback) {
+            this.onActionFeedback(`\u0110\xE3 gieo ${name2} v\xE0o \xF4 #${cellIndex + 1}!`, "#4ade80");
+          }
+        } else {
+          this.isSeedPickerOpen = true;
+          if (this.onActionFeedback) {
+            this.onActionFeedback("Ch\u1ECDn h\u1EA1t gi\u1ED1ng trong kho \u0111\u1EC3 gieo!", "#38bdf8");
+          }
+        }
+        return;
+      }
+      const stage = this.model.getGrowthStage(cell);
+      if (cell.isHarvestable || stage === 7) {
+        this.handler.harvestCrop(cellIndex);
+        const name2 = CROP_DEFINITIONS[cell.type]?.name || "n\xF4ng s\u1EA3n";
+        if (this.onActionFeedback) {
+          this.onActionFeedback(`Thu ho\u1EA1ch ${name2} \xF4 #${cellIndex + 1}!`, "#facc15");
+        }
+        return;
+      }
+      const name = CROP_DEFINITIONS[cell.type]?.name || "C\xE2y";
+      const meta = CROP_DEFINITIONS[cell.type];
+      const totalMin = meta ? meta.growMinutes : 100;
+      const remainMin = Math.max(0, totalMin - cell.plantedMinutes);
+      if (this.currentTool === "water" /* WATER */) {
+        cell.isWatered = true;
+        if (this.onActionFeedback) {
+          this.onActionFeedback(`\u0110\xE3 t\u01B0\u1EDBi n\u01B0\u1EDBc cho ${name}!`, "#38bdf8");
+        }
+        return;
+      }
+      if (this.onActionFeedback) {
+        this.onActionFeedback(
+          `${name} (\xD4 #${cellIndex + 1}): C\xF2n ${remainMin} ph\xFAt n\u1EEFa ch\xEDn (S\u1EE9c kh\u1ECFe: ${cell.sucKhoe}%)`,
+          "#ffffff"
+        );
+      }
+    }
+    harvestAllMature() {
+      let harvestedCount = 0;
+      for (const cell of this.model.lands) {
+        if (cell.type >= 0) {
+          const stage = this.model.getGrowthStage(cell);
+          if (cell.isHarvestable || stage === 7) {
+            this.handler.harvestCrop(cell.index);
+            harvestedCount++;
+          }
+        }
+      }
+      if (this.onActionFeedback) {
+        if (harvestedCount > 0) {
+          this.onActionFeedback(`\u0110ang thu ho\u1EA1ch ${harvestedCount} \xF4 \u0111\u1EA5t ch\xEDn!`, "#facc15");
+        } else {
+          this.onActionFeedback("Ch\u01B0a c\xF3 c\xE2y n\xE0o ch\xEDn \u0111\u1EC3 thu ho\u1EA1ch!", "#94a3b8");
+        }
+      }
+    }
+    plantAllEmpty() {
+      const availSeeds = this.model.seeds.get(this.selectedSeedId) || 0;
+      if (availSeeds <= 0) {
+        this.isSeedPickerOpen = true;
+        if (this.onActionFeedback) {
+          this.onActionFeedback("Vui l\xF2ng ch\u1ECDn h\u1EA1t gi\u1ED1ng c\xF3 s\u1EB5n trong kho!", "#ef4444");
+        }
+        return;
+      }
+      let planted = 0;
+      for (const cell of this.model.lands) {
+        if (cell.type === -1 && planted < availSeeds) {
+          this.handler.plantSeed(cell.index, this.selectedSeedId);
+          planted++;
+        }
+      }
+      if (this.onActionFeedback) {
+        if (planted > 0) {
+          this.onActionFeedback(`\u0110\xE3 gieo ${planted} \xF4 \u0111\u1EA5t h\u1EA1t gi\u1ED1ng!`, "#4ade80");
+        } else {
+          this.onActionFeedback("Kh\xF4ng c\xF2n \xF4 \u0111\u1EA5t tr\u1ED1ng \u0111\u1EC3 gieo!", "#94a3b8");
+        }
+      }
+    }
+  };
+
+  // packages/game-client/src/farm/FarmScreen.ts
+  var FarmScreen = class extends GameScreen {
+    model;
+    handler;
+    controller;
+    skinPainter;
+    font;
+    localPlayer;
+    // Screen dimensions
+    screenW = 640;
+    screenH = 480;
+    // Farm camera
+    cameraX = 0;
+    cameraY = 0;
+    // Farm sprite image cache
+    spriteCache = /* @__PURE__ */ new Map();
+    loadingSprites = /* @__PURE__ */ new Set();
+    // Floating notifications
+    feedbackText = "Ch\xE0o m\u1EEBng b\u1EA1n \u0111\u1EBFn v\u1EDBi N\xF4ng Tr\u1EA1i Avatar!";
+    feedbackColor = "#facc15";
+    feedbackTimer = 100;
+    // Animation ticks
+    animTick = 0;
+    // Callbacks
+    onExitToWorldMap;
+    constructor(handler, skinPainter, font) {
+      super();
+      this.handler = handler;
+      this.model = handler.model;
+      this.controller = new FarmActionController(this.model, this.handler);
+      this.skinPainter = skinPainter;
+      this.font = font;
+      this.localPlayer = {
+        id: this.handler.network.myUserId || 1,
+        name: "N\xF4ng d\xE2n",
+        x: 200,
+        y: 220,
+        targetX: 200,
+        targetY: 220,
+        dir: 0,
+        state: "idle",
+        wearing: [1, 2, 3],
+        frame: 0
+      };
+      this.controller.onActionFeedback = (text, color) => {
+        this.feedbackText = text;
+        this.feedbackColor = color || "#facc15";
+        this.feedbackTimer = 90;
+      };
+      this.handler.onNotification = (msg) => {
+        this.feedbackText = msg;
+        this.feedbackColor = "#38bdf8";
+        this.feedbackTimer = 100;
+      };
+      this.loadSprite("buyLand", "/assets/farm/buyLand.png");
+      this.loadSprite("cut", "/assets/farm/cut.png");
+      this.loadSprite("coin", "/assets/farm/coin.png");
+      this.loadSprite("focus", "/assets/farm/focus.png");
+      this.loadSprite("w", "/assets/farm/w.png");
+    }
+    loadSprite(key, url) {
+      if (this.spriteCache.has(key)) {
+        return this.spriteCache.get(key);
+      }
+      if (!this.loadingSprites.has(key)) {
+        this.loadingSprites.add(key);
+        import_j2me_compat2.Image.createImage(url).then((img) => {
+          this.spriteCache.set(key, img);
+          this.loadingSprites.delete(key);
+        }).catch(() => {
+          this.loadingSprites.delete(key);
+        });
+      }
+      return void 0;
+    }
+    getCropSprite(spriteId) {
+      return this.loadSprite(`crop_${spriteId}`, `/assets/farm/${spriteId}.png`);
+    }
+    onResize(width, height) {
+      this.screenW = width;
+      this.screenH = height;
+    }
+    // --- Game Loop (20 Simulation Ticks/s) ---
+    update() {
+      this.animTick++;
+      if (this.feedbackTimer > 0) {
+        this.feedbackTimer--;
+      }
+      const dx = this.localPlayer.targetX - this.localPlayer.x;
+      const dy = this.localPlayer.targetY - this.localPlayer.y;
+      const dist = Math.sqrt(dx * dx + dy * dy);
+      if (dist > 3) {
+        const speed = 4;
+        this.localPlayer.x += dx / dist * speed;
+        this.localPlayer.y += dy / dist * speed;
+        this.localPlayer.state = "walk";
+        if (Math.abs(dx) > Math.abs(dy)) {
+          this.localPlayer.dir = dx > 0 ? 3 : 2;
+        } else {
+          this.localPlayer.dir = dy > 0 ? 0 : 1;
+        }
+        this.localPlayer.frame = 1 + Math.floor(this.animTick / 3) % 4;
+      } else {
+        this.localPlayer.x = this.localPlayer.targetX;
+        this.localPlayer.y = this.localPlayer.targetY;
+        this.localPlayer.state = "idle";
+        this.localPlayer.frame = 0;
+      }
+      const targetCamX = Math.floor(this.localPlayer.x - this.screenW / 2);
+      const targetCamY = Math.floor(this.localPlayer.y - this.screenH / 2);
+      this.cameraX += Math.floor((targetCamX - this.cameraX) * 0.15);
+      this.cameraY += Math.floor((targetCamY - this.cameraY) * 0.15);
+      this.cameraX = Math.max(0, Math.min(800 - this.screenW, this.cameraX));
+      this.cameraY = Math.max(0, Math.min(500 - this.screenH, this.cameraY));
+      for (const cell of this.model.lands) {
+        if (cell.type >= 0 && cell.localPlantedTimestamp) {
+          const elapsedMinutes = Math.floor((Date.now() - cell.localPlantedTimestamp) / 6e4);
+          cell.plantedMinutes = Math.max(cell.plantedMinutes, elapsedMinutes);
+          const meta = CROP_DEFINITIONS[cell.type];
+          if (meta && cell.plantedMinutes >= meta.growMinutes) {
+            cell.isHarvestable = true;
+          }
+        }
+      }
+      for (const a of this.model.animals) {
+        a.moveTimer++;
+        if (a.moveTimer > 60) {
+          a.moveTimer = 0;
+          a.targetX = 420 + Math.floor(Math.random() * 80);
+          a.targetY = 150 + Math.floor(Math.random() * 60);
+        }
+        a.x += (a.targetX - a.x) * 0.05;
+        a.y += (a.targetY - a.y) * 0.05;
+      }
+    }
+    // --- Rendering Pipeline (WebGL2 Native via Graphics) ---
+    paint(g) {
+      const w = this.screenW;
+      const h = this.screenH;
+      this.paintScenery(g, w, h);
+      g.translate(-this.cameraX, -this.cameraY);
+      this.paintFarmStructures(g);
+      this.paintLandGrid(g);
+      this.paintAnimals(g);
+      this.paintPlayer(g);
+      g.translate(this.cameraX, this.cameraY);
+      this.paintTopBar(g, w, h);
+      this.paintActionToolbar(g, w, h);
+      this.paintNotificationToast(g, w, h);
+      this.paintModals(g, w, h);
+    }
+    paintScenery(g, w, h) {
+      g.setColor(7391226);
+      g.fillRect(0, 0, w, Math.floor(h * 0.4));
+      g.setColor(5417016);
+      g.fillRect(0, Math.floor(h * 0.35), w, Math.floor(h * 0.65));
+      g.setColor(4427308);
+      g.fillRect(0, Math.floor(h * 0.45), w, Math.floor(h * 0.55));
+    }
+    paintFarmStructures(g) {
+      g.setColor(10705448);
+      g.fillRect(30, 90, 95, 65);
+      g.setColor(13187883);
+      g.fillRect(20, 65, 115, 25);
+      g.setColor(5910549);
+      g.fillRect(65, 115, 25, 40);
+      g.setColor(9364984);
+      g.fillRect(40, 105, 18, 18);
+      g.fillRect(98, 105, 18, 18);
+      g.setColor(6699800);
+      g.fillRect(435, 95, 18, 55);
+      g.setColor(2587162);
+      g.fillRect(395, 45, 95, 60);
+      g.setColor(3842855);
+      g.fillRect(405, 55, 75, 45);
+      const fruitCount = Math.min(8, Math.max(3, this.model.starFruitFruit || 5));
+      const fruitSpots = [
+        { x: 410, y: 65 },
+        { x: 430, y: 55 },
+        { x: 455, y: 60 },
+        { x: 470, y: 75 },
+        { x: 420, y: 85 },
+        { x: 445, y: 80 },
+        { x: 460, y: 90 },
+        { x: 435, y: 70 }
+      ];
+      g.setColor(16436245);
+      for (let i = 0; i < fruitCount; i++) {
+        const pt = fruitSpots[i];
+        g.fillRect(pt.x, pt.y, 7, 7);
+        g.setColor(16776171);
+        g.fillRect(pt.x + 2, pt.y + 1, 3, 3);
+        g.setColor(16436245);
+      }
+      g.setColor(9127187);
+      g.fillRect(455, 140, 110, 75);
+      g.setColor(6636321);
+      g.fillRect(450, 130, 120, 18);
+      g.setColor(15984043);
+      g.fillRect(465, 160, 90, 45);
+      this.font.drawString(g, "Chu\u1ED3ng Gia S\xFAc", 510, 133, 2);
+      g.setColor(3043239);
+      g.fillRect(455, 255, 125, 80);
+      g.setColor(3901635);
+      g.fillRect(460, 260, 115, 70);
+      g.setColor(8174056);
+      const rippleOff = this.animTick % 20 > 10 ? 2 : 0;
+      g.fillRect(480 + rippleOff, 280, 25, 2);
+      g.fillRect(520 - rippleOff, 305, 30, 2);
+      this.font.drawString(g, "H\u1ED3 C\xE1", 517, 265, 2);
+      g.setColor(13808780);
+      for (let fx = 20; fx < 600; fx += 24) {
+        g.fillRect(fx, 40, 4, 25);
+        g.fillRect(fx, 48, 24, 3);
+        g.fillRect(fx, 58, 24, 3);
+      }
+    }
+    paintLandGrid(g) {
+      const focusImg = this.spriteCache.get("focus");
+      const cutImg = this.spriteCache.get("cut");
+      const buyLandImg = this.spriteCache.get("buyLand");
+      const waterImg = this.spriteCache.get("w");
+      for (let i = 0; i < this.model.lands.length; i++) {
+        const cell = this.model.lands[i];
+        const px = cell.posX;
+        const py = cell.posY;
+        const cw = FarmModel.CELL_WIDTH;
+        const ch = FarmModel.CELL_HEIGHT;
+        if (cell.type === -2) {
+          g.setColor(4094759);
+          g.fillRect(px, py, cw - 4, ch - 4);
+          g.setColor(3104797);
+          g.drawRect(px, py, cw - 4, ch - 4);
+          if (i === this.model.landSize) {
+            if (buyLandImg) {
+              g.drawImage(buyLandImg, px + Math.floor(cw / 2) - 8, py + Math.floor(ch / 2) - 8, 0);
+            } else {
+              g.setColor(16436245);
+              this.font.drawString(g, "+", px + Math.floor(cw / 2) - 2, py + 4, 0);
+            }
+          }
+          continue;
+        }
+        if (cell.isWatered) {
+          g.setColor(4861723);
+        } else {
+          g.setColor(7687209);
+        }
+        g.fillRect(px, py, cw - 4, ch - 4);
+        g.setColor(cell.isWatered ? 3547409 : 6044447);
+        g.fillRect(px + 4, py + 6, cw - 12, 3);
+        g.fillRect(px + 4, py + 14, cw - 12, 3);
+        g.fillRect(px + 4, py + 21, cw - 12, 3);
+        g.setColor(cell.isWatered ? 2758925 : 4730393);
+        g.drawRect(px, py, cw - 4, ch - 4);
+        if (cell.type >= 0) {
+          const spriteId = this.model.getCropSpriteId(cell);
+          const cropImg = this.getCropSprite(spriteId);
+          if (cropImg) {
+            const imgW = cropImg.getWidth();
+            const imgH = cropImg.getHeight();
+            const drawX = px + Math.floor((cw - imgW) / 2);
+            const drawY = py + ch - imgH - 4;
+            g.drawImage(cropImg, drawX, drawY, 0);
+          } else {
+            const stage2 = this.model.getGrowthStage(cell);
+            if (stage2 < 3) {
+              g.setColor(4906624);
+              g.fillRect(px + Math.floor(cw / 2) - 3, py + 10, 6, 8);
+            } else if (stage2 < 7) {
+              g.setColor(2278750);
+              g.fillRect(px + Math.floor(cw / 2) - 8, py + 6, 16, 14);
+            } else {
+              g.setColor(15680580);
+              g.fillRect(px + Math.floor(cw / 2) - 10, py + 2, 20, 18);
+            }
+          }
+          const stage = this.model.getGrowthStage(cell);
+          if (cell.isHarvestable || stage === 7) {
+            if (cutImg) {
+              g.drawImage(cutImg, px + cw - 18, py - 6, 0);
+            } else {
+              g.setColor(16436245);
+              g.fillRect(px + cw - 12, py - 2, 8, 8);
+            }
+          } else if (!cell.isWatered) {
+            if (waterImg) {
+              g.drawImage(waterImg, px + 2, py - 4, 0);
+            } else {
+              g.setColor(3718648);
+              g.fillRect(px + 2, py - 2, 6, 6);
+            }
+          }
+        }
+        if (i === this.controller.focusedCellIndex) {
+          if (focusImg) {
+            g.drawImage(focusImg, px - 2, py - 2, 0);
+          } else {
+            g.setColor(16436245);
+            g.drawRect(px - 1, py - 1, cw - 2, ch - 2);
+            g.drawRect(px - 2, py - 2, cw, ch);
+          }
+        }
+      }
+    }
+    paintAnimals(g) {
+      for (const a of this.model.animals) {
+        const ax = Math.floor(a.x);
+        const ay = Math.floor(a.y);
+        g.setColor(16776171);
+        g.fillRect(ax, ay, 12, 10);
+        g.setColor(16096779);
+        g.fillRect(ax + 10, ay + 2, 4, 3);
+        g.setColor(15680580);
+        g.fillRect(ax + 4, ay - 3, 4, 4);
+      }
+    }
+    paintPlayer(g) {
+      const px = Math.floor(this.localPlayer.x);
+      const py = Math.floor(this.localPlayer.y);
+      g.setColor(2042167);
+      g.fillRect(px - 10, py - 2, 20, 5);
+      AvatarRenderer.paintAvatar(
+        g,
+        px,
+        py,
+        this.localPlayer.wearing,
+        this.localPlayer.dir,
+        this.localPlayer.frame,
+        this.localPlayer.name,
+        true,
+        this.font
+      );
+    }
+    paintTopBar(g, w, h) {
+      g.setColor(988970);
+      g.fillRect(0, 0, w, 28);
+      g.setColor(3359061);
+      g.fillRect(0, 27, w, 1);
+      const title = this.model.userId === this.handler.network.myUserId ? `\u{1F33E} N\xD4NG TR\u1EA0I C\u1EE6A B\u1EA0N (C\u1EA5p ${this.model.farmLevel})` : `\u{1F33E} N\xD4NG TR\u1EA0I: #${this.model.userId}`;
+      this.font.drawString(g, title, 8, 7, 0);
+      const xuStr = `\u{1F4B0} ${Number(this.model.userXu).toLocaleString("vi-VN")} Xu`;
+      this.font.drawString(g, xuStr, Math.floor(w * 0.55), 7, 0);
+      g.setColor(14427686);
+      g.fillRect(w - 78, 4, 72, 20);
+      g.setColor(16777215);
+      this.font.drawString(g, "V\u1EC1 Ph\u1ED1", w - 42, 7, 2);
+    }
+    paintActionToolbar(g, w, h) {
+      const barH = 34;
+      const barY = h - barH;
+      g.setColor(988970);
+      g.fillRect(0, barY, w, barH);
+      g.setColor(3359061);
+      g.fillRect(0, barY, w, 1);
+      const buttons = [
+        { label: "Gieo H\u1EA1t", color: 1483594, action: () => this.controller.isSeedPickerOpen = true },
+        { label: "T\u01B0\u1EDBi N\u01B0\u1EDBc", color: 165063, action: () => this.controller.setTool("water" /* WATER */) },
+        { label: "Thu Ho\u1EA1ch", color: 13273604, action: () => this.controller.harvestAllMature() },
+        { label: "C\u1EEDa H\xE0ng", color: 9647082, action: () => this.controller.isShopOpen = true },
+        { label: "Nh\xE0 Kho", color: 4674921, action: () => this.controller.isWarehouseOpen = true },
+        { label: "M\u1EDF \u0110\u1EA5t", color: 366185, action: () => this.controller.handleCellClick(this.model.landSize) }
+      ];
+      const btnW = Math.min(84, Math.floor((w - 12) / buttons.length));
+      const startX = Math.floor((w - btnW * buttons.length) / 2);
+      for (let i = 0; i < buttons.length; i++) {
+        const btn = buttons[i];
+        const bx = startX + i * btnW + 2;
+        const by = barY + 5;
+        const bw = btnW - 4;
+        const bh = 24;
+        g.setColor(btn.color);
+        g.fillRect(bx, by, bw, bh);
+        g.setColor(16777215);
+        this.font.drawString(g, btn.label, bx + Math.floor(bw / 2), by + 5, 2);
+      }
+    }
+    paintNotificationToast(g, w, h) {
+      if (this.feedbackTimer <= 0) return;
+      const toastW = Math.min(380, w - 40);
+      const toastH = 22;
+      const tx = Math.floor((w - toastW) / 2);
+      const ty = 34;
+      g.setColor(988970);
+      g.fillRect(tx, ty, toastW, toastH);
+      g.setColor(16436245);
+      g.drawRect(tx, ty, toastW, toastH);
+      this.font.drawString(g, this.feedbackText, Math.floor(w / 2), ty + 5, 2);
+    }
+    paintModals(g, w, h) {
+      if (this.controller.isSeedPickerOpen) {
+        this.paintSeedPickerModal(g, w, h);
+      } else if (this.controller.isShopOpen) {
+        this.paintFarmShopModal(g, w, h);
+      } else if (this.controller.isWarehouseOpen) {
+        this.paintWarehouseModal(g, w, h);
+      }
+    }
+    paintSeedPickerModal(g, w, h) {
+      const mw = Math.min(320, w - 20);
+      const mh = Math.min(240, h - 60);
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      g.setColor(1976635);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(4674921);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(988970);
+      g.fillRect(mx, my, mw, 26);
+      this.font.drawString(g, "\u{1F33E} CH\u1ECCN H\u1EA0T GI\u1ED0NG \u0110\u1EC2 GIEO", mx + Math.floor(mw / 2), my + 6, 2);
+      g.setColor(15680580);
+      g.fillRect(mx + mw - 22, my + 4, 18, 18);
+      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
+      const seeds = Array.from(this.model.seeds.entries());
+      if (seeds.length === 0) {
+        this.font.drawString(g, "Kho ch\u01B0a c\xF3 h\u1EA1t gi\u1ED1ng n\xE0o!", mx + Math.floor(mw / 2), my + 60, 2);
+        this.font.drawString(g, "Vui l\xF2ng b\u1EA5m C\u1EEDa H\xE0ng \u0111\u1EC3 mua th\xEAm.", mx + Math.floor(mw / 2), my + 85, 2);
+        return;
+      }
+      let yOffset = my + 34;
+      for (const [seedId, count] of seeds) {
+        const meta = CROP_DEFINITIONS[seedId];
+        const name = meta ? meta.name : `H\u1EA1t #${seedId}`;
+        g.setColor(3359061);
+        g.fillRect(mx + 10, yOffset, mw - 20, 26);
+        g.setColor(16436245);
+        this.font.drawString(g, `${name} (C\xF2n: ${count})`, mx + 18, yOffset + 6, 0);
+        g.setColor(1483594);
+        g.fillRect(mx + mw - 65, yOffset + 3, 50, 20);
+        g.setColor(16777215);
+        this.font.drawString(g, "Ch\u1ECDn", mx + mw - 40, yOffset + 6, 2);
+        yOffset += 30;
+        if (yOffset > my + mh - 35) break;
+      }
+    }
+    paintFarmShopModal(g, w, h) {
+      const mw = Math.min(340, w - 20);
+      const mh = Math.min(260, h - 50);
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      g.setColor(1976635);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(4674921);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(988970);
+      g.fillRect(mx, my, mw, 26);
+      this.font.drawString(g, "\u{1F3EA} C\u1EECA H\xC0NG N\xD4NG TR\u1EA0I (MUA B\u1EB0NG XU)", mx + Math.floor(mw / 2), my + 6, 2);
+      g.setColor(15680580);
+      g.fillRect(mx + mw - 22, my + 4, 18, 18);
+      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
+      const crops = Object.values(CROP_DEFINITIONS);
+      let yOffset = my + 32;
+      for (const c of crops) {
+        g.setColor(3359061);
+        g.fillRect(mx + 10, yOffset, mw - 20, 26);
+        g.setColor(16777215);
+        this.font.drawString(g, `${c.name} (${c.growMinutes}p)`, mx + 16, yOffset + 6, 0);
+        g.setColor(13273604);
+        g.fillRect(mx + mw - 80, yOffset + 3, 68, 20);
+        g.setColor(16777215);
+        this.font.drawString(g, `${c.seedPriceXu} Xu`, mx + mw - 46, yOffset + 6, 2);
+        yOffset += 30;
+        if (yOffset > my + mh - 35) break;
+      }
+    }
+    paintWarehouseModal(g, w, h) {
+      const mw = Math.min(320, w - 20);
+      const mh = Math.min(240, h - 60);
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      g.setColor(1976635);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(4674921);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(988970);
+      g.fillRect(mx, my, mw, 26);
+      this.font.drawString(g, "\u{1F4E6} NH\xC0 KHO N\xD4NG S\u1EA2N", mx + Math.floor(mw / 2), my + 6, 2);
+      g.setColor(15680580);
+      g.fillRect(mx + mw - 22, my + 4, 18, 18);
+      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
+      const cropEntries = Array.from(this.model.crops.entries());
+      if (cropEntries.length === 0) {
+        this.font.drawString(g, "Nh\xE0 kho tr\u1ED1ng!", mx + Math.floor(mw / 2), my + 60, 2);
+        this.font.drawString(g, "H\xE3y ch\u0103m s\xF3c c\xE2y v\xE0 thu ho\u1EA1ch \u0111\u1EC3 c\xF3 n\xF4ng s\u1EA3n.", mx + Math.floor(mw / 2), my + 85, 2);
+        return;
+      }
+      let yOffset = my + 34;
+      for (const [cropId, count] of cropEntries) {
+        const meta = CROP_DEFINITIONS[cropId];
+        const name = meta ? meta.name : `N\xF4ng s\u1EA3n #${cropId}`;
+        const sellTotal = count * (meta ? meta.sellPriceXu : 10);
+        g.setColor(3359061);
+        g.fillRect(mx + 10, yOffset, mw - 20, 26);
+        g.setColor(4906624);
+        this.font.drawString(g, `${name}: ${count} c\u1EE7/qu\u1EA3`, mx + 16, yOffset + 6, 0);
+        g.setColor(366185);
+        g.fillRect(mx + mw - 75, yOffset + 3, 62, 20);
+        g.setColor(16777215);
+        this.font.drawString(g, `B\xE1n: ${sellTotal}`, mx + mw - 44, yOffset + 6, 2);
+        yOffset += 30;
+        if (yOffset > my + mh - 35) break;
+      }
+    }
+    // --- Input & Touch Handling ---
+    pointerPressed(screenX, screenY) {
+      const w = this.screenW;
+      const h = this.screenH;
+      if (screenY <= 28 && screenX >= w - 78) {
+        if (this.onExitToWorldMap) {
+          this.onExitToWorldMap();
+        }
+        return;
+      }
+      if (this.controller.isSeedPickerOpen) {
+        this.handleSeedPickerClick(screenX, screenY, w, h);
+        return;
+      }
+      if (this.controller.isShopOpen) {
+        this.handleShopClick(screenX, screenY, w, h);
+        return;
+      }
+      if (this.controller.isWarehouseOpen) {
+        this.handleWarehouseClick(screenX, screenY, w, h);
+        return;
+      }
+      const barH = 34;
+      const barY = h - barH;
+      if (screenY >= barY) {
+        this.handleToolbarClick(screenX, barY, w);
+        return;
+      }
+      const worldX = screenX + this.cameraX;
+      const worldY = screenY + this.cameraY;
+      if (worldX >= 390 && worldX <= 490 && worldY >= 50 && worldY <= 120) {
+        const harvested = this.model.starFruitFruit || 5;
+        this.model.starFruitFruit = 0;
+        this.model.userXu += harvested * 50;
+        if (this.controller.onActionFeedback) {
+          this.controller.onActionFeedback(`\u0110\xE3 h\xE1i ${harvested} qu\u1EA3 kh\u1EBF! (+${harvested * 50} Xu)`, "#facc15");
+        }
+        return;
+      }
+      const clickedCellIndex = this.findCellAt(worldX, worldY);
+      if (clickedCellIndex >= 0) {
+        this.localPlayer.targetX = this.model.lands[clickedCellIndex].posX + 24;
+        this.localPlayer.targetY = this.model.lands[clickedCellIndex].posY + 14;
+        this.controller.handleCellClick(clickedCellIndex);
+        return;
+      }
+      this.localPlayer.targetX = worldX;
+      this.localPlayer.targetY = worldY;
+    }
+    findCellAt(worldX, worldY) {
+      for (let i = 0; i < this.model.lands.length; i++) {
+        const cell = this.model.lands[i];
+        if (worldX >= cell.posX && worldX <= cell.posX + FarmModel.CELL_WIDTH && worldY >= cell.posY && worldY <= cell.posY + FarmModel.CELL_HEIGHT) {
+          return i;
+        }
+      }
+      return -1;
+    }
+    handleToolbarClick(screenX, barY, w) {
+      const buttons = [
+        () => this.controller.isSeedPickerOpen = true,
+        () => this.controller.setTool("water" /* WATER */),
+        () => this.controller.harvestAllMature(),
+        () => this.controller.isShopOpen = true,
+        () => this.controller.isWarehouseOpen = true,
+        () => this.controller.handleCellClick(this.model.landSize)
+      ];
+      const btnW = Math.min(84, Math.floor((w - 12) / buttons.length));
+      const startX = Math.floor((w - btnW * buttons.length) / 2);
+      for (let i = 0; i < buttons.length; i++) {
+        const bx = startX + i * btnW;
+        if (screenX >= bx && screenX < bx + btnW) {
+          buttons[i]();
+          return;
+        }
+      }
+    }
+    handleSeedPickerClick(x, y, w, h) {
+      const mw = Math.min(320, w - 20);
+      const mh = Math.min(240, h - 60);
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 25 && y >= my && y <= my + 26) {
+        this.controller.isSeedPickerOpen = false;
+        return;
+      }
+      const seeds = Array.from(this.model.seeds.entries());
+      let yOffset = my + 34;
+      for (const [seedId] of seeds) {
+        if (y >= yOffset && y <= yOffset + 26) {
+          this.controller.selectSeed(seedId);
+          return;
+        }
+        yOffset += 30;
+        if (yOffset > my + mh - 35) break;
+      }
+    }
+    handleShopClick(x, y, w, h) {
+      const mw = Math.min(340, w - 20);
+      const mh = Math.min(260, h - 50);
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 25 && y >= my && y <= my + 26) {
+        this.controller.isShopOpen = false;
+        return;
+      }
+      const crops = Object.values(CROP_DEFINITIONS);
+      let yOffset = my + 32;
+      for (const c of crops) {
+        if (y >= yOffset && y <= yOffset + 26) {
+          if (this.model.userXu >= c.seedPriceXu) {
+            this.handler.buySeed(c.id, 1, 1);
+            this.model.userXu -= c.seedPriceXu;
+            const cur = this.model.seeds.get(c.id) || 0;
+            this.model.seeds.set(c.id, cur + 1);
+            if (this.controller.onActionFeedback) {
+              this.controller.onActionFeedback(`\u0110\xE3 mua 1 h\u1EA1t gi\u1ED1ng ${c.name}! (-${c.seedPriceXu} Xu)`, "#4ade80");
+            }
+          } else {
+            if (this.controller.onActionFeedback) {
+              this.controller.onActionFeedback("B\u1EA1n kh\xF4ng \u0111\u1EE7 Xu \u0111\u1EC3 mua h\u1EA1t gi\u1ED1ng n\xE0y!", "#ef4444");
+            }
+          }
+          return;
+        }
+        yOffset += 30;
+        if (yOffset > my + mh - 35) break;
+      }
+    }
+    handleWarehouseClick(x, y, w, h) {
+      const mw = Math.min(320, w - 20);
+      const mh = Math.min(240, h - 60);
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 25 && y >= my && y <= my + 26) {
+        this.controller.isWarehouseOpen = false;
+        return;
+      }
+      const cropEntries = Array.from(this.model.crops.entries());
+      let yOffset = my + 34;
+      for (const [cropId, count] of cropEntries) {
+        if (y >= yOffset && y <= yOffset + 26) {
+          const meta = CROP_DEFINITIONS[cropId];
+          const sellTotal = count * (meta ? meta.sellPriceXu : 10);
+          this.model.userXu += sellTotal;
+          this.model.crops.delete(cropId);
+          if (this.controller.onActionFeedback) {
+            this.controller.onActionFeedback(`\u0110\xE3 b\xE1n to\xE0n b\u1ED9 ${meta?.name || "n\xF4ng s\u1EA3n"}! (+${sellTotal} Xu)`, "#facc15");
+          }
+          return;
+        }
+        yOffset += 30;
+        if (yOffset > my + mh - 35) break;
+      }
+    }
+    keyPressed(keyCode) {
+      const cols = FarmModel.GRID_COLS;
+      if (keyCode === 52 || keyCode === -3) {
+        this.controller.focusedCellIndex = Math.max(0, this.controller.focusedCellIndex - 1);
+      } else if (keyCode === 54 || keyCode === -4) {
+        this.controller.focusedCellIndex = Math.min(this.model.lands.length - 1, this.controller.focusedCellIndex + 1);
+      } else if (keyCode === 50 || keyCode === -1) {
+        this.controller.focusedCellIndex = Math.max(0, this.controller.focusedCellIndex - cols);
+      } else if (keyCode === 56 || keyCode === -2) {
+        this.controller.focusedCellIndex = Math.min(this.model.lands.length - 1, this.controller.focusedCellIndex + cols);
+      } else if (keyCode === 53 || keyCode === 13) {
+        this.controller.handleCellClick(this.controller.focusedCellIndex);
+      } else if (keyCode === 49) {
+        this.controller.isSeedPickerOpen = !this.controller.isSeedPickerOpen;
+      } else if (keyCode === 51) {
+        this.controller.harvestAllMature();
+      } else if (keyCode === 55) {
+        this.controller.isShopOpen = !this.controller.isShopOpen;
+      }
+    }
+  };
+
   // packages/game-client/src/web-entry.ts
-  var import_j2me_compat9 = __toESM(require_dist());
+  var import_j2me_compat10 = __toESM(require_dist());
 
   // packages/game-client/src/core/GameMidlet.ts
-  var import_j2me_compat5 = __toESM(require_dist());
+  var import_j2me_compat7 = __toESM(require_dist());
 
   // packages/game-client/src/runtime/GameCanvas.ts
-  var import_j2me_compat = __toESM(require_dist());
-  var GameCanvas = class _GameCanvas extends import_j2me_compat.Canvas {
+  var import_j2me_compat3 = __toESM(require_dist());
+  var GameCanvas = class _GameCanvas extends import_j2me_compat3.Canvas {
     static instance;
     currentScreen;
     graphics;
@@ -1991,7 +3554,7 @@ void main() {
       super();
       this.width = 1024;
       this.height = 768;
-      this.graphics = new import_j2me_compat.Graphics(target);
+      this.graphics = new import_j2me_compat3.Graphics(target);
       _GameCanvas.instance = this;
     }
     setCurrentScreen(screen) {
@@ -2115,37 +3678,7 @@ void main() {
   };
 
   // packages/game-client/src/gameplay/SplashScreen.ts
-  var import_j2me_compat2 = __toESM(require_dist());
-
-  // packages/game-client/src/ui/GameScreen.ts
-  var GameScreen = class {
-    leftCmd;
-    centerCmd;
-    rightCmd;
-    isVisible = false;
-    show() {
-      this.isVisible = true;
-    }
-    hide() {
-      this.isVisible = false;
-    }
-    keyPressed(keyCode) {
-    }
-    keyReleased(keyCode) {
-    }
-    pointerPressed(x, y) {
-    }
-    pointerReleased(x, y) {
-    }
-    pointerMoved(x, y) {
-    }
-    pointerDragged(x, y) {
-    }
-    onResize(width, height) {
-    }
-  };
-
-  // packages/game-client/src/gameplay/SplashScreen.ts
+  var import_j2me_compat4 = __toESM(require_dist());
   var SplashScreen = class extends GameScreen {
     timer = 0;
     logoImage;
@@ -2169,13 +3702,13 @@ void main() {
       g.setColor(0);
       g.fillRect(0, 0, w, h);
       if (this.logoImage && this.timer > 1) {
-        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat2.Graphics.HCENTER | import_j2me_compat2.Graphics.VCENTER);
+        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat4.Graphics.HCENTER | import_j2me_compat4.Graphics.VCENTER);
       }
     }
   };
 
   // packages/game-client/src/gameplay/LoginScreen.ts
-  var import_j2me_compat3 = __toESM(require_dist());
+  var import_j2me_compat5 = __toESM(require_dist());
   var LoginScreen = class extends GameScreen {
     selectedIndex = 0;
     // Highlight first option by default
@@ -2281,7 +3814,7 @@ void main() {
         }
       }
       if (this.bannerLogo) {
-        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat3.Graphics.HCENTER | import_j2me_compat3.Graphics.VCENTER);
+        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat5.Graphics.HCENTER | import_j2me_compat5.Graphics.VCENTER);
       } else if (this.font) {
         this.font.drawString(g, "AVATAR 258", Math.floor(screenW / 2), Math.max(25, this.winY - 45), 2);
       }
@@ -3122,7 +4655,7 @@ void main() {
   };
 
   // packages/game-client/src/assets/AvArchiveLoader.ts
-  var import_j2me_compat4 = __toESM(require_dist());
+  var import_j2me_compat6 = __toESM(require_dist());
   var AvArchiveLoader = class _AvArchiveLoader {
     static KEY = new TextEncoder().encode("NguyenVanMinh");
     entries = /* @__PURE__ */ new Map();
@@ -3164,7 +4697,7 @@ void main() {
       const fileName = name.endsWith(".png") ? name : `${name}.png`;
       const bytes = this.getFileBytes(fileName);
       if (!bytes) return null;
-      return import_j2me_compat4.Image.createImage(bytes);
+      return import_j2me_compat6.Image.createImage(bytes);
     }
     getEntryNames() {
       return Array.from(this.entries.keys());
@@ -3192,11 +4725,11 @@ void main() {
     }
     async initAssets(logoPngBytes, fontMetadataBytes, fontPngBytes, bgAvBytes) {
       if (logoPngBytes) {
-        this.splashScreen.logoImage = await import_j2me_compat5.Image.createImage(logoPngBytes);
+        this.splashScreen.logoImage = await import_j2me_compat7.Image.createImage(logoPngBytes);
       }
       if (fontMetadataBytes && fontPngBytes) {
         this.font.loadMetadata(fontMetadataBytes);
-        this.font.fontImage = await import_j2me_compat5.Image.createImage(fontPngBytes);
+        this.font.fontImage = await import_j2me_compat7.Image.createImage(fontPngBytes);
       }
       if (bgAvBytes) {
         const bgLoader = new AvArchiveLoader();
@@ -3965,10 +5498,10 @@ void main() {
   };
 
   // packages/game-client/src/gameplay/GameWorldScreen.ts
-  var import_j2me_compat8 = __toESM(require_dist());
+  var import_j2me_compat9 = __toESM(require_dist());
 
   // packages/game-client/src/maps/TilemapRenderer.ts
-  var import_j2me_compat6 = __toESM(require_dist());
+  var import_j2me_compat8 = __toESM(require_dist());
   var TilemapRenderer = class _TilemapRenderer {
     static TILE_SIZE = 24;
     // i = 24 in ir.java
@@ -4293,7 +5826,7 @@ void main() {
         await Promise.all(uniquePartIds.map(async (partId) => {
           if (!this.objectImageCache.has(partId)) {
             try {
-              const img = await import_j2me_compat6.Image.createImage(`/assets/home/${partId}.png`);
+              const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
               this.objectImageCache.set(partId, img);
             } catch (e) {
               console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
@@ -4339,20 +5872,20 @@ void main() {
         };
         console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
         const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
-        this.tilesetImage = await import_j2me_compat6.Image.createImage(tilesetUrl);
+        this.tilesetImage = await import_j2me_compat8.Image.createImage(tilesetUrl);
         this.bgImage = void 0;
         this.cloudImage = void 0;
         const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
         if (bgType !== -1) {
           try {
             const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
-            this.bgImage = await import_j2me_compat6.Image.createImage(bgUrl);
+            this.bgImage = await import_j2me_compat8.Image.createImage(bgUrl);
           } catch (err) {
           }
         }
         try {
           const cloudUrl = `/assets/bg/${nightSuffix}.png`;
-          this.cloudImage = await import_j2me_compat6.Image.createImage(cloudUrl);
+          this.cloudImage = await import_j2me_compat8.Image.createImage(cloudUrl);
         } catch (err) {
         }
       } catch (err) {
@@ -4386,11 +5919,11 @@ void main() {
       await Promise.all(uniquePartIds.map(async (partId) => {
         if (!this.objectImageCache.has(partId)) {
           try {
-            const img = await import_j2me_compat6.Image.createImage(`/assets/home/${partId}.png`);
+            const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
             this.objectImageCache.set(partId, img);
           } catch {
             try {
-              const img = await import_j2me_compat6.Image.createImage(`/assets/item/${partId}.png`);
+              const img = await import_j2me_compat8.Image.createImage(`/assets/item/${partId}.png`);
               this.objectImageCache.set(partId, img);
             } catch (e) {
               console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
@@ -4498,347 +6031,6 @@ void main() {
       }
       const c = collision[ty * widthTiles + tx];
       return c === 88 || c === 92;
-    }
-  };
-
-  // packages/game-client/src/characters/AvatarRenderer.ts
-  var import_j2me_compat7 = __toESM(require_dist());
-  var AvatarRenderer = class _AvatarRenderer {
-    static partsMap = /* @__PURE__ */ new Map();
-    static slicesMap = /* @__PURE__ */ new Map();
-    static atlasImages = /* @__PURE__ */ new Map();
-    static itemImages = /* @__PURE__ */ new Map();
-    static shadowImage;
-    static isInitialized = false;
-    static async init() {
-      if (this.isInitialized) return;
-      try {
-        try {
-          this.shadowImage = await import_j2me_compat7.Image.createImage("/assets/effect/s0.png");
-        } catch (err) {
-          console.warn("[AvatarRenderer] Could not load shadow image:", err);
-        }
-        const partsRes = await fetch("/assets/data/avatar_parts.json");
-        if (partsRes.ok) {
-          const partsJson = await partsRes.json();
-          for (const [idStr, p] of Object.entries(partsJson)) {
-            this.partsMap.set(parseInt(idStr, 10), p);
-          }
-          console.log(`[AvatarRenderer] Loaded ${this.partsMap.size} avatar parts.`);
-        }
-        const slicesRes = await fetch("/assets/data/avatar_img_data.json");
-        if (slicesRes.ok) {
-          const slicesJson = await slicesRes.json();
-          for (const [idStr, s] of Object.entries(slicesJson)) {
-            this.slicesMap.set(parseInt(idStr, 10), s);
-          }
-          console.log(`[AvatarRenderer] Loaded ${this.slicesMap.size} image slices.`);
-        }
-        this.isInitialized = true;
-      } catch (err) {
-        console.error("[AvatarRenderer] Init error:", err);
-      }
-    }
-    static async getAtlasImage(imageId) {
-      if (this.atlasImages.has(imageId)) {
-        return this.atlasImages.get(imageId);
-      }
-      try {
-        const img = await import_j2me_compat7.Image.createImage(`/res/big/${imageId}.png`);
-        this.atlasImages.set(imageId, img);
-        return img;
-      } catch (err) {
-        console.warn(`[AvatarRenderer] Failed to load atlas image ${imageId}:`, err);
-        return void 0;
-      }
-    }
-    static async getItemImage(itemId) {
-      if (this.itemImages.has(itemId)) {
-        return this.itemImages.get(itemId);
-      }
-      try {
-        const img = await import_j2me_compat7.Image.createImage(`/res/item/${itemId}.png`);
-        this.itemImages.set(itemId, img);
-        return img;
-      } catch (err) {
-        console.warn(`[AvatarRenderer] Failed to load item image ${itemId}:`, err);
-        return void 0;
-      }
-    }
-    /**
-     * Preload textures for a list of wearing items
-     */
-    /**
-     * Categorize any avatar part into the authentic 10-layer rendering order:
-     * 1: Cánh sau (Wings, Cape, Backpack, Tails, Back Auras)
-     * 2: Thân (Base body / skin)
-     * 3: Quần (Pants, shorts, skirts)
-     * 4: Áo (Shirts, jackets, dresses, tops)
-     * 5: Đầu (Head shape: tròn, mập, nhọn)
-     * 6: Khuôn mặt (Facial expressions, mouth, blushing, face masks)
-     * 7: Mắt (Eyes: đen, xanh, etc.)
-     * 8: Tóc (Hair)
-     * 9: Nón (Hats, caps, helmets, crowns, hairpins, glasses, earrings)
-     * 10: Cầm tay (Handheld items: weapons, balloons, candies, flowers, lanterns, flags)
-     */
-    static getPartLayer(part) {
-      const name = (part.name || "").toLowerCase();
-      const z = part.zorder ?? 0;
-      const isBackItem = (name.includes("c\xE1nh") || name.includes("phi phong") || name.includes("\xE1o cho\xE0ng") || name.includes("\u0111u\xF4i") || name.includes("balo") || name.includes("c\u1EB7p s\xE1ch") || name.includes("h\xE0o quang") || name.includes("\u0111\u0129a bay") || name.includes("phi thuy\u1EC1n")) && !(name.includes("c\xE0i t\xF3c") || name.includes("v\u01B0\u01A1ng mi\u1EC7n") || name.includes("m\u1EA3nh gh\xE9p") || name.includes("thu\u1ED1c") || name.includes("k\xEDnh"));
-      if (isBackItem || z === 3 || z === 5 || z === 6) {
-        return 1;
-      }
-      if (z === 8 || name.includes("th\xE2n") && !name.includes("\xE1o") && !name.includes("ki\u1EBFm")) {
-        return 2;
-      }
-      const isPants = (z === 10 || name.includes("qu\u1EA7n") || name.includes("v\xE1y") || name.includes("short") || name.includes("qu\u1EA7n \u0111\xF9i") || name.includes("qu\u1EA7n t\xE2y")) && !name.includes("\xE1o");
-      if (isPants) {
-        return 3;
-      }
-      const isShirt = (z === 20 || name.includes("\xE1o") || name.includes("s\u01A1 mi") || name.includes("thun") || name.includes("comple") || name.includes("vest") || name.includes("\u0111\u1EA7m") || name.includes("y\u1EBFm")) && !name.includes("cho\xE0ng");
-      if (isShirt) {
-        return 4;
-      }
-      const isHead = (z === 30 || name.includes("tr\xF2n") || name.includes("m\u1EADp") || name.includes("nh\u1ECDn") || name.includes("m\u1EB7t tr\xF2n") || name.includes("m\u1EB7t nh\u1ECDn") || name.includes("\u0111\u1EA7u tr\u1ECDc")) && !name.includes("m\u1EAFt") && !name.includes("m\u0169") && !name.includes("n\xF3n");
-      if (isHead) {
-        return 5;
-      }
-      const isFace = (z === 52 || name.includes("kh\u1EA9u trang") || name.includes("l\xEAu l\xEAu") || name.includes("m\xE1 h\u1ED3ng") || name.includes("m\u0169i h\u1EC1") || name.includes("m\u1EB7t n\u1EA1") || name.includes("r\xE2u") || name.includes("ng\u1EADm")) && !name.includes("m\u1EAFt");
-      if (isFace) {
-        return 6;
-      }
-      const isEyes = (z === 40 || name.startsWith("mat ") || name.includes("m\u1EAFt") || name === "\u0111en" || name === "xanh n\u01B0\u1EDBc bi\u1EC3n" || name === "n\xE2u") && !name.includes("k\xEDnh");
-      if (isEyes) {
-        return 7;
-      }
-      const isHair = (z === 50 || name.includes("t\xF3c") || name.includes("d\u1EF1ng \u0111\u1EE9ng") || name.includes("tr\u1EBB con") || name.includes("b\xFAp b\xEA") || name.includes("s\xE0nh \u0111i\u1EC7u")) && !(name.includes("c\xE0i t\xF3c") || name.includes("k\u1EB9p t\xF3c") || name.includes("hoa c\xE0i t\xF3c") || name.includes("b\u0103ng \u0111\xF4") || name.includes("n\xF3n") || name.includes("m\u0169"));
-      if (isHair) {
-        return 8;
-      }
-      const isHat = z === 53 || z === 54 || z === 60 || name.includes("n\xF3n") || name.includes("m\u0169") || name.includes("v\u01B0\u01A1ng mi\u1EC7n") || name.includes("k\xEDnh") || name.includes("b\u0103ng \u0111\xF4") || name.includes("tai m\xE8o") || name.includes("s\u1EEBng") || name.includes("tai chu\u1ED9t") || name.includes("c\xE0i t\xF3c") || name.includes("k\u1EB9p t\xF3c") || name.includes("b\xF4ng tai") || name.includes("hoa c\xE0i");
-      if (isHat) {
-        return 9;
-      }
-      const isHandheld = z === 70 || name.includes("c\u1EA7m") || name.includes("bong b\xF3ng") || name.includes("k\u1EB9o") || name.includes("hoa") || name.includes("ki\u1EBFm") || name.includes("\u0111\xE0n") || name.includes("chong ch\xF3ng") || name.includes("qu\u1EA1t") || name.includes("g\u1EADy") || name.includes("tr\u01B0\u1EE3ng") || name.includes("khi\xEAn") || name.includes("c\u1EDD") || name.includes("c\u1EE5c v\xE0ng") || name.includes("kem") || name.includes("v\u0169 kh\xED") || name.includes("l\u1ED3ng \u0111\xE8n") || name.includes("thi\u1EC7p");
-      if (isHandheld) {
-        return 10;
-      }
-      if (z <= 5) return 1;
-      if (z <= 10) return 3;
-      if (z <= 20) return 4;
-      if (z <= 30) return 5;
-      if (z <= 40) return 7;
-      if (z <= 50) return 8;
-      if (z <= 60) return 9;
-      return 10;
-    }
-    static async preloadWearing(wearing) {
-      const listToPreload = [...wearing, 0, 4];
-      for (const partId of listToPreload) {
-        const part = this.partsMap.get(partId);
-        if (!part || !part.animation) continue;
-        for (const frame of part.animation) {
-          const imgId = frame.img;
-          if (imgId >= 2e3) {
-            this.getItemImage(imgId).catch(() => {
-            });
-          } else if (imgId >= 0) {
-            const slice = this.slicesMap.get(imgId);
-            if (slice) {
-              this.getAtlasImage(slice.image_id).catch(() => {
-              });
-            }
-          }
-        }
-      }
-    }
-    /**
-     * Render multi-layered animated avatar according to Java client logic (hn.java, ld.java, fa.java)
-     */
-    static paintAvatar(g, x, y, wearing, direct, frame = 0, name, isLocal = false, font, chatMessage) {
-      if (this.shadowImage) {
-        const shadowX = x - Math.floor(this.shadowImage.getWidth() / 2);
-        const shadowY = y - 3;
-        g.drawImage(this.shadowImage, shadowX, shadowY, 0);
-      } else {
-        g.setColor(3355443);
-        g.fillArc(x - 9, y - 2, 18, 6, 0, 360);
-      }
-      const isMirrored = direct === 2;
-      const transform = isMirrored ? import_j2me_compat7.Sprite.TRANS_MIRROR : import_j2me_compat7.Sprite.TRANS_NONE;
-      const wearingList = [...wearing];
-      let hasHead = false;
-      let hasEyes = false;
-      for (const partId of wearingList) {
-        const part = this.partsMap.get(partId);
-        if (part) {
-          const layer = _AvatarRenderer.getPartLayer(part);
-          if (layer === 5) hasHead = true;
-          if (layer === 7) hasEyes = true;
-        }
-      }
-      if (!hasHead) {
-        wearingList.push(0);
-      }
-      if (!hasEyes) {
-        wearingList.push(4);
-      }
-      const partsToRender = [];
-      for (const partId of wearingList) {
-        const part = this.partsMap.get(partId);
-        if (part) {
-          partsToRender.push(part);
-        }
-      }
-      partsToRender.sort((a, b) => {
-        const layerA = _AvatarRenderer.getPartLayer(a);
-        const layerB = _AvatarRenderer.getPartLayer(b);
-        if (layerA !== layerB) {
-          return layerA - layerB;
-        }
-        return a.zorder - b.zorder;
-      });
-      for (const part of partsToRender) {
-        if (!part.animation || part.animation.length === 0) continue;
-        const frameData = part.animation[frame % part.animation.length];
-        if (!frameData) continue;
-        const imgId = frameData.img;
-        const dx = frameData.dx;
-        const dy = frameData.dy;
-        if (imgId >= 2e3) {
-          const itemImg = this.itemImages.get(imgId);
-          if (itemImg) {
-            const w = itemImg.getWidth();
-            const h = itemImg.getHeight();
-            const drawX = isMirrored ? x - dx - w : x + dx;
-            const drawY = y + dy;
-            g.drawRegion(itemImg, 0, 0, w, h, transform, drawX, drawY, 0);
-          } else {
-            this.getItemImage(imgId);
-          }
-        } else if (imgId >= 0) {
-          const slice = this.slicesMap.get(imgId);
-          if (slice) {
-            const atlasImg = this.atlasImages.get(slice.image_id);
-            if (atlasImg) {
-              const drawX = isMirrored ? x - dx - slice.w : x + dx;
-              const drawY = y + dy;
-              g.drawRegion(
-                atlasImg,
-                slice.x,
-                slice.y,
-                slice.w,
-                slice.h,
-                transform,
-                drawX,
-                drawY,
-                0
-              );
-            } else {
-              this.getAtlasImage(slice.image_id);
-            }
-          }
-        }
-      }
-      if (name) {
-        const tagY = y - 46;
-        const ctx = g.ctx;
-        const nameW = font ? font.stringWidth(name) : name.length * 6;
-        const tagX = x - Math.floor(nameW / 2);
-        if (ctx) {
-          ctx.save();
-          ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
-          ctx.beginPath();
-          if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(tagX - 4, tagY - 1, nameW + 8, 14, 3);
-          } else {
-            ctx.rect(tagX - 4, tagY - 1, nameW + 8, 14);
-          }
-          ctx.fill();
-          ctx.strokeStyle = isLocal ? "#facc15" : "rgba(255, 255, 255, 0.2)";
-          ctx.lineWidth = 1;
-          ctx.stroke();
-          ctx.font = "bold 11px Arial, sans-serif";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          ctx.fillStyle = "#000000";
-          ctx.fillText(name, x + 1, tagY + 7);
-          if (isLocal) {
-            ctx.fillStyle = "#fde047";
-          } else if (name.includes("Lovanga") || name.includes("T\xE0i X\u1EC9u") || name.includes("V\xE9 s\u1ED1") || name.includes("\u0111\u1EA5u gi\xE1") || name.includes("quay s\u1ED1")) {
-            ctx.fillStyle = "#38bdf8";
-          } else {
-            ctx.fillStyle = "#ffffff";
-          }
-          ctx.fillText(name, x, tagY + 6);
-          ctx.restore();
-        } else if (font) {
-          font.drawString(g, name, x, tagY, 2);
-        }
-      }
-      if (chatMessage && chatMessage.length > 0) {
-        const ctx = g.ctx;
-        const maxBubbleW = 140;
-        let lines = [];
-        if (font) {
-          lines = font.splitText(chatMessage, maxBubbleW - 14);
-        } else {
-          lines = [chatMessage];
-        }
-        if (lines.length > 2) {
-          lines = [lines[0], lines[1].slice(0, 16) + "..."];
-        }
-        let maxLineW = 30;
-        if (font) {
-          for (const l of lines) {
-            maxLineW = Math.max(maxLineW, font.stringWidth(l));
-          }
-        } else if (ctx) {
-          ctx.font = "11px Arial, sans-serif";
-          for (const l of lines) {
-            maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
-          }
-        }
-        const bubbleW = Math.min(maxBubbleW, Math.round(maxLineW + 14));
-        const bubbleH = lines.length * 13 + 6;
-        const bx = x - Math.floor(bubbleW / 2);
-        const by = y - 56 - bubbleH;
-        if (ctx) {
-          ctx.save();
-          ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
-          ctx.shadowBlur = 4;
-          ctx.shadowOffsetY = 2;
-          ctx.fillStyle = "#ffffff";
-          ctx.strokeStyle = "#1e293b";
-          ctx.lineWidth = 1;
-          ctx.beginPath();
-          if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(bx, by, bubbleW, bubbleH, 4);
-          } else {
-            ctx.rect(bx, by, bubbleW, bubbleH);
-          }
-          ctx.fill();
-          ctx.stroke();
-          ctx.beginPath();
-          ctx.moveTo(x - 3, by + bubbleH);
-          ctx.lineTo(x, by + bubbleH + 4);
-          ctx.lineTo(x + 3, by + bubbleH);
-          ctx.fillStyle = "#ffffff";
-          ctx.fill();
-          ctx.strokeStyle = "#1e293b";
-          ctx.stroke();
-          ctx.restore();
-          ctx.save();
-          ctx.font = "10px Arial, sans-serif";
-          ctx.fillStyle = "#0f172a";
-          ctx.textAlign = "center";
-          ctx.textBaseline = "middle";
-          for (let i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], x, by + 7 + i * 13);
-          }
-          ctx.restore();
-        }
-      }
     }
   };
 
@@ -5073,7 +6265,7 @@ void main() {
         AvatarRenderer.preloadWearing(npc.wearing);
       }
       this.tilemapRenderer.loadMap(this.currentMapId).catch(console.error);
-      import_j2me_compat8.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
+      import_j2me_compat9.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
       });
     }
     onResize(_width, _height) {
@@ -5933,7 +7125,7 @@ void main() {
     });
     if (gl) {
       console.log("[WebClient] WebGL 2 hardware acceleration enabled!");
-      backend = new import_j2me_compat9.WebGL2Renderer(gl);
+      backend = new import_j2me_compat10.WebGL2Renderer(gl);
       window.__RENDER_BACKEND = "webgl2";
     } else {
       console.warn("[WebClient] WebGL 2 not available, falling back to Canvas 2D");
@@ -5965,6 +7157,20 @@ void main() {
     }
     const worldScreen = new GameWorldScreen(network, midlet.skinPainter, midlet.font);
     window.gameWorldScreen = worldScreen;
+    const farmNetworkHandler = new FarmNetworkHandler(network);
+    const farmScreen = new FarmScreen(farmNetworkHandler, midlet.skinPainter, midlet.font);
+    window.farmScreen = farmScreen;
+    window.farmModel = farmNetworkHandler.model;
+    window.enterFarm = (userId) => {
+      farmScreen.localPlayer.name = worldScreen.localPlayer.name;
+      farmScreen.localPlayer.wearing = worldScreen.localPlayer.wearing;
+      farmNetworkHandler.enterFarm(userId || network.myUserId || 1);
+      midlet.canvas.setCurrentScreen(farmScreen);
+      window.__SCENE = "farm";
+    };
+    farmScreen.onExitToWorldMap = () => {
+      showWorldMap();
+    };
     midlet.canvas.setCurrentScreen(midlet.worldMapScreen);
     window.__SCENE = "worldmap";
     let cachedUserData = null;
@@ -5983,6 +7189,13 @@ void main() {
       }
     };
     midlet.worldMapScreen.onSelectRegion = (region) => {
+      if (region.mapId === 25) {
+        console.log("[WebClient] Entering Farm Screen (Map 25)...");
+        if (window.enterFarm) {
+          window.enterFarm(network.myUserId || 1);
+        }
+        return;
+      }
       console.log(`[WebClient] Entering Region: ${region.name} (Map ${region.mapId})`);
       midlet.canvas.setCurrentScreen(worldScreen);
       window.__SCENE = "world";

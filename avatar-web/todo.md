@@ -143,14 +143,18 @@
 ## VIII. CÁC HẠNG MỤC GAMEPLAY ĐANG & SẮP TRIỂN KHAI (UPCOMING GAMEPLAY PHASES)
 
 ### 1. Hệ thống Nông trại (Farm System - Map 25)
-- [ ] Tải dữ liệu các ô đất nông trại từ Server.
-- [ ] Gieo hạt giống (lúa, cà chua, cà rốt, bắp, hoa...).
-- [ ] Tưới nước, bón phân, diệt sâu, nhổ cỏ.
-- [ ] Thu hoạch nông sản và cộng vào kho nông sản.
-- [ ] Chuồng nuôi gà: Cho ăn, ấp trứng, thu hoạch trứng gà.
-- [ ] Chuồng nuôi bò: Cho ăn, vắt sữa bò.
-- [ ] Ao cá nông trại: Thả cá giống, cho cá ăn, câu/kéo lưới bắt cá.
-- [ ] Ghé thăm và phụ giúp/thu hoạch nông trại của bạn bè.
+- [x] Tải và đồng bộ dữ liệu các ô đất nông trại từ Server thật (Cmd 61 - JOIN, FarmMsgHandler).
+- [x] Mua hạt giống từ Cửa hàng nông trại bằng Xu (Cmd 62 - BUY_ITEM).
+- [x] Gieo hạt giống (Cà chua, cà rốt, khóm, dưa hấu, bắp...) (Cmd 64 - PLANT_SEED).
+- [x] Tưới nước, bón phân, chăm sóc cây trồng và đồng bộ trạng thái đất.
+- [x] Thu hoạch nông sản và cộng vào kho nông sản + tiền Xu (Cmd 66 - TREE_HARVEST).
+- [x] Khai hoang mở thêm ô đất canh tác (Cmd 70 - OPEN_LAND).
+- [x] Ghé thăm nông trại của người chơi khác (Cmd 61 - JOIN neighbor farm).
+- [x] Render đầy đủ bản đồ nông trại WebGL 2 Engine: nhà sàn, cây khế quả vàng, chuồng trại, ao cá, 30 ô đất, nông sản 8 giai đoạn sinh trưởng.
+- [x] Hoàn tất bộ test E2E 10 phase kiểm thử giao thức nông trại với Java Server thật (test_farm_e2e.js).
+- [ ] Chuồng nuôi gà: Cho ăn, ấp trứng, thu hoạch trứng gà (Cmd 71/72).
+- [ ] Chuồng nuôi bò: Cho ăn, vắt sữa bò (Cmd 71/73).
+- [ ] Ao cá nông trại: Thả cá giống, cho cá ăn, kéo lưới bắt cá (Cmd 74).
 
 ### 2. Hệ thống Cửa hàng & Mua sắm (Shop System - Map 23)
 - [ ] Cửa hàng quần áo & tóc: Thử đồ trực tiếp lên nhân vật trước khi mua.

@@ -9,3 +9,7 @@ export * from './gameplay/WorldMapScreen.js';
 export * from './gameplay/GameWorldScreen.js';
 export * from './runtime/GameCanvas.js';
 export * from './core/GameMidlet.js';
+export * from './farm/FarmModel.js';
+export * from './farm/FarmNetworkHandler.js';
+export * from './farm/FarmActionController.js';
+export * from './farm/FarmScreen.js';
