@@ -2,10 +2,10 @@
 ## (ENGINEERING GUIDELINES: DOS AND DON'TS)
 
 > **Dự án:** Avatar Web (v2.5.8)  
-> **Kiến trúc:** JavaScript + HTML5 Canvas/WebGL + PHP + MySQL
-> **Mục tiêu:** Chơi trực tiếp trên trình duyệt, hỗ trợ Multiplayer.
-> **Nguyên tắc cốt lõi:** **100% Zero Remake** — Giữ nguyên toàn bộ logic, asset, packet nhị phân, gameplay và UI gốc.  
-> **Mục đích tài liệu:** Bản ghi nhớ bắt buộc cho mọi tác vụ (task) mới. Bất kỳ AI Agent hay lập trình viên nào tham gia dự án **BẮT BUỘC ĐỌC VÀ TUÂN THỦ TUYỆT ĐỐI**, không lặp lại bất kỳ lỗi kỹ thuật nào đã từng xảy ra.
+> **Kiến trúc:** JavaScript/TypeScript + WebGL 2 Native Engine + PHP + MySQL  
+> **Mục tiêu:** Chơi trực tiếp trên trình duyệt, hỗ trợ Multiplayer thời gian thực.  
+> **Nguyên tắc cốt lõi:** **100% Zero Remake** — Giữ nguyên toàn bộ logic, asset, packet nhị phân, gameplay và UI gốc của Teamobi Avatar Java ME 2.5.8.  
+> **Mục đích tài liệu:** Bản ghi nhớ bắt buộc cho mọi tác vụ (task). Bất kỳ AI Agent hay lập trình viên nào tham gia dự án **BẮT BUỘC ĐỌC VÀ TUÂN THỦ TUYỆT ĐỐI**, không lặp lại bất kỳ lỗi kỹ thuật nào đã từng xảy ra.
 
 ---
 
@@ -41,7 +41,7 @@
 
 ### 7. KHÔNG hardcode kích thước màn hình 240x320 vào logic tính toán chuột
 - ❌ **CẤM:** Dùng hằng số `240` hoặc `320` để tính tỉ lệ click chuột: `scaleX = 240 / rect.width`.
-- ⚠️ **Lỗi thực tế đã mắc:** Khi chuyển canvas sang Fullscreen Widescreen (ví dụ 640x360), việc hardcode 240x320 làm sai lệch toàn bộ vị trí click chuột, người dùng click một nơi nhân vật đi một nẻo hoặc không bấm được nút UI.
+- ⚠️ **Lỗi thực tế đã mắc:** Khi chuyển canvas sang Fullscreen Widescreen, việc hardcode 240x320 làm sai lệch toàn bộ vị trí click chuột, người dùng click một nơi nhân vật đi một nẻo hoặc không bấm được nút UI.
 - ✅ **ĐÚNG:** Luôn tính toán tỉ lệ dựa trên kích thước thực tế của canvas buffer: `scaleX = canvas.width / rect.width`, `scaleY = canvas.height / rect.height`.
 
 ### 8. KHÔNG dùng thuật toán Row-First cho Tileset của Avatar
@@ -58,20 +58,11 @@
 ### 10. KHÔNG báo cáo hoàn thành khi chưa chạy kiểm thử thực tế (No Blind Reporting)
 - ❌ **CẤM:** Viết xong code rồi báo cáo đã xong mà không chạy thử.
 - ✅ **ĐÚNG:** Bắt buộc phải chạy script kiểm thử tự động (`node avatar-web/tools/test_web_ui.js` hoặc `test_multiplayer_e2e.js`), chụp ảnh màn hình lưu vào thư mục artifacts, kiểm tra log trình duyệt và log server trước khi báo cáo cho người dùng.
-###
-- Không xây dựng game bằng PHP thuần ở phía hiển thị.
-- Không chuyển toàn bộ sprite thành ảnh PNG riêng nếu có thể giữ atlas và frame gốc.
-- Không tự thiết kế lại nhân vật, bản đồ hoặc giao diện khi đã có tài nguyên gốc.
-- Không xây dựng lại tất cả cơ chế game theo suy đoán.
-- Không đưa logic quan trọng như tiền, vật phẩm, giao dịch lên client.
-- Không xây dựng Multiplayer trước khi Game Engine hoạt động ổn định.
-- Chơi trực tiếp trên Chrome, Edge, Firefox.
-- Không cần cài Java, JAR hoặc giả lập.
-- Giữ phong cách đồ họa và tài nguyên Avatar gốc.
-- Giữ cơ chế gameplay của phiên bản J2ME.
-- Có thể chơi nhiều người cùng lúc.
-- PHP + MySQL quản lý toàn bộ dữ liệu.
-- JavaScript/WebGL đảm nhiệm phần game client.
+
+### 11. TUYỆT ĐỐI KHÔNG DÙNG CANVAS 2D ĐỂ RENDER (STRICTLY WEBGL 2 ONLY)
+- ❌ **CẤM:** Tuyệt đối không dùng Canvas 2D (`getContext('2d')`) để render thế giới game, bản đồ, nhân vật, công trình, animation hay hiệu ứng.
+- ❌ **CẤM:** Không được downgrade engine, không viết code phụ thuộc vào Canvas 2D cho luồng render chính. Không áp đặt `aspect-ratio: 4 / 3` gây ra hộp đen (pillarbox) 2 bên màn hình.
+- ✅ **ĐÚNG:** Mọi hiển thị trong game phải sử dụng **WebGL 2 Engine** (`WebGL2Renderer.ts` dựa trên `getContext('webgl2')`) với cơ chế GPU Sprite Batching (GLSL 300 es, dynamic VBO/IBO, multi-texture 8 slots, nearest-neighbor pixel-perfect rendering).
 
 ---
 
@@ -91,9 +82,10 @@ Trước khi kiểm thử bất kỳ tính năng nào, phải xác nhận:
   ```
 - Luôn hướng dẫn người dùng nhấn **`Ctrl + F5`** (hoặc `Ctrl + Shift + R`) để ép trình duyệt xóa sạch cache cũ.
 
-### 3. Duy trì nhịp vòng lặp Game Loop chuẩn 20 FPS (50ms/frame)
-- Giữ nguyên thiết kế của `main.a.run()`: 20 frame mỗi giây, mỗi frame đúng 50ms.
-- Tách biệt rõ ràng giữa logic `update()` (tính toán vị trí, timer, frame animation) và `paint()` (vẽ canvas/WebGL).
+### 3. Vòng lặp phân tách: Game Loop 60 FPS & Simulation 20 Ticks/giây (Decoupled Game Loop)
+- **Simulation (Vật lý, Logic, Mạng):** Giữ nguyên cố định **20 ticks/giây** (50ms mỗi tick với bộ tích lũy `accumulator`) đúng chuẩn Java ME Teamobi gốc để đồng bộ 100% với Java Server và chống desync.
+- **Rendering độc lập:** Chạy trên `requestAnimationFrame` nhắm đích chuẩn **60.0 FPS** (hoặc tần số quét màn hình).
+- **Positional Interpolation:** Bắt buộc áp dụng nội suy tọa độ theo tỉ lệ `alpha = accumulator / 50ms` cho tọa độ nhân vật chính, người chơi khác và camera để chuyển động đạt 60 FPS siêu mượt mà không bị giật lag.
 
 ### 4. Sắp xếp thứ tự vẽ theo trục Y (2.5D Depth Sorting)
 - Mọi đối tượng xuất hiện trên bản đồ (người chơi, nhân vật khác, NPC, thú nuôi) phải được đưa vào mảng và sắp xếp tăng dần theo tọa độ Y trước khi render:
@@ -102,16 +94,18 @@ Trước khi kiểm thử bất kỳ tính năng nào, phải xác nhận:
   ```
 - Đối tượng có `y` nhỏ hơn (ở xa) được vẽ trước, đối tượng có `y` lớn hơn (ở gần) được vẽ đè lên trên.
 
-### 5. Ghép nhân vật đa lớp chuẩn Avatar (`AvatarRenderer.ts`)
-- Vẽ đúng thứ tự lớp từ dưới lên trên:
-  1. Bóng chân (`s0.png` hoặc arc đổ bóng)
-  2. Quần / Chân (`zorder = 10`)
-  3. Áo / Thân (`zorder = 20`)
-  4. Đầu / Mặt (`zorder = 30`)
-  5. Mắt (`zorder = 40`)
-  6. Tóc (`zorder = 50`)
-  7. Nón, mặt nạ, cánh, phụ kiện (`zorder = 52..60`)
-- Tọa độ sprite cắt từ `avatar_img_data` (1.139 mục) và các phần tử `part_*.dat`.
+### 5. Ghép nhân vật 10 lớp chuẩn Avatar (`AvatarRenderer.ts`)
+- Vẽ đúng thứ tự 10 lớp từ dưới lên trên:
+  1. **Cánh sau** (Wing back - zorder 5)
+  2. **Thân** (Body base - zorder 15)
+  3. **Quần** (Legs / Pants - zorder 20)
+  4. **Áo** (Shirt / Armor - zorder 30)
+  5. **Đầu** (Head base - zorder 35, tự động gắn Head 0 nếu chưa có)
+  6. **Khuôn mặt** (Face - zorder 40)
+  7. **Mắt** (Eyes - zorder 45, tự động gắn Eyes 4 nếu chưa có)
+  8. **Tóc** (Hair - zorder 50)
+  9. **Nón** (Hat / Headwear - zorder 55)
+  10. **Cầm tay** (Handheld item / Wings front - zorder 60)
 
 ### 6. Xử lý đồng thời cả 2 chế độ điều khiển: Chuột & Bàn phím
 - **Chuột / Cảm ứng:**
@@ -126,8 +120,10 @@ Trước khi kiểm thử bất kỳ tính năng nào, phải xác nhận:
 - Khi một client ngắt kết nối, Java Server mất khoảng 1 đến 2 giây để thực hiện `ServerManager.disconnect()` và ghi `Account unlocked successfully.`.
 - Không gửi đăng nhập lại cùng một tài khoản ngay trong vòng 1 giây đó để tránh lỗi tài khoản đang bị khóa tạm thời.
 
-###
-- Sử dụng tài nguyên có sẵn không tự tạo mới. Rà soát tài nguyên trong các thư mục như 'img' 'res' và các thư mục khác.
+### 8. Toàn màn hình Responsive Viewport (`100vw × 100vh`)
+- Game Canvas luôn chiếm trọn `100vw × 100dvh`, không chừa khoảng trống, không có thanh bar web ngoài chèn đè lên game.
+- Mặt đường hè phố neo sát cạnh đáy màn hình (0px gap), bầu trời mở rộng theo chiều cao và chiều ngang thiết bị.
+
 ---
 
 ## III. CHECKLIST KIỂM THỬ TRƯỚC KHI BÀN GIAO MỖI TASK (PRE-FLIGHT CHECKLIST)
@@ -137,7 +133,9 @@ Mỗi khi hoàn thành một task, **BẮT BUỘC** kiểm tra lần lượt dan
 - [ ] **1. Compile & Bundle Clean:** Chạy `npm run build` không có bất kỳ cảnh báo hoặc lỗi TypeScript (`tsc`) nào; `esbuild` ra file `app.js` thành công.
 - [ ] **2. Services Health:** MariaDB (3306) và Java Server (19128) không bị crash, Gateway (19129) hoạt động bình thường.
 - [ ] **3. Real Account Login:** Đăng nhập thành công với tài khoản thật `admin` / `123456` hoặc `ad` / `123456` (không dùng tài khoản mock).
-- [ ] **4. Map & Assets Render:** Bản đồ hiển thị đầy đủ gạch, cây cối, nhà cửa đúng hướng, nhân vật có trang phục và hoạt ảnh đứng/bước đi.
-- [ ] **5. Mouse & Touch Controls:** Click chuột nhân vật đi mượt mà, không bị teleport, không lệch tọa độ khi toàn màn hình.
-- [ ] **6. Multiplayer Verification:** Chạy `node avatar-web/tools/test_multiplayer_e2e.js` xác nhận 2 client nhìn thấy nhau, đồng bộ di chuyển và nhận tin nhắn chat 2 chiều.
-- [ ] **7. Visual Evidence:** Chụp ảnh màn hình thực tế lưu vào thư mục artifacts và nhúng đường dẫn vào báo cáo phản hồi người dùng.
+- [ ] **4. WebGL 2 Active:** Xác minh `window.__RENDER_BACKEND === 'webgl2'`, không fallback Canvas 2D.
+- [ ] **5. Game Loop 60 FPS:** Kiểm tra FPS đạt chuẩn ~60 FPS, draw calls $\le 15$ mỗi frame.
+- [ ] **6. Map & Assets Render:** Bản đồ hiển thị đầy đủ gạch, cây cối, nhà cửa đúng hướng, nhân vật có trang phục và hoạt ảnh đứng/bước đi.
+- [ ] **7. Mouse & Touch Controls:** Click chuột nhân vật đi mượt mà, không bị teleport, không lệch tọa độ khi toàn màn hình.
+- [ ] **8. Multiplayer Verification:** Chạy `node avatar-web/tools/test_multiplayer_e2e.js` xác nhận 2 client nhìn thấy nhau, đồng bộ di chuyển và nhận tin nhắn chat 2 chiều.
+- [ ] **9. Visual Evidence:** Chụp ảnh màn hình thực tế lưu vào thư mục artifacts và nhúng đường dẫn vào báo cáo phản hồi người dùng.
