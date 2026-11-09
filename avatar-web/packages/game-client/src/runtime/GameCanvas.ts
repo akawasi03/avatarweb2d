@@ -60,10 +60,13 @@ export class GameCanvas extends Canvas {
       this.lastTime = now;
       this.accumulator += elapsed;
 
-      // 1. Fixed Simulation Ticks (Strictly 20 ticks / second)
-      while (this.accumulator >= this.TICK_INTERVAL) {
+      // 1. Fixed Simulation Ticks (Strictly 20 ticks / second, capped at 1 update per frame)
+      if (this.accumulator >= this.TICK_INTERVAL) {
         this.tick();
         this.accumulator -= this.TICK_INTERVAL;
+        if (this.accumulator >= this.TICK_INTERVAL) {
+          this.accumulator %= this.TICK_INTERVAL;
+        }
       }
 
       // 2. Alpha for Positional Interpolation (0.0 <= alpha < 1.0)

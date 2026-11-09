@@ -466,10 +466,10 @@
       var VERTEX_SHADER_SRC = `#version 300 es
 precision highp float;
 
-in vec2 a_position;
-in vec2 a_texcoord;
-in vec4 a_color;
-in float a_texid;
+layout(location = 0) in vec2 a_position;
+layout(location = 1) in vec2 a_texcoord;
+layout(location = 2) in vec4 a_color;
+layout(location = 3) in float a_texid;
 
 uniform vec2 u_resolution;
 
@@ -547,6 +547,10 @@ void main() {
         activeTextures = [null, null, null, null, null, null, null, null];
         activeTextureElements = [null, null, null, null, null, null, null, null];
         textureCache = /* @__PURE__ */ new WeakMap();
+        // Context Loss & Recovery
+        isContextLost = false;
+        onContextLostHandler;
+        onContextRestoredHandler;
         // 2D Text Overlay Canvas for seamless J2ME/Canvas 2D compatibility
         textCanvas = null;
         textCtx = null;
@@ -575,9 +579,22 @@ void main() {
         constructor(gl) {
           this.gl = gl;
           this.vertexData = new Float32Array(MAX_QUADS * FLOATS_PER_QUAD);
-          this.program = this.createProgram(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
-          this.initBuffers();
-          this.initGLState();
+          this.rebuildContext();
+          this.onContextLostHandler = (e) => {
+            e.preventDefault();
+            this.isContextLost = true;
+            console.warn("[WebGL2Renderer] WebGL Context Lost! Freeing GPU resources.");
+          };
+          this.onContextRestoredHandler = () => {
+            console.log("[WebGL2Renderer] WebGL Context Restored! Rebuilding shaders, buffers, and textures.");
+            this.rebuildContext();
+            this.isContextLost = false;
+          };
+          const canvas = this.gl.canvas;
+          if (canvas && typeof canvas.addEventListener === "function") {
+            canvas.addEventListener("webglcontextlost", this.onContextLostHandler);
+            canvas.addEventListener("webglcontextrestored", this.onContextRestoredHandler);
+          }
           if (typeof document !== "undefined") {
             this.textCanvas = document.createElement("canvas");
             this.textCanvas.width = this.width;
@@ -587,6 +604,33 @@ void main() {
         }
         markTextUsed() {
           this.has2DText = true;
+        }
+        rebuildContext() {
+          const gl = this.gl;
+          this.program = this.createProgram(VERTEX_SHADER_SRC, FRAGMENT_SHADER_SRC);
+          this.initBuffers();
+          this.initGLState();
+          this.textureCache = /* @__PURE__ */ new WeakMap();
+          this.activeTextures.fill(null);
+          this.activeTextureElements.fill(null);
+          this.quadCount = 0;
+        }
+        dispose() {
+          const canvas = this.gl.canvas;
+          if (canvas && typeof canvas.removeEventListener === "function") {
+            canvas.removeEventListener("webglcontextlost", this.onContextLostHandler);
+            canvas.removeEventListener("webglcontextrestored", this.onContextRestoredHandler);
+          }
+          const gl = this.gl;
+          if (this.program)
+            gl.deleteProgram(this.program);
+          if (this.vbo)
+            gl.deleteBuffer(this.vbo);
+          if (this.ibo)
+            gl.deleteBuffer(this.ibo);
+          if (this.vao)
+            gl.deleteVertexArray(this.vao);
+          this.textureCache = /* @__PURE__ */ new WeakMap();
         }
         createShader(type, src) {
           const gl = this.gl;
@@ -662,6 +706,8 @@ void main() {
           gl.disable(gl.DEPTH_TEST);
         }
         beginFrame(width, height) {
+          if (this.isContextLost)
+            return;
           this.width = width;
           this.height = height;
           const gl = this.gl;
@@ -697,7 +743,13 @@ void main() {
           }
         }
         endFrame() {
+          if (this.isContextLost)
+            return;
           this.flush();
+          if (this.isClipping) {
+            this.gl.disable(this.gl.SCISSOR_TEST);
+            this.isClipping = false;
+          }
           if (this.textCanvas && this.has2DText) {
             const tex = this.getOrCreateTexture(this.textCanvas);
             if (tex) {
@@ -709,12 +761,10 @@ void main() {
               this.flush();
             }
           }
-          if (this.isClipping) {
-            this.gl.disable(this.gl.SCISSOR_TEST);
-            this.isClipping = false;
-          }
         }
         flush() {
+          if (this.isContextLost)
+            return;
           if (this.quadCount === 0)
             return;
           const gl = this.gl;
@@ -743,7 +793,13 @@ void main() {
           return { ...this.metrics };
         }
         getOrCreateTexture(imageSource) {
-          if (!imageSource)
+          if (!imageSource || this.isContextLost)
+            return null;
+          if ("complete" in imageSource && !imageSource.complete)
+            return null;
+          const w = imageSource.naturalWidth || imageSource.width || 0;
+          const h = imageSource.naturalHeight || imageSource.height || 0;
+          if (w === 0 || h === 0)
             return null;
           let tex = this.textureCache.get(imageSource);
           if (!tex) {
@@ -1956,9 +2012,12 @@ void main() {
         }
         this.lastTime = now;
         this.accumulator += elapsed;
-        while (this.accumulator >= this.TICK_INTERVAL) {
+        if (this.accumulator >= this.TICK_INTERVAL) {
           this.tick();
           this.accumulator -= this.TICK_INTERVAL;
+          if (this.accumulator >= this.TICK_INTERVAL) {
+            this.accumulator %= this.TICK_INTERVAL;
+          }
         }
         const alpha = Math.max(0, Math.min(1, this.accumulator / this.TICK_INTERVAL));
         this.graphics.beginFrame(this.width, this.height);
