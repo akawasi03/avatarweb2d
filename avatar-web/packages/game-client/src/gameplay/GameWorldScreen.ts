@@ -2,7 +2,7 @@ import { Graphics, Image } from '@avatar/j2me-compat';
 import { GameScreen } from '../ui/GameScreen.js';
 import { UISkinPainter } from '../ui/UISkinPainter.js';
 import { IFont } from '../renderer/BitmapFont.js';
-import { NetworkSession, RemotePlayer } from '../network/NetworkSession.js';
+import { NetworkSession, RemotePlayer, MapItemType, DynamicMapItem } from '../network/NetworkSession.js';
 import { TilemapRenderer, MapObjectInstance } from '../maps/TilemapRenderer.js';
 import { AvatarRenderer } from '../characters/AvatarRenderer.js';
 
@@ -294,7 +294,15 @@ export class GameWorldScreen extends GameScreen {
   }
 
   private setupNetworkHandlers(): void {
-    this.networkSession.on('join_park', (data: { mapId: number; areaId: number; x: number; y: number; players?: RemotePlayer[] }) => {
+    this.networkSession.on('join_park', (data: {
+      mapId: number;
+      areaId: number;
+      x: number;
+      y: number;
+      players?: RemotePlayer[];
+      mapItemTypes?: MapItemType[];
+      mapItems?: DynamicMapItem[];
+    }) => {
       this.currentMapId = data.mapId;
       this.currentAreaId = data.areaId;
       if (data.x > 0 && data.y > 0) {
@@ -305,7 +313,11 @@ export class GameWorldScreen extends GameScreen {
       for (const npc of this.mapNpcs) {
         AvatarRenderer.preloadWearing(npc.wearing);
       }
-      this.tilemapRenderer.loadMap(this.currentMapId);
+      this.tilemapRenderer.loadMap(this.currentMapId).then(() => {
+        if (data.mapItemTypes && data.mapItems) {
+          this.tilemapRenderer.setDynamicMapItems(data.mapItemTypes, data.mapItems);
+        }
+      });
       AvatarRenderer.preloadWearing(this.localPlayer.wearing);
 
       this.remotePlayers.clear();
@@ -994,6 +1006,11 @@ export class GameWorldScreen extends GameScreen {
 
         if (screenX + imgW >= -50 && screenX <= screenW + 50 && screenY + imgH >= -50 && screenY <= screenH + 50) {
           g.drawImage(img, screenX, screenY, 0);
+
+          // Authentic Park Gate (Part 846): render area zone number on arch (ks.java line 37)
+          if (ent.mapObject.partId === 846 && this.font) {
+            this.font.drawString(g, String(this.currentAreaId), ent.x - camX, ent.y - 30 - camY, 2);
+          }
         }
         continue;
       }

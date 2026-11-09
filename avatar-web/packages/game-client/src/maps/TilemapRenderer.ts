@@ -1,4 +1,5 @@
 import { Graphics, Image } from '@avatar/j2me-compat';
+import { MapItemType, DynamicMapItem } from '../network/NetworkSession.js';
 
 export interface MapData {
   id: number;
@@ -14,6 +15,9 @@ export interface MapObjectInstance {
   y: number;          // World Y in pixels (foot anchor bottom)
   layer: number;      // 0: Y-sorted ground/structure, 1: overhead canopy
   image?: Image;
+  isDynamic?: boolean;
+  dynamicType?: number;
+  dynamicId?: number;
 }
 
 export class TilemapRenderer {
@@ -112,147 +116,223 @@ export class TilemapRenderer {
       // Authentic special tile marker decoding & MapObject spawning from ir.java lines 1308-1600
       const spawnedObjects: MapObjectInstance[] = [];
 
-      for (let i = 0; i < totalTiles; i++) {
+      let i = 0;
+      while (i < totalTiles) {
         const t = tiles[i];
         const col = i % widthTiles;
         const row = Math.floor(i / widthTiles);
         const px = col * TilemapRenderer.TILE_SIZE;
         const py = row * TilemapRenderer.TILE_SIZE;
 
-        if (t === 127) {
-          // Casino Palace / Airport Terminal (Part 830)
-          spawnedObjects.push({ partId: 830, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 128) {
-          // Entrance Gate / Arch (Part 828)
-          spawnedObjects.push({ partId: 828, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 5;
-        } else if (t === 129 || t === 160) {
-          // Mall / Supermarket (Part 829 or 836 in suburbs)
-          const part = (mapId === 17) ? 836 : 829;
-          spawnedObjects.push({ partId: part, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 141) {
-          // Barn gate / Park lamp post (Part 840)
-          spawnedObjects.push({ partId: 840, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 5;
-        } else if (t === 143) {
-          // Farm Silo / Ecological Pavilion (Part 831)
-          spawnedObjects.push({ partId: 831, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 51;
-        } else if (t === 144) {
-          // Well / Farm Water Tank (Part 841)
-          spawnedObjects.push({ partId: 841, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = 5;
-        } else if (t === 147 || t === 161) {
-          // Storefront (Part 832)
-          spawnedObjects.push({ partId: 832, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 148 || t === 162) {
-          // Airport hangar / Suburban shop (Part 833 or 836)
-          const part = (mapId === 17) ? 836 : 833;
-          spawnedObjects.push({ partId: part, x: px + 48, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 149) {
-          // Airport Radar Tower (Part 834)
-          spawnedObjects.push({ partId: 834, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 150) {
-          // Farm Windmill (Part 842)
-          spawnedObjects.push({ partId: 842, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = (mapId === 25) ? 4 : 0;
-        } else if (t === 151) {
-          // Farm Coop / Barn Stall (Part 843)
-          spawnedObjects.push({ partId: 843, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = 0;
-        } else if (t === 152) {
-          // Wooden Fence / Park Railing (Part 835)
-          spawnedObjects.push({ partId: 835, x: px + 12, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = (mapId === 25) ? 55 : 0;
-        } else if (t === 159) {
-          // Water Fountain / Garden Pond (Part 848)
-          spawnedObjects.push({ partId: 848, x: px + 24, y: py + TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-          tiles[i] = (mapId === 25) ? 5 : ((mapId === 13) ? 0 : 4);
-        } else if (t === 172) {
-          // Shade Tree Type 1 (Part 836)
-          spawnedObjects.push({ partId: 836, x: px + 37, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 173 || t === 179) {
-          // Tree Type 2 (Part 837)
-          spawnedObjects.push({ partId: 837, x: px + 48, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 174) {
-          // Tree Type 3 (Part 838)
-          spawnedObjects.push({ partId: 838, x: px + 48, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 175) {
-          // Residential House Type A (Part 830)
-          spawnedObjects.push({ partId: 830, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 176) {
-          // Residential House Type B (Part 829)
-          spawnedObjects.push({ partId: 829, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 177) {
-          // Residential House Type C (Part 832)
-          spawnedObjects.push({ partId: 832, x: px + 36, y: py + TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 186) {
-          // Fishing Pier / River Dock (Part 847)
-          spawnedObjects.push({ partId: 847, x: px + 11, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
-          tiles[i] = 43;
-        } else if (t === 190) {
-          // Casino Game Table 1 (Part 1029)
-          spawnedObjects.push({ partId: 1029, x: px + 36, y: py + 20, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 192) {
-          // Casino Game Table 2 (Part 1034)
-          spawnedObjects.push({ partId: 1034, x: px + 36, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 193) {
-          // Gaming Chair (Part 1032)
-          spawnedObjects.push({ partId: 1032, x: px + 24, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 194) {
-          // Gaming Sofa (Part 1030)
-          spawnedObjects.push({ partId: 1030, x: px + 24, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 195) {
-          // Shopping Display Rack 1 (Part 1037)
-          spawnedObjects.push({ partId: 1037, x: px + 24, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 196) {
-          // Shopping Display Rack 2 (Part 1035)
-          spawnedObjects.push({ partId: 1035, x: px + 24, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 197) {
-          // Clothing Mannequin (Part 1033)
-          spawnedObjects.push({ partId: 1033, x: px + 12, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 198) {
-          // Suburban Park Bench (Part 1036)
-          spawnedObjects.push({ partId: 1036, x: px + 12, y: py + 20, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 199) {
-          // Suburban Street Lamp (Part 1031)
-          spawnedObjects.push({ partId: 1031, x: px + 24, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 200) {
-          // Lucky Wheel Machine (Part 1075)
-          spawnedObjects.push({ partId: 1075, x: px + 24, y: py + 24, layer: 0 });
-          tiles[i] = 4;
-        } else if (t === 201) {
-          // Decorative Plant (Part 1094)
-          spawnedObjects.push({ partId: 1094, x: px + 24, y: py + 20, layer: 0 });
-          tiles[i] = 5;
-        } else if (t === 202) {
-          // Residential Mailbox / Post (Part 4)
-          spawnedObjects.push({ partId: 4, x: px + 24, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
-          tiles[i] = 96;
-        } else if (t === 204) {
-          // Park Entrance Arch (Part 846)
-          spawnedObjects.push({ partId: 846, x: px + 12, y: py + TilemapRenderer.TILE_SIZE, layer: 0 });
-          tiles[i] = 43;
+        // Check if marker requires special object handling
+        if (
+          t === 127 || t === 128 || t === 129 || t === 141 || t === 143 || t === 144 ||
+          t === 147 || t === 148 || t === 149 || t === 150 || t === 151 || t === 152 ||
+          t === 159 || t === 160 || t === 161 || t === 162 || t === 172 || t === 173 ||
+          t === 174 || t === 175 || t === 176 || t === 177 || t === 178 || t === 179 ||
+          t === 186 || t === 190 || t === 192 || t === 193 || t === 194 || t === 195 ||
+          t === 196 || t === 197 || t === 198 || t === 199 || t === 200 || t === 201 ||
+          t === 202 || t === 204 || t === 98
+        ) {
+          // Calculate consecutive identical marker tiles in the current row
+          let consecutive = 1;
+          while (
+            i + consecutive < totalTiles &&
+            Math.floor((i + consecutive) / widthTiles) === row &&
+            tiles[i + consecutive] === t
+          ) {
+            consecutive++;
+          }
+          const spanPx = consecutive * TilemapRenderer.TILE_SIZE;
+          const centerX = px + Math.floor(spanPx / 2);
+
+          let floorReplacement = 96;
+          let partId = -1;
+          let objX = centerX;
+          let objY = py + TilemapRenderer.TILE_SIZE - 4;
+
+          if (t === 127) {
+            partId = 830;
+            objX = px + 36;
+            objY = py + TilemapRenderer.TILE_SIZE - 2;
+            floorReplacement = 96;
+          } else if (t === 128) {
+            partId = 828;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 5;
+          } else if (t === 129 || t === 160) {
+            partId = (mapId === 17) ? 836 : 829;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = 96;
+          } else if (t === 141) {
+            partId = 840;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = (i + widthTiles < totalTiles) ? tiles[i + widthTiles] : 5;
+          } else if (t === 143) {
+            partId = 831;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = 51;
+          } else if (t === 144) {
+            partId = 841;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = 5;
+          } else if (t === 147 || t === 161) {
+            partId = 832;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = 96;
+          } else if (t === 148 || t === 162) {
+            partId = (mapId === 17) ? 836 : 833;
+            objX = px + 48;
+            objY = py + TilemapRenderer.TILE_SIZE - 2;
+            floorReplacement = 96;
+          } else if (t === 149) {
+            partId = 834;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = 4;
+          } else if (t === 150) {
+            partId = 842;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = (mapId === 25) ? 4 : 0;
+          } else if (t === 151) {
+            partId = 843;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = 0;
+          } else if (t === 152) {
+            partId = 835;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = (mapId === 25) ? 55 : 0;
+          } else if (t === 159) {
+            partId = 848;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 4;
+            floorReplacement = (mapId === 25) ? 5 : ((mapId === 13) ? 0 : 4);
+          } else if (t === 172) {
+            partId = 836;
+            objX = px + 37;
+            objY = py + TilemapRenderer.TILE_SIZE;
+            floorReplacement = 96;
+          } else if (t === 173 || t === 179) {
+            partId = 837;
+            objX = px + 48;
+            objY = py + TilemapRenderer.TILE_SIZE;
+            floorReplacement = 96;
+          } else if (t === 174) {
+            partId = 838;
+            objX = px + 48;
+            objY = py + TilemapRenderer.TILE_SIZE;
+            floorReplacement = 96;
+          } else if (t === 175) {
+            partId = 830;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 2;
+            floorReplacement = 96;
+          } else if (t === 176) {
+            partId = 829;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 2;
+            floorReplacement = 96;
+          } else if (t === 177) {
+            partId = 832;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE - 2;
+            floorReplacement = 96;
+          } else if (t === 178) {
+            partId = 830;
+            objX = px + 24;
+            objY = py + TilemapRenderer.TILE_SIZE - 2;
+            floorReplacement = 96;
+          } else if (t === 186) {
+            partId = 974;
+            objX = px + 24;
+            objY = py + TilemapRenderer.TILE_SIZE;
+            floorReplacement = 17;
+          } else if (t === 190) {
+            partId = 1029;
+            objX = px + 36;
+            objY = py + 20;
+            floorReplacement = 4;
+          } else if (t === 192) {
+            partId = 1034;
+            objX = px + 36;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 193) {
+            partId = 1032;
+            objX = px + 24;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 194) {
+            partId = 1030;
+            objX = px + 24;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 195) {
+            partId = 1037;
+            objX = px + 24;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 196) {
+            partId = 1035;
+            objX = px + 24;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 197) {
+            partId = 1033;
+            objX = px + 12;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 198) {
+            partId = 1036;
+            objX = px + 12;
+            objY = py + 20;
+            floorReplacement = 4;
+          } else if (t === 199) {
+            partId = 1031;
+            objX = px + 24;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 200) {
+            partId = 1075;
+            objX = px + 24;
+            objY = py + 24;
+            floorReplacement = 4;
+          } else if (t === 201) {
+            partId = 1094;
+            objX = px + 24;
+            objY = py + 20;
+            floorReplacement = 5;
+          } else if (t === 202) {
+            partId = 4;
+            objX = px + 24;
+            objY = py + TilemapRenderer.TILE_SIZE;
+            floorReplacement = 96;
+          } else if (t === 98 || t === 204) {
+            partId = 846;
+            objX = centerX;
+            objY = py + TilemapRenderer.TILE_SIZE;
+            floorReplacement = 43;
+          }
+
+          if (partId > 0) {
+            spawnedObjects.push({ partId, x: objX, y: objY, layer: 0 });
+          }
+
+          for (let k = 0; k < consecutive; k++) {
+            tiles[i + k] = floorReplacement;
+          }
+
+          i += consecutive;
+          continue;
         } else if (t === 139) {
           // Waypoint: resolve to neighbor
           tiles[i] = (i % widthTiles === 0) ? tiles[i + 1] : tiles[i - 1];
@@ -261,6 +341,8 @@ export class TilemapRenderer {
         } else if (t >= 126) {
           tiles[i] = (i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126) ? tiles[i - 1] : 0;
         }
+
+        i++;
       }
 
       // Preload images for all spawned map objects
@@ -347,6 +429,60 @@ export class TilemapRenderer {
     } catch (err) {
       console.error('[TilemapRenderer] Load error:', err);
     }
+  }
+
+  public async setDynamicMapItems(mapItemTypes: MapItemType[], mapItems: DynamicMapItem[]): Promise<void> {
+    // Remove old dynamic items
+    this.mapObjects = this.mapObjects.filter(o => !o.isDynamic);
+    if (!mapItemTypes || !mapItems || mapItems.length === 0) return;
+
+    const typeMap = new Map<number, MapItemType>();
+    for (const t of mapItemTypes) {
+      typeMap.set(t.id, t);
+    }
+
+    const newDynamicObjects: MapObjectInstance[] = [];
+    for (const it of mapItems) {
+      const itemType = typeMap.get(it.typeID);
+      if (!itemType) continue;
+
+      const worldX = it.tileX * TilemapRenderer.TILE_SIZE + itemType.dx;
+      const worldY = it.tileY * TilemapRenderer.TILE_SIZE + itemType.dy;
+
+      newDynamicObjects.push({
+        partId: itemType.imgID,
+        x: worldX,
+        y: worldY,
+        layer: 0,
+        isDynamic: true,
+        dynamicType: it.type,
+        dynamicId: it.typeID
+      });
+    }
+
+    const uniquePartIds = Array.from(new Set(newDynamicObjects.map(o => o.partId)));
+    await Promise.all(uniquePartIds.map(async (partId) => {
+      if (!this.objectImageCache.has(partId)) {
+        try {
+          const img = await Image.createImage(`/assets/home/${partId}.png`);
+          this.objectImageCache.set(partId, img);
+        } catch {
+          try {
+            const img = await Image.createImage(`/assets/item/${partId}.png`);
+            this.objectImageCache.set(partId, img);
+          } catch (e) {
+            console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
+          }
+        }
+      }
+    }));
+
+    for (const obj of newDynamicObjects) {
+      obj.image = this.objectImageCache.get(obj.partId);
+      this.mapObjects.push(obj);
+    }
+
+    console.log(`[TilemapRenderer] Added ${newDynamicObjects.length} dynamic map items`);
   }
 
   public updateCamera(targetX: number, targetY: number, screenW: number, screenH: number): void {

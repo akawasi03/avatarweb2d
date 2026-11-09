@@ -1372,31 +1372,11 @@ if (!$view) {
   </button>
 
   <!-- =============================================================
-       3. Fullscreen WebGL Game Overlay
+       3. Fullscreen WebGL Game Overlay (Zero top/bottom bars)
   ============================================================= -->
   <div id="game-modal">
-    <div class="game-top-bar">
-      <div class="game-bar-left">
-        <img src="/assets/portal/logo.png" alt="Avatar" style="height: 22px;">
-        <span>AVATAR 2.5.8 WEBGL NATIVE</span>
-      </div>
-      <div class="game-bar-right">
-        <span id="gamePlayerInfo" style="color: #38bdf8;">Đang kết nối...</span>
-        <button class="btn-game-tool" onclick="openWorldMap()" title="Mở bản đồ thế giới 8 khu vực">🗺 Chọn khu vực</button>
-        <button class="btn-game-tool" onclick="toggleFullscreen()">⛶ Toàn màn hình</button>
-        <button class="btn-game-close" onclick="closeGame()">✖ Đóng game</button>
-      </div>
-    </div>
-
     <div class="game-canvas-wrapper">
       <canvas id="gameCanvas" width="640" height="360"></canvas>
-    </div>
-
-    <!-- In-Game Chat Bar -->
-    <div id="in-game-chat-bar">
-      <span class="chat-label-badge">💬 Chat</span>
-      <input type="text" id="in-game-chat-input" placeholder="Nhập tin nhắn chat (Enter để gửi)..." onkeydown="if(event.key==='Enter') sendInGameChat()">
-      <button class="btn-send-chat" onclick="sendInGameChat()">Gửi</button>
     </div>
   </div>
 
@@ -1750,7 +1730,9 @@ if (!$view) {
       const p = autoPass || '123456';
 
       const playerInfoEl = document.getElementById('gamePlayerInfo');
-      playerInfoEl.textContent = 'Đang đăng nhập tài khoản: ' + u + '...';
+      if (playerInfoEl) {
+        playerInfoEl.textContent = 'Đang đăng nhập tài khoản: ' + u + '...';
+      }
 
       if (window.loginWithCredentials) {
         window.loginWithCredentials(u, p);

@@ -30,6 +30,22 @@ export interface HouseFurniture {
   rotate: number;
 }
 
+export interface MapItemType {
+  id: number;
+  imgID: number;
+  iconID: number;
+  dx: number;
+  dy: number;
+  positions: Array<{ x: number; y: number }>;
+}
+
+export interface DynamicMapItem {
+  type: number;
+  typeID: number;
+  tileX: number;
+  tileY: number;
+}
+
 type Listener = (...args: any[]) => void;
 
 export class NetworkSession {
@@ -366,8 +382,9 @@ export class NetworkSession {
       console.log(`[Network] Joined Park: Map=${mapId}, Area=${areaId}, Pos=(${x}, ${y})`);
 
       const existingPlayers: RemotePlayer[] = [];
+      let numUser = 0;
       if (r.available() > 0) {
-        const numUser = r.readByte();
+        numUser = r.readByte();
         for (let i = 0; i < numUser; i++) {
           const plId = r.readInt();
           const plName = r.readUTF();
@@ -391,9 +408,61 @@ export class NetworkSession {
         for (let i = 0; i < numUser && r.available() > 0; i++) {
           existingPlayers[i].direct = r.readByte();
         }
+
+        // Skip per-user trailers: byte 101, short -1, plus two trailing 0 bytes
+        for (let i = 0; i < numUser && r.available() > 0; i++) {
+          r.readByte();
+        }
+        for (let i = 0; i < numUser && r.available() >= 2; i++) {
+          r.readShort();
+        }
+        if (r.available() > 0) r.readByte();
+        if (r.available() > 0) r.readByte();
       }
 
-      this.emit('join_park', { mapId, areaId, x, y, players: existingPlayers });
+      // Read Dynamic Map Items from server (AvatarService.java:549-572)
+      const mapItemTypes: MapItemType[] = [];
+      const mapItems: DynamicMapItem[] = [];
+      if (r.available() >= 2) {
+        const mapItemsSize = r.readShort();
+        if (mapItemsSize > 0 && r.available() > 0) {
+          const typesCount = r.readByte();
+          for (let i = 0; i < typesCount && r.available() >= 7; i++) {
+            const id = r.readByte();
+            const imgID = r.readShort();
+            const iconID = r.readByte();
+            const dx = r.readShort();
+            const dy = r.readShort();
+            const posCount = r.available() > 0 ? r.readByte() : 0;
+            const positions: Array<{ x: number; y: number }> = [];
+            for (let p = 0; p < posCount && r.available() >= 2; p++) {
+              positions.push({ x: r.readByte(), y: r.readByte() });
+            }
+            mapItemTypes.push({ id, imgID, iconID, dx, dy, positions });
+          }
+
+          if (r.available() > 0) {
+            const itemsCount = r.readByte();
+            for (let i = 0; i < itemsCount && r.available() >= 4; i++) {
+              const type = r.readByte();
+              const typeID = r.readByte();
+              const tileX = r.readByte();
+              const tileY = r.readByte();
+              mapItems.push({ type, typeID, tileX, tileY });
+            }
+          }
+        }
+      }
+
+      this.emit('join_park', {
+        mapId,
+        areaId,
+        x,
+        y,
+        players: existingPlayers,
+        mapItemTypes,
+        mapItems
+      });
       return;
     }
 

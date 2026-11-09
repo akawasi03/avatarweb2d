@@ -2689,8 +2689,9 @@
         const y = r.readShort();
         console.log(`[Network] Joined Park: Map=${mapId}, Area=${areaId}, Pos=(${x}, ${y})`);
         const existingPlayers = [];
+        let numUser = 0;
         if (r.available() > 0) {
-          const numUser = r.readByte();
+          numUser = r.readByte();
           for (let i = 0; i < numUser; i++) {
             const plId = r.readInt();
             const plName = r.readUTF();
@@ -2714,8 +2715,55 @@
           for (let i = 0; i < numUser && r.available() > 0; i++) {
             existingPlayers[i].direct = r.readByte();
           }
+          for (let i = 0; i < numUser && r.available() > 0; i++) {
+            r.readByte();
+          }
+          for (let i = 0; i < numUser && r.available() >= 2; i++) {
+            r.readShort();
+          }
+          if (r.available() > 0) r.readByte();
+          if (r.available() > 0) r.readByte();
         }
-        this.emit("join_park", { mapId, areaId, x, y, players: existingPlayers });
+        const mapItemTypes = [];
+        const mapItems = [];
+        if (r.available() >= 2) {
+          const mapItemsSize = r.readShort();
+          if (mapItemsSize > 0 && r.available() > 0) {
+            const typesCount = r.readByte();
+            for (let i = 0; i < typesCount && r.available() >= 7; i++) {
+              const id = r.readByte();
+              const imgID = r.readShort();
+              const iconID = r.readByte();
+              const dx = r.readShort();
+              const dy = r.readShort();
+              const posCount = r.available() > 0 ? r.readByte() : 0;
+              const positions = [];
+              for (let p = 0; p < posCount && r.available() >= 2; p++) {
+                positions.push({ x: r.readByte(), y: r.readByte() });
+              }
+              mapItemTypes.push({ id, imgID, iconID, dx, dy, positions });
+            }
+            if (r.available() > 0) {
+              const itemsCount = r.readByte();
+              for (let i = 0; i < itemsCount && r.available() >= 4; i++) {
+                const type = r.readByte();
+                const typeID = r.readByte();
+                const tileX = r.readByte();
+                const tileY = r.readByte();
+                mapItems.push({ type, typeID, tileX, tileY });
+              }
+            }
+          }
+        }
+        this.emit("join_park", {
+          mapId,
+          areaId,
+          x,
+          y,
+          players: existingPlayers,
+          mapItemTypes,
+          mapItems
+        });
         return;
       }
       if (cmd === import_protocol.Cmd.PLAYER_JOIN_PARK) {
@@ -3211,118 +3259,208 @@
         const tiles = new Int16Array(totalTiles);
         const collision = new Int16Array(totalTiles);
         this.mapObjects = [];
-        for (let i = 0; i < totalTiles; i++) {
-          const val = bytes[i];
-          tiles[i] = val === 255 ? -1 : val;
+        for (let i2 = 0; i2 < totalTiles; i2++) {
+          const val = bytes[i2];
+          tiles[i2] = val === 255 ? -1 : val;
         }
         const spawnedObjects = [];
-        for (let i = 0; i < totalTiles; i++) {
+        let i = 0;
+        while (i < totalTiles) {
           const t = tiles[i];
           const col = i % widthTiles;
           const row = Math.floor(i / widthTiles);
           const px = col * _TilemapRenderer.TILE_SIZE;
           const py = row * _TilemapRenderer.TILE_SIZE;
-          if (t === 127) {
-            spawnedObjects.push({ partId: 830, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 128) {
-            spawnedObjects.push({ partId: 828, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
-          } else if (t === 129 || t === 160) {
-            const part = mapId === 17 ? 836 : 829;
-            spawnedObjects.push({ partId: part, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 141) {
-            spawnedObjects.push({ partId: 840, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
-          } else if (t === 143) {
-            spawnedObjects.push({ partId: 831, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 51;
-          } else if (t === 144) {
-            spawnedObjects.push({ partId: 841, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = 5;
-          } else if (t === 147 || t === 161) {
-            spawnedObjects.push({ partId: 832, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 148 || t === 162) {
-            const part = mapId === 17 ? 836 : 833;
-            spawnedObjects.push({ partId: part, x: px + 48, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 149) {
-            spawnedObjects.push({ partId: 834, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 150) {
-            spawnedObjects.push({ partId: 842, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = mapId === 25 ? 4 : 0;
-          } else if (t === 151) {
-            spawnedObjects.push({ partId: 843, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = 0;
-          } else if (t === 152) {
-            spawnedObjects.push({ partId: 835, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = mapId === 25 ? 55 : 0;
-          } else if (t === 159) {
-            spawnedObjects.push({ partId: 848, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE - 4, layer: 0 });
-            tiles[i] = mapId === 25 ? 5 : mapId === 13 ? 0 : 4;
-          } else if (t === 172) {
-            spawnedObjects.push({ partId: 836, x: px + 37, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 173 || t === 179) {
-            spawnedObjects.push({ partId: 837, x: px + 48, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 174) {
-            spawnedObjects.push({ partId: 838, x: px + 48, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 175) {
-            spawnedObjects.push({ partId: 830, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 176) {
-            spawnedObjects.push({ partId: 829, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 177) {
-            spawnedObjects.push({ partId: 832, x: px + 36, y: py + _TilemapRenderer.TILE_SIZE - 2, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 186) {
-            spawnedObjects.push({ partId: 847, x: px + 11, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
-            tiles[i] = 43;
-          } else if (t === 190) {
-            spawnedObjects.push({ partId: 1029, x: px + 36, y: py + 20, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 192) {
-            spawnedObjects.push({ partId: 1034, x: px + 36, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 193) {
-            spawnedObjects.push({ partId: 1032, x: px + 24, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 194) {
-            spawnedObjects.push({ partId: 1030, x: px + 24, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 195) {
-            spawnedObjects.push({ partId: 1037, x: px + 24, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 196) {
-            spawnedObjects.push({ partId: 1035, x: px + 24, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 197) {
-            spawnedObjects.push({ partId: 1033, x: px + 12, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 198) {
-            spawnedObjects.push({ partId: 1036, x: px + 12, y: py + 20, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 199) {
-            spawnedObjects.push({ partId: 1031, x: px + 24, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 200) {
-            spawnedObjects.push({ partId: 1075, x: px + 24, y: py + 24, layer: 0 });
-            tiles[i] = 4;
-          } else if (t === 201) {
-            spawnedObjects.push({ partId: 1094, x: px + 24, y: py + 20, layer: 0 });
-            tiles[i] = 5;
-          } else if (t === 202) {
-            spawnedObjects.push({ partId: 4, x: px + 24, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
-            tiles[i] = 96;
-          } else if (t === 204) {
-            spawnedObjects.push({ partId: 846, x: px + 12, y: py + _TilemapRenderer.TILE_SIZE, layer: 0 });
-            tiles[i] = 43;
+          if (t === 127 || t === 128 || t === 129 || t === 141 || t === 143 || t === 144 || t === 147 || t === 148 || t === 149 || t === 150 || t === 151 || t === 152 || t === 159 || t === 160 || t === 161 || t === 162 || t === 172 || t === 173 || t === 174 || t === 175 || t === 176 || t === 177 || t === 178 || t === 179 || t === 186 || t === 190 || t === 192 || t === 193 || t === 194 || t === 195 || t === 196 || t === 197 || t === 198 || t === 199 || t === 200 || t === 201 || t === 202 || t === 204 || t === 98) {
+            let consecutive = 1;
+            while (i + consecutive < totalTiles && Math.floor((i + consecutive) / widthTiles) === row && tiles[i + consecutive] === t) {
+              consecutive++;
+            }
+            const spanPx = consecutive * _TilemapRenderer.TILE_SIZE;
+            const centerX = px + Math.floor(spanPx / 2);
+            let floorReplacement = 96;
+            let partId = -1;
+            let objX = centerX;
+            let objY = py + _TilemapRenderer.TILE_SIZE - 4;
+            if (t === 127) {
+              partId = 830;
+              objX = px + 36;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 128) {
+              partId = 828;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+            } else if (t === 129 || t === 160) {
+              partId = mapId === 17 ? 836 : 829;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 96;
+            } else if (t === 141) {
+              partId = 840;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+            } else if (t === 143) {
+              partId = 831;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 51;
+            } else if (t === 144) {
+              partId = 841;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 5;
+            } else if (t === 147 || t === 161) {
+              partId = 832;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 96;
+            } else if (t === 148 || t === 162) {
+              partId = mapId === 17 ? 836 : 833;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 149) {
+              partId = 834;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 4;
+            } else if (t === 150) {
+              partId = 842;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 4 : 0;
+            } else if (t === 151) {
+              partId = 843;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 0;
+            } else if (t === 152) {
+              partId = 835;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 55 : 0;
+            } else if (t === 159) {
+              partId = 848;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 5 : mapId === 13 ? 0 : 4;
+            } else if (t === 172) {
+              partId = 836;
+              objX = px + 37;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 173 || t === 179) {
+              partId = 837;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 174) {
+              partId = 838;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 175) {
+              partId = 830;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 176) {
+              partId = 829;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 177) {
+              partId = 832;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 178) {
+              partId = 830;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 186) {
+              partId = 974;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 17;
+            } else if (t === 190) {
+              partId = 1029;
+              objX = px + 36;
+              objY = py + 20;
+              floorReplacement = 4;
+            } else if (t === 192) {
+              partId = 1034;
+              objX = px + 36;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 193) {
+              partId = 1032;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 194) {
+              partId = 1030;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 195) {
+              partId = 1037;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 196) {
+              partId = 1035;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 197) {
+              partId = 1033;
+              objX = px + 12;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 198) {
+              partId = 1036;
+              objX = px + 12;
+              objY = py + 20;
+              floorReplacement = 4;
+            } else if (t === 199) {
+              partId = 1031;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 200) {
+              partId = 1075;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 201) {
+              partId = 1094;
+              objX = px + 24;
+              objY = py + 20;
+              floorReplacement = 5;
+            } else if (t === 202) {
+              partId = 4;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 98 || t === 204) {
+              partId = 846;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 43;
+            }
+            if (partId > 0) {
+              spawnedObjects.push({ partId, x: objX, y: objY, layer: 0 });
+            }
+            for (let k = 0; k < consecutive; k++) {
+              tiles[i + k] = floorReplacement;
+            }
+            i += consecutive;
+            continue;
           } else if (t === 139) {
             tiles[i] = i % widthTiles === 0 ? tiles[i + 1] : tiles[i - 1];
           } else if (t === 140) {
@@ -3330,6 +3468,7 @@
           } else if (t >= 126) {
             tiles[i] = i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126 ? tiles[i - 1] : 0;
           }
+          i++;
         }
         const uniquePartIds = Array.from(new Set(spawnedObjects.map((o) => o.partId)));
         await Promise.all(uniquePartIds.map(async (partId) => {
@@ -3346,30 +3485,30 @@
           obj.image = this.objectImageCache.get(obj.partId);
         }
         this.mapObjects = spawnedObjects;
-        for (let i = 0; i < totalTiles; i++) {
-          const t = tiles[i];
+        for (let i2 = 0; i2 < totalTiles; i2++) {
+          const t = tiles[i2];
           if (t === -4) {
-            collision[i] = 80;
+            collision[i2] = 80;
           } else if (t === -5) {
-            collision[i] = 88;
+            collision[i2] = 88;
           } else if (t === -1) {
-            collision[i] = 88;
+            collision[i2] = 88;
           } else if (t >= 120 && t <= 123) {
-            collision[i] = 80;
+            collision[i2] = 80;
           } else if (t >= 114 && t <= 119) {
-            collision[i] = 80;
+            collision[i2] = 80;
           } else if (t === 67 || t === 85) {
-            collision[i] = 92;
+            collision[i2] = 92;
           } else if (t >= 20 && t <= 23) {
-            collision[i] = 79;
+            collision[i2] = 79;
           } else if (t < 7) {
-            collision[i] = 80;
+            collision[i2] = 80;
           } else if (t >= 44 && t <= 55) {
-            collision[i] = 80;
+            collision[i2] = 80;
           } else if (t === 111 || t === 112) {
-            collision[i] = 80;
+            collision[i2] = 80;
           } else {
-            collision[i] = 88;
+            collision[i2] = 88;
           }
         }
         this.mapData = {
@@ -3400,6 +3539,51 @@
       } catch (err) {
         console.error("[TilemapRenderer] Load error:", err);
       }
+    }
+    async setDynamicMapItems(mapItemTypes, mapItems) {
+      this.mapObjects = this.mapObjects.filter((o) => !o.isDynamic);
+      if (!mapItemTypes || !mapItems || mapItems.length === 0) return;
+      const typeMap = /* @__PURE__ */ new Map();
+      for (const t of mapItemTypes) {
+        typeMap.set(t.id, t);
+      }
+      const newDynamicObjects = [];
+      for (const it of mapItems) {
+        const itemType = typeMap.get(it.typeID);
+        if (!itemType) continue;
+        const worldX = it.tileX * _TilemapRenderer.TILE_SIZE + itemType.dx;
+        const worldY = it.tileY * _TilemapRenderer.TILE_SIZE + itemType.dy;
+        newDynamicObjects.push({
+          partId: itemType.imgID,
+          x: worldX,
+          y: worldY,
+          layer: 0,
+          isDynamic: true,
+          dynamicType: it.type,
+          dynamicId: it.typeID
+        });
+      }
+      const uniquePartIds = Array.from(new Set(newDynamicObjects.map((o) => o.partId)));
+      await Promise.all(uniquePartIds.map(async (partId) => {
+        if (!this.objectImageCache.has(partId)) {
+          try {
+            const img = await import_j2me_compat6.Image.createImage(`/assets/home/${partId}.png`);
+            this.objectImageCache.set(partId, img);
+          } catch {
+            try {
+              const img = await import_j2me_compat6.Image.createImage(`/assets/item/${partId}.png`);
+              this.objectImageCache.set(partId, img);
+            } catch (e) {
+              console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
+            }
+          }
+        }
+      }));
+      for (const obj of newDynamicObjects) {
+        obj.image = this.objectImageCache.get(obj.partId);
+        this.mapObjects.push(obj);
+      }
+      console.log(`[TilemapRenderer] Added ${newDynamicObjects.length} dynamic map items`);
     }
     updateCamera(targetX, targetY, screenW, screenH) {
       if (!this.mapData) return;
@@ -3986,7 +4170,11 @@
         for (const npc of this.mapNpcs) {
           AvatarRenderer.preloadWearing(npc.wearing);
         }
-        this.tilemapRenderer.loadMap(this.currentMapId);
+        this.tilemapRenderer.loadMap(this.currentMapId).then(() => {
+          if (data.mapItemTypes && data.mapItems) {
+            this.tilemapRenderer.setDynamicMapItems(data.mapItemTypes, data.mapItems);
+          }
+        });
         AvatarRenderer.preloadWearing(this.localPlayer.wearing);
         this.remotePlayers.clear();
         if (data.players) {
@@ -4545,6 +4733,9 @@
           const screenY2 = ent.y - imgH - camY;
           if (screenX2 + imgW >= -50 && screenX2 <= screenW + 50 && screenY2 + imgH >= -50 && screenY2 <= screenH + 50) {
             g.drawImage(img, screenX2, screenY2, 0);
+            if (ent.mapObject.partId === 846 && this.font) {
+              this.font.drawString(g, String(this.currentAreaId), ent.x - camX, ent.y - 30 - camY, 2);
+            }
           }
           continue;
         }
