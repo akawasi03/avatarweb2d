@@ -3197,9 +3197,12 @@
       25: 2
     };
     /**
-     * Authentic Map Height formula from ir.java lines 1050-1115
-     * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
-     */
+    
+       * Authentic Map Height formula from ir.java lines 1050-1115
+    
+       * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
+    
+       */
     static getMapHeightTiles(mapId) {
       switch (mapId) {
         case 107:
@@ -3599,14 +3602,16 @@
       if (mapHeightPx > screenH) {
         camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
       } else {
-        camY = mapHeightPx - screenH + 20;
+        camY = mapHeightPx - screenH;
       }
       this.cameraX = camX;
       this.cameraY = camY;
     }
     /**
-     * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
-     */
+    
+       * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
+    
+       */
     paint(g, screenW, screenH) {
       if (!this.mapData || !this.tilesetImage) return;
       const tileSize = _TilemapRenderer.TILE_SIZE;
@@ -3682,7 +3687,7 @@
 
   // packages/game-client/src/characters/AvatarRenderer.ts
   var import_j2me_compat7 = __toESM(require_dist());
-  var AvatarRenderer = class {
+  var AvatarRenderer = class _AvatarRenderer {
     static partsMap = /* @__PURE__ */ new Map();
     static slicesMap = /* @__PURE__ */ new Map();
     static atlasImages = /* @__PURE__ */ new Map();
@@ -3747,8 +3752,73 @@
     /**
      * Preload textures for a list of wearing items
      */
+    /**
+     * Categorize any avatar part into the authentic 10-layer rendering order:
+     * 1: Cánh sau (Wings, Cape, Backpack, Tails, Back Auras)
+     * 2: Thân (Base body / skin)
+     * 3: Quần (Pants, shorts, skirts)
+     * 4: Áo (Shirts, jackets, dresses, tops)
+     * 5: Đầu (Head shape: tròn, mập, nhọn)
+     * 6: Khuôn mặt (Facial expressions, mouth, blushing, face masks)
+     * 7: Mắt (Eyes: đen, xanh, etc.)
+     * 8: Tóc (Hair)
+     * 9: Nón (Hats, caps, helmets, crowns, hairpins, glasses, earrings)
+     * 10: Cầm tay (Handheld items: weapons, balloons, candies, flowers, lanterns, flags)
+     */
+    static getPartLayer(part) {
+      const name = (part.name || "").toLowerCase();
+      const z = part.zorder ?? 0;
+      const isBackItem = (name.includes("c\xE1nh") || name.includes("phi phong") || name.includes("\xE1o cho\xE0ng") || name.includes("\u0111u\xF4i") || name.includes("balo") || name.includes("c\u1EB7p s\xE1ch") || name.includes("h\xE0o quang") || name.includes("\u0111\u0129a bay") || name.includes("phi thuy\u1EC1n")) && !(name.includes("c\xE0i t\xF3c") || name.includes("v\u01B0\u01A1ng mi\u1EC7n") || name.includes("m\u1EA3nh gh\xE9p") || name.includes("thu\u1ED1c") || name.includes("k\xEDnh"));
+      if (isBackItem || z === 3 || z === 5 || z === 6) {
+        return 1;
+      }
+      if (z === 8 || name.includes("th\xE2n") && !name.includes("\xE1o") && !name.includes("ki\u1EBFm")) {
+        return 2;
+      }
+      const isPants = (z === 10 || name.includes("qu\u1EA7n") || name.includes("v\xE1y") || name.includes("short") || name.includes("qu\u1EA7n \u0111\xF9i") || name.includes("qu\u1EA7n t\xE2y")) && !name.includes("\xE1o");
+      if (isPants) {
+        return 3;
+      }
+      const isShirt = (z === 20 || name.includes("\xE1o") || name.includes("s\u01A1 mi") || name.includes("thun") || name.includes("comple") || name.includes("vest") || name.includes("\u0111\u1EA7m") || name.includes("y\u1EBFm")) && !name.includes("cho\xE0ng");
+      if (isShirt) {
+        return 4;
+      }
+      const isHead = (z === 30 || name.includes("tr\xF2n") || name.includes("m\u1EADp") || name.includes("nh\u1ECDn") || name.includes("m\u1EB7t tr\xF2n") || name.includes("m\u1EB7t nh\u1ECDn") || name.includes("\u0111\u1EA7u tr\u1ECDc")) && !name.includes("m\u1EAFt") && !name.includes("m\u0169") && !name.includes("n\xF3n");
+      if (isHead) {
+        return 5;
+      }
+      const isFace = (z === 52 || name.includes("kh\u1EA9u trang") || name.includes("l\xEAu l\xEAu") || name.includes("m\xE1 h\u1ED3ng") || name.includes("m\u0169i h\u1EC1") || name.includes("m\u1EB7t n\u1EA1") || name.includes("r\xE2u") || name.includes("ng\u1EADm")) && !name.includes("m\u1EAFt");
+      if (isFace) {
+        return 6;
+      }
+      const isEyes = (z === 40 || name.startsWith("mat ") || name.includes("m\u1EAFt") || name === "\u0111en" || name === "xanh n\u01B0\u1EDBc bi\u1EC3n" || name === "n\xE2u") && !name.includes("k\xEDnh");
+      if (isEyes) {
+        return 7;
+      }
+      const isHair = (z === 50 || name.includes("t\xF3c") || name.includes("d\u1EF1ng \u0111\u1EE9ng") || name.includes("tr\u1EBB con") || name.includes("b\xFAp b\xEA") || name.includes("s\xE0nh \u0111i\u1EC7u")) && !(name.includes("c\xE0i t\xF3c") || name.includes("k\u1EB9p t\xF3c") || name.includes("hoa c\xE0i t\xF3c") || name.includes("b\u0103ng \u0111\xF4") || name.includes("n\xF3n") || name.includes("m\u0169"));
+      if (isHair) {
+        return 8;
+      }
+      const isHat = z === 53 || z === 54 || z === 60 || name.includes("n\xF3n") || name.includes("m\u0169") || name.includes("v\u01B0\u01A1ng mi\u1EC7n") || name.includes("k\xEDnh") || name.includes("b\u0103ng \u0111\xF4") || name.includes("tai m\xE8o") || name.includes("s\u1EEBng") || name.includes("tai chu\u1ED9t") || name.includes("c\xE0i t\xF3c") || name.includes("k\u1EB9p t\xF3c") || name.includes("b\xF4ng tai") || name.includes("hoa c\xE0i");
+      if (isHat) {
+        return 9;
+      }
+      const isHandheld = z === 70 || name.includes("c\u1EA7m") || name.includes("bong b\xF3ng") || name.includes("k\u1EB9o") || name.includes("hoa") || name.includes("ki\u1EBFm") || name.includes("\u0111\xE0n") || name.includes("chong ch\xF3ng") || name.includes("qu\u1EA1t") || name.includes("g\u1EADy") || name.includes("tr\u01B0\u1EE3ng") || name.includes("khi\xEAn") || name.includes("c\u1EDD") || name.includes("c\u1EE5c v\xE0ng") || name.includes("kem") || name.includes("v\u0169 kh\xED") || name.includes("l\u1ED3ng \u0111\xE8n") || name.includes("thi\u1EC7p");
+      if (isHandheld) {
+        return 10;
+      }
+      if (z <= 5) return 1;
+      if (z <= 10) return 3;
+      if (z <= 20) return 4;
+      if (z <= 30) return 5;
+      if (z <= 40) return 7;
+      if (z <= 50) return 8;
+      if (z <= 60) return 9;
+      return 10;
+    }
     static async preloadWearing(wearing) {
-      for (const partId of wearing) {
+      const listToPreload = [...wearing, 0, 4];
+      for (const partId of listToPreload) {
         const part = this.partsMap.get(partId);
         if (!part || !part.animation) continue;
         for (const frame of part.animation) {
@@ -3780,14 +3850,38 @@
       }
       const isMirrored = direct === 2;
       const transform = isMirrored ? import_j2me_compat7.Sprite.TRANS_MIRROR : import_j2me_compat7.Sprite.TRANS_NONE;
+      const wearingList = [...wearing];
+      let hasHead = false;
+      let hasEyes = false;
+      for (const partId of wearingList) {
+        const part = this.partsMap.get(partId);
+        if (part) {
+          const layer = _AvatarRenderer.getPartLayer(part);
+          if (layer === 5) hasHead = true;
+          if (layer === 7) hasEyes = true;
+        }
+      }
+      if (!hasHead) {
+        wearingList.push(0);
+      }
+      if (!hasEyes) {
+        wearingList.push(4);
+      }
       const partsToRender = [];
-      for (const partId of wearing) {
+      for (const partId of wearingList) {
         const part = this.partsMap.get(partId);
         if (part) {
           partsToRender.push(part);
         }
       }
-      partsToRender.sort((a, b) => a.zorder - b.zorder);
+      partsToRender.sort((a, b) => {
+        const layerA = _AvatarRenderer.getPartLayer(a);
+        const layerB = _AvatarRenderer.getPartLayer(b);
+        if (layerA !== layerB) {
+          return layerA - layerB;
+        }
+        return a.zorder - b.zorder;
+      });
       for (const part of partsToRender) {
         if (!part.animation || part.animation.length === 0) continue;
         const frameData = part.animation[frame % part.animation.length];
@@ -4877,10 +4971,6 @@
         ctx.fillText(this.tickerText, this.tickerX, 17);
         ctx.restore();
       }
-      g.setColor(1120295);
-      g.fillRect(0, screenH - 20, screenW, 20);
-      g.setColor(3621201);
-      g.fillRect(0, screenH - 20, screenW, 1);
       if (this.img12Plus && this.img12Plus.getWidth() > 0) {
         g.drawImage(this.img12Plus, 4, screenH - 18, 0);
       } else {
@@ -5150,29 +5240,21 @@
       }
       doSend();
     };
-    const GAME_WIDTH = 1024;
-    const GAME_HEIGHT = 768;
-    const TARGET_ASPECT = 4 / 3;
     function resizeCanvas() {
       const parent = canvas.parentElement || document.body;
       const rect = parent.getBoundingClientRect();
       const winW = Math.floor(rect.width > 0 ? rect.width : window.innerWidth);
       const winH = Math.floor(rect.height > 0 ? rect.height : window.innerHeight);
-      let dispW = winW;
-      let dispH = Math.round(winW / TARGET_ASPECT);
-      if (dispH > winH) {
-        dispH = winH;
-        dispW = Math.round(winH * TARGET_ASPECT);
-      }
-      canvas.style.width = `${dispW}px`;
-      canvas.style.height = `${dispH}px`;
+      canvas.style.width = "100vw";
+      canvas.style.height = "100vh";
       canvas.style.maxWidth = "100vw";
       canvas.style.maxHeight = "100vh";
-      canvas.style.margin = "auto";
-      if (canvas.width !== GAME_WIDTH || canvas.height !== GAME_HEIGHT) {
-        canvas.width = GAME_WIDTH;
-        canvas.height = GAME_HEIGHT;
-        midlet.canvas.resize(GAME_WIDTH, GAME_HEIGHT);
+      canvas.style.margin = "0";
+      canvas.style.padding = "0";
+      if (canvas.width !== winW || canvas.height !== winH) {
+        canvas.width = winW;
+        canvas.height = winH;
+        midlet.canvas.resize(winW, winH);
       }
       ctx.imageSmoothingEnabled = false;
     }
