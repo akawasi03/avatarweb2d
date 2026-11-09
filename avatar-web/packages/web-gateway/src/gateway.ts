@@ -31,28 +31,37 @@ export class WebSocketTcpGateway {
 
   public start(): Promise<void> {
     return new Promise((resolve, reject) => {
-      // 1. Verify Origin Helper
+      // 1. Verify Origin Helper (Strict URL protocol + host matching, no unsafe startsWith)
       const isOriginAllowed = (origin?: string): boolean => {
         if (!origin) return true; // Direct non-browser clients or local test tools
-        if (!this.config.allowedOrigins || this.config.allowedOrigins.length === 0) {
-          // Default development whitelist
-          try {
-            const url = new URL(origin);
+        try {
+          const originUrl = new URL(origin);
+          const originClean = `${originUrl.protocol}//${originUrl.host}`;
+
+          if (!this.config.allowedOrigins || this.config.allowedOrigins.length === 0) {
+            // Default development whitelist
             return (
-              url.hostname === 'localhost' ||
-              url.hostname === '127.0.0.1' ||
-              url.hostname === '0.0.0.0' ||
-              url.hostname.endsWith('.ngrok.io') ||
-              url.hostname.endsWith('.ngrok-free.app')
+              originUrl.hostname === 'localhost' ||
+              originUrl.hostname === '127.0.0.1' ||
+              originUrl.hostname === '0.0.0.0' ||
+              (originUrl.hostname.endsWith('.ngrok.io') && originUrl.hostname.split('.').length >= 3) ||
+              (originUrl.hostname.endsWith('.ngrok-free.app') && originUrl.hostname.split('.').length >= 3)
             );
-          } catch {
-            return false;
           }
+
+          return this.config.allowedOrigins.some(allowed => {
+            if (allowed === '*') return true;
+            try {
+              const allowedUrl = new URL(allowed);
+              const allowedClean = `${allowedUrl.protocol}//${allowedUrl.host}`;
+              return originClean === allowedClean;
+            } catch {
+              return originClean === allowed.replace(/\/+$/, '');
+            }
+          });
+        } catch {
+          return false;
         }
-        return this.config.allowedOrigins.some(allowed => {
-          if (allowed === '*') return true;
-          return origin === allowed || origin.startsWith(allowed);
-        });
       };
 
       // 2. Setup HTTP/HTTPS Server if TLS is enabled
@@ -130,7 +139,39 @@ export class WebSocketTcpGateway {
         const pair = { ws, tcp, clientIp };
         this.connections.add(pair);
 
+        // Security Check 4: Handshake Timeout (30s)
+        let handshakeReceived = false;
+        const handshakeTimer = setTimeout(() => {
+          if (!handshakeReceived && ws.readyState === WebSocket.OPEN) {
+            console.warn(`[Gateway Security] Handshake timeout (30s) for ${clientIp}. Closing.`);
+            ws.close(1008, 'Handshake timeout');
+          }
+        }, 30000);
+
+        // Security Check 5: Upstream TCP Connect Timeout (10s)
+        const tcpTimeout = setTimeout(() => {
+          if (!tcp.destroyed && tcp.connecting) {
+            console.warn(`[Gateway Security] Upstream TCP timeout (10s) for ${clientIp}`);
+            cleanup();
+          }
+        }, 10000);
+
+        // Keepalive Heartbeat Ping-Pong (every 30s)
+        let isAlive = true;
+        ws.on('pong', () => { isAlive = true; });
+        const pingInterval = setInterval(() => {
+          if (!isAlive) {
+            console.warn(`[Gateway Security] Heartbeat lost for ${clientIp}. Terminating socket.`);
+            clearInterval(pingInterval);
+            ws.terminate();
+            return;
+          }
+          isAlive = false;
+          ws.ping();
+        }, 30000);
+
         tcp.on('connect', () => {
+          clearTimeout(tcpTimeout);
           console.log(`[Gateway] Connected to Java TCP Server for client ${clientIp}`);
         });
 
@@ -143,6 +184,10 @@ export class WebSocketTcpGateway {
 
         // WebSocket -> TCP
         ws.on('message', (message: Buffer | ArrayBuffer | Buffer[], _isBinary: boolean) => {
+          if (!handshakeReceived) {
+            handshakeReceived = true;
+            clearTimeout(handshakeTimer);
+          }
           if (Buffer.isBuffer(message)) {
             tcp.write(message);
           } else if (message instanceof ArrayBuffer) {
@@ -153,6 +198,9 @@ export class WebSocketTcpGateway {
         });
 
         const cleanup = () => {
+          clearTimeout(handshakeTimer);
+          clearTimeout(tcpTimeout);
+          clearInterval(pingInterval);
           if (this.connections.has(pair)) {
             this.connections.delete(pair);
             const count = this.ipConnectionCounts.get(clientIp) || 1;

@@ -48,6 +48,16 @@ export class GameCanvas extends Canvas {
     this.fpsLastTime = this.lastTime;
     this.accumulator = 0;
 
+    // Reset timer on tab resume to prevent backlog accumulation
+    if (typeof document !== 'undefined') {
+      document.addEventListener('visibilitychange', () => {
+        if (!document.hidden) {
+          this.lastTime = typeof performance !== 'undefined' ? performance.now() : Date.now();
+          this.accumulator = 0;
+        }
+      });
+    }
+
     const loop = (currentTime: number) => {
       if (!this.isRunning) return;
 
@@ -60,13 +70,17 @@ export class GameCanvas extends Canvas {
       this.lastTime = now;
       this.accumulator += elapsed;
 
-      // 1. Fixed Simulation Ticks (Strictly 20 ticks / second, capped at 1 update per frame)
-      if (this.accumulator >= this.TICK_INTERVAL) {
+      // 1. Fixed Simulation Ticks (Strictly 20 ticks / second)
+      // Allow up to 5 steps catch-up during low FPS (10-15 FPS) to maintain exact 20 ticks/s simulation speed
+      const MAX_SIMULATION_STEPS = 5;
+      let steps = 0;
+      while (this.accumulator >= this.TICK_INTERVAL && steps < MAX_SIMULATION_STEPS) {
         this.tick();
         this.accumulator -= this.TICK_INTERVAL;
-        if (this.accumulator >= this.TICK_INTERVAL) {
-          this.accumulator %= this.TICK_INTERVAL;
-        }
+        steps++;
+      }
+      if (this.accumulator >= this.TICK_INTERVAL) {
+        this.accumulator %= this.TICK_INTERVAL;
       }
 
       // 2. Alpha for Positional Interpolation (0.0 <= alpha < 1.0)

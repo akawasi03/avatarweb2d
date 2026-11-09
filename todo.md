@@ -127,6 +127,19 @@
 
 ---
 
+---
+
+## IX. GIA CỐ ENGINE & ĐẢM BẢO AN TOÀN HỆ THỐNG (ENGINE STABILIZATION & SECURITY)
+
+- [x] Sửa lỗi quản lý texture slot và bảo toàn trạng thái khi sprite batch đạt ngưỡng tối đa 4096 quads (WebGL2Renderer.ts).
+- [x] Ổn định hóa Game Loop 20 ticks/s với bộ đệm bù nhịp thích ứng (MAX_SIMULATION_STEPS = 5) khi FPS thấp (10-15 FPS).
+- [x] Lắng nghe sự kiện visibilitychange để triệt tiêu hiện tượng lag tích lũy khi quay lại từ Background Tab.
+- [x] Khắc phục triệt để lỗ hổng xác thực Origin (loại bỏ startsWith(), áp dụng URL protocol + hostname matching nghiêm ngặt).
+- [x] Bổ sung Handshake Timeout (30s) và Upstream TCP Timeout (10s) chống tấn công treo kết nối ma.
+- [x] Thêm nhịp tim định kỳ Heartbeat Ping-Pong (30s) dọn dẹp các socket mất kết nối.
+- [x] Hoàn tất giải mã toàn diện giao thức nhị phân Java Server (Cmd.java), phân loại 218 packet constants và 14 server handlers (GAMEPLAY_PROTOCOL_MAPPING.md).
+- [x] Hoàn tất xây dựng kế hoạch triển khai chi tiết hệ thống Nông Trại Map 25 (FARM_SYSTEM_IMPLEMENTATION_PLAN.md).
+
 ## VIII. CÁC HẠNG MỤC GAMEPLAY ĐANG & SẮP TRIỂN KHAI (UPCOMING GAMEPLAY PHASES)
 
 ### 1. Hệ thống Nông trại (Farm System - Map 25)

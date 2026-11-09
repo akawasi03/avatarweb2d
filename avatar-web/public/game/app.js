@@ -836,7 +836,12 @@ void main() {
         }
         addQuad(x0, y0, u0, v0, x1, y1, u1, v1, x2, y2, u2, v2, x3, y3, u3, v3, r, g, b, a, texId) {
           if (this.quadCount >= MAX_QUADS) {
+            const savedTex = texId >= 0 && texId < 8 ? this.activeTextures[texId] : null;
+            const savedEl = texId >= 0 && texId < 8 ? this.activeTextureElements[texId] : null;
             this.flush();
+            if (savedTex) {
+              texId = this.assignTextureSlot(savedTex, savedEl);
+            }
           }
           const off = this.quadCount * FLOATS_PER_QUAD;
           const v = this.vertexData;
@@ -1062,6 +1067,9 @@ void main() {
           const pt = this.calculateAnchor(x, y, width, height, anchor);
           const px = this.tx + pt.x;
           const py = this.ty + pt.y;
+          if (this.quadCount >= MAX_QUADS) {
+            this.flush();
+          }
           const tex = this.getOrCreateTexture(el);
           if (!tex)
             return;
@@ -1081,6 +1089,9 @@ void main() {
           const pt = this.calculateAnchor(x_dst, y_dst, destW, destH, anchor);
           const px = this.tx + pt.x;
           const py = this.ty + pt.y;
+          if (this.quadCount >= MAX_QUADS) {
+            this.flush();
+          }
           const tex = this.getOrCreateTexture(el);
           if (!tex)
             return;
@@ -2003,6 +2014,14 @@ void main() {
       this.lastTime = typeof performance !== "undefined" ? performance.now() : Date.now();
       this.fpsLastTime = this.lastTime;
       this.accumulator = 0;
+      if (typeof document !== "undefined") {
+        document.addEventListener("visibilitychange", () => {
+          if (!document.hidden) {
+            this.lastTime = typeof performance !== "undefined" ? performance.now() : Date.now();
+            this.accumulator = 0;
+          }
+        });
+      }
       const loop = (currentTime) => {
         if (!this.isRunning) return;
         const now = currentTime || (typeof performance !== "undefined" ? performance.now() : Date.now());
@@ -2012,12 +2031,15 @@ void main() {
         }
         this.lastTime = now;
         this.accumulator += elapsed;
-        if (this.accumulator >= this.TICK_INTERVAL) {
+        const MAX_SIMULATION_STEPS = 5;
+        let steps = 0;
+        while (this.accumulator >= this.TICK_INTERVAL && steps < MAX_SIMULATION_STEPS) {
           this.tick();
           this.accumulator -= this.TICK_INTERVAL;
-          if (this.accumulator >= this.TICK_INTERVAL) {
-            this.accumulator %= this.TICK_INTERVAL;
-          }
+          steps++;
+        }
+        if (this.accumulator >= this.TICK_INTERVAL) {
+          this.accumulator %= this.TICK_INTERVAL;
         }
         const alpha = Math.max(0, Math.min(1, this.accumulator / this.TICK_INTERVAL));
         this.graphics.beginFrame(this.width, this.height);

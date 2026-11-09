@@ -461,7 +461,13 @@ export class WebGL2Renderer implements IRenderBackend {
     texId: number
   ): void {
     if (this.quadCount >= MAX_QUADS) {
+      // Preserve currently bound texture across batch flush
+      const savedTex = (texId >= 0 && texId < 8) ? this.activeTextures[texId] : null;
+      const savedEl = (texId >= 0 && texId < 8) ? this.activeTextureElements[texId] : null;
       this.flush();
+      if (savedTex) {
+        texId = this.assignTextureSlot(savedTex, savedEl);
+      }
     }
 
     const off = this.quadCount * FLOATS_PER_QUAD;
@@ -722,6 +728,9 @@ export class WebGL2Renderer implements IRenderBackend {
     const px = this.tx + pt.x;
     const py = this.ty + pt.y;
 
+    if (this.quadCount >= MAX_QUADS) {
+      this.flush();
+    }
     const tex = this.getOrCreateTexture(el);
     if (!tex) return;
     const slot = this.assignTextureSlot(tex, el);
@@ -766,6 +775,9 @@ export class WebGL2Renderer implements IRenderBackend {
     const px = this.tx + pt.x;
     const py = this.ty + pt.y;
 
+    if (this.quadCount >= MAX_QUADS) {
+      this.flush();
+    }
     const tex = this.getOrCreateTexture(el);
     if (!tex) return;
     const slot = this.assignTextureSlot(tex, el);
