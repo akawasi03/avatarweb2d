@@ -865,6 +865,8 @@ if (!$view) {
       margin: 0;
       padding: 0;
       box-sizing: border-box;
+      align-items: center;
+      justify-content: center;
     }
 
     .game-top-bar {
@@ -939,18 +941,21 @@ if (!$view) {
       height: 100dvh;
       position: relative;
       overflow: hidden;
-      display: block;
+      display: flex;
+      align-items: center;
+      justify-content: center;
       margin: 0;
       padding: 0;
       background: #000;
     }
 
     #gameCanvas {
-      width: 100%;
-      height: 100%;
+      aspect-ratio: 4 / 3;
+      max-width: 100vw;
+      max-height: 100vh;
+      max-height: 100dvh;
       display: block;
-      margin: 0;
-      padding: 0;
+      margin: auto;
       image-rendering: pixelated;
       image-rendering: crisp-edges;
       cursor: crosshair;
@@ -1378,7 +1383,7 @@ if (!$view) {
   ============================================================= -->
   <div id="game-modal">
     <div class="game-canvas-wrapper">
-      <canvas id="gameCanvas" width="640" height="360"></canvas>
+      <canvas id="gameCanvas" width="1024" height="768"></canvas>
     </div>
   </div>
 

@@ -424,26 +424,40 @@ async function startWebClient() {
 
 
 
-  // Responsive Fullscreen Canvas Sizing
+  // Strict Single 4:3 Resolution (1024 x 768) across all devices
+  const GAME_WIDTH = 1024;
+  const GAME_HEIGHT = 768;
+  const TARGET_ASPECT = 4 / 3;
 
   function resizeCanvas() {
-
     const parent = canvas.parentElement || document.body;
-
     const rect = parent.getBoundingClientRect();
-
     const winW = Math.floor(rect.width > 0 ? rect.width : window.innerWidth);
-
     const winH = Math.floor(rect.height > 0 ? rect.height : window.innerHeight);
 
+    // Calculate maximum 4:3 display dimensions that fit within viewport
+    let dispW = winW;
+    let dispH = Math.round(winW / TARGET_ASPECT);
 
+    if (dispH > winH) {
+      dispH = winH;
+      dispW = Math.round(winH * TARGET_ASPECT);
+    }
 
-    // Full native 100vw x 100dvh viewport resolution: maximum map view area and crisp 1:1 pixel art
-    canvas.width = winW;
-    canvas.height = winH;
-    midlet.canvas.resize(winW, winH);
+    // Set CSS dimensions to fit cleanly in 4:3 aspect ratio, centered in parent
+    canvas.style.width = `${dispW}px`;
+    canvas.style.height = `${dispH}px`;
+    canvas.style.maxWidth = '100vw';
+    canvas.style.maxHeight = '100vh';
+    canvas.style.margin = 'auto';
+
+    // Strictly lock internal canvas buffer to single 1024x768 (4:3) resolution
+    if (canvas.width !== GAME_WIDTH || canvas.height !== GAME_HEIGHT) {
+      canvas.width = GAME_WIDTH;
+      canvas.height = GAME_HEIGHT;
+      midlet.canvas.resize(GAME_WIDTH, GAME_HEIGHT);
+    }
     ctx.imageSmoothingEnabled = false;
-
   }
 
 
