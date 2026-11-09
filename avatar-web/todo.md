@@ -123,6 +123,7 @@
 - [x] Hệ thống GiftCode: Nhập giftcode nhận Xu, Lượng và trang phục độc quyền.
 - [x] Bảng xếp hạng cư dân (Top Xu, Top Đại gia).
 - [x] Nút khởi chạy nhanh "CHƠI NGAY" (Floating Action Button).
+- [x] Loại bỏ hoàn toàn màn hình trung gian "Chơi mới / Đổi tài khoản" (LoginScreen J2ME cũ), sau khi đăng nhập bấm "Chơi ngay" sẽ kết nối và vào thẳng thế giới game (World Map).
 
 ---
 

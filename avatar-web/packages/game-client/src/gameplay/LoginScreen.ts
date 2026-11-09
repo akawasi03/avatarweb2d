@@ -33,7 +33,10 @@ export class LoginScreen extends GameScreen {
   }
 
   public update(): void {
-    // Animation / idle ticks
+    // Seamless bypass: immediately switch to WorldMapScreen, never block on LoginScreen
+    if (typeof window !== 'undefined' && (window as any).gameMidlet?.worldMapScreen) {
+      (window as any).gameMidlet.canvas.setCurrentScreen((window as any).gameMidlet.worldMapScreen);
+    }
   }
 
   public onResize(width: number, height: number): void {
@@ -137,44 +140,9 @@ export class LoginScreen extends GameScreen {
       this.font.drawString(g, 'AVATAR 258', Math.floor(screenW / 2), Math.max(25, this.winY - 45), 2);
     }
 
-    // 3. Main Dialog Box
-    this.skinPainter.paintWindow(g, this.winX, this.winY, this.winW, this.winH);
-
-    if (this.isQuickSelectMode) {
-      // Draw highlight if selectedIndex != -1
-      if (this.selectedIndex !== -1) {
-        g.setColor(UISkinPainter.COLOR_SELECTED);
-        g.fillRect(this.winX + 5, this.winY + this.offsetY + this.selectedIndex * this.itemH, this.winW - 10, this.itemH);
-      }
-
-      // Draw menu options text centered
-      if (this.font) {
-        for (let i = 0; i < this.options.length; i++) {
-          const textY = this.winY + this.offsetY + i * this.itemH + Math.floor(this.itemH / 2) - Math.floor(this.font.getHeight() / 2);
-          this.font.drawString(
-            g,
-            this.options[i],
-            Math.floor(screenW / 2),
-            textY,
-            2 // Center align
-          );
-        }
-      }
-    } else {
-      // Form fields (Username, Password)
-      if (this.font) {
-        this.font.drawString(g, 'Tài khoản:', this.winX + 15, this.winY + 15, 0);
-        g.setColor(0xFFFFFF);
-        g.fillRect(this.winX + 15, this.winY + 30, this.winW - 30, 22);
-        g.setColor(0x333333);
-        g.drawRect(this.winX + 15, this.winY + 30, this.winW - 30, 22);
-
-        this.font.drawString(g, 'Mật khẩu:', this.winX + 15, this.winY + 58, 0);
-        g.setColor(0xFFFFFF);
-        g.fillRect(this.winX + 15, this.winY + 73, this.winW - 30, 22);
-        g.setColor(0x333333);
-        g.drawRect(this.winX + 15, this.winY + 73, this.winW - 30, 22);
-      }
+    // 3. Loading state only (dialog completely eliminated)
+    if (this.font) {
+      this.font.drawString(g, 'Đang vào thế giới Avatar 2.5.8...', Math.floor(screenW / 2), Math.floor(screenH * 0.45), 2);
     }
 
     // 4. Softkeys bar at bottom

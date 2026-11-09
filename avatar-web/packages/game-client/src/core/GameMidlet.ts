@@ -23,7 +23,7 @@ export class GameMidlet {
     this.loginScreen = new LoginScreen(this.skinPainter, this.font);
     this.worldMapScreen = new WorldMapScreen(this.skinPainter, this.font);
     this.splashScreen = new SplashScreen(undefined, () => {
-      this.canvas.setCurrentScreen(this.loginScreen);
+      this.canvas.setCurrentScreen(this.worldMapScreen);
     });
 
     this.canvas.setCurrentScreen(this.splashScreen);

@@ -246,11 +246,11 @@ async function startWebClient() {
 
 
 
-  midlet.canvas.setCurrentScreen(midlet.loginScreen);
+  midlet.canvas.setCurrentScreen(midlet.worldMapScreen);
 
 
 
-  window.__SCENE = 'login';
+  window.__SCENE = 'worldmap';
 
 
 
@@ -518,7 +518,7 @@ async function startWebClient() {
 
 
 
-    worldScreen.localPlayer.name = (document.getElementById('usernameInput') as HTMLInputElement)?.value || 'Tôi';
+    worldScreen.localPlayer.name = worldScreen.localPlayer.name || (document.getElementById('usernameInput') as HTMLInputElement)?.value || 'Tôi';
 
 
 

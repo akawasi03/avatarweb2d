@@ -1610,9 +1610,11 @@ if (!$view) {
           msgBox.textContent = data.message;
           currentUser = data.user;
           updateUserNav(data.user);
+          localStorage.setItem('avatar_auth_user', u);
+          localStorage.setItem('avatar_auth_pass', p);
           setTimeout(() => {
             launchGame(u, p);
-          }, 600);
+          }, 300);
         } else {
           msgBox.className = 'auth-message-box auth-message-error';
           msgBox.textContent = data.message || 'Đăng nhập thất bại!';
@@ -1659,9 +1661,11 @@ if (!$view) {
           msgBox.textContent = data.message;
           currentUser = data.user;
           updateUserNav(data.user);
+          localStorage.setItem('avatar_auth_user', u);
+          localStorage.setItem('avatar_auth_pass', p);
           setTimeout(() => {
             launchGame(u, p);
-          }, 800);
+          }, 300);
         } else {
           msgBox.className = 'auth-message-box auth-message-error';
           msgBox.textContent = data.message || 'Đăng ký thất bại!';
@@ -1679,6 +1683,8 @@ if (!$view) {
     async function onLogout() {
       await fetch('/api/auth/logout', { method: 'POST' });
       currentUser = null;
+      localStorage.removeItem('avatar_auth_user');
+      localStorage.removeItem('avatar_auth_pass');
       updateUserNav(null);
       switchView('home');
     }
@@ -1718,6 +1724,20 @@ if (!$view) {
     // Fullscreen WebGL Game Launch
     // ===========================================================
     function launchGame(autoUser, autoPass) {
+      const u = autoUser || localStorage.getItem('avatar_auth_user') || currentUser?.username || '';
+      const p = autoPass || localStorage.getItem('avatar_auth_pass') || '';
+      if (!u || !p) {
+        // If not authenticated, open login view
+        switchView('login');
+        const msgBox = document.getElementById('loginMsgBox');
+        if (msgBox) {
+          msgBox.className = 'auth-message-box auth-message-error';
+          msgBox.textContent = 'Vui lòng đăng nhập tài khoản để vào game!';
+          msgBox.style.display = 'block';
+        }
+        return;
+      }
+
       document.documentElement.classList.add('game-active');
       document.body.classList.add('game-active');
       const modal = document.getElementById('game-modal');
@@ -1727,14 +1747,6 @@ if (!$view) {
 
       // Trigger canvas resize to fit container exactly
       window.dispatchEvent(new Event('resize'));
-
-      const u = autoUser || currentUser?.username || '';
-      const p = autoPass || (currentUser ? '' : '');
-      if (!u || !p) {
-        // If not authenticated, open login view
-        switchView('login');
-        return;
-      }
 
       const playerInfoEl = document.getElementById('gamePlayerInfo');
       if (playerInfoEl) {

@@ -2154,130 +2154,6 @@ void main() {
 
   // packages/game-client/src/gameplay/LoginScreen.ts
   var import_j2me_compat3 = __toESM(require_dist());
-
-  // packages/game-client/src/renderer/FrameImage.ts
-  var FrameImage = class {
-    frameWidth;
-    frameHeight;
-    totalFrames;
-    image;
-    constructor(image, frameWidth, frameHeight) {
-      this.image = image;
-      this.frameWidth = frameWidth;
-      this.frameHeight = frameHeight;
-      this.totalFrames = Math.floor(image.height / frameHeight);
-    }
-    drawFrame(frameIdx, x, y, transform, anchor, g) {
-      if (frameIdx >= 0 && frameIdx < this.totalFrames) {
-        g.drawRegion(
-          this.image,
-          0,
-          frameIdx * this.frameHeight,
-          this.frameWidth,
-          this.frameHeight,
-          transform,
-          x,
-          y,
-          anchor
-        );
-      }
-    }
-    drawGridFrame(frameX, frameY, x, y, transform, anchor, g) {
-      g.drawRegion(
-        this.image,
-        frameX * this.frameWidth,
-        frameY * this.frameHeight,
-        this.frameWidth,
-        this.frameHeight,
-        transform,
-        x,
-        y,
-        anchor
-      );
-    }
-  };
-
-  // packages/game-client/src/ui/UISkinPainter.ts
-  var UISkinPainter = class _UISkinPainter {
-    // Original je.d color palette from gw.java
-    static JE_D = [6201499, 2378578, 8705740, 2716523, 16701696, 70];
-    static COLOR_BG = 8705740;
-    // #84D6CC (cyan body fill)
-    static COLOR_BORDER1 = 2378578;
-    // #244B52 (dark cyan border)
-    static COLOR_BORDER2 = 6201499;
-    // #5EA09B (accent border)
-    static COLOR_SELECTED = 14279153;
-    // #D9E1F1 (highlight)
-    font;
-    roundCorners;
-    constructor(font, roundCornersImg) {
-      this.font = font;
-      if (roundCornersImg) {
-        this.roundCorners = new FrameImage(roundCornersImg, 8, 8);
-      }
-    }
-    paintWindow(g, x, y, w, h, style = 0) {
-      const col0 = _UISkinPainter.JE_D[style] ?? _UISkinPainter.COLOR_BORDER2;
-      const col1 = _UISkinPainter.JE_D[style + 1] ?? _UISkinPainter.COLOR_BORDER1;
-      const col2 = _UISkinPainter.JE_D[2] ?? _UISkinPainter.COLOR_BG;
-      const col3 = _UISkinPainter.JE_D[3] ?? 2716523;
-      this.paintBorderLayer(g, x, y, w, h, col0, col1, 0);
-      this.paintBorderLayer(g, x + 3, y + 3, w - 6, h - 6, col2, col3, 1);
-    }
-    paintBorderLayer(g, x, y, w, h, fillCol, lineCol, cornerStyle) {
-      if (this.roundCorners) {
-        const baseFrame = cornerStyle << 2;
-        this.roundCorners.drawFrame(baseFrame + 0, x, y, 0, 0, g);
-        this.roundCorners.drawFrame(baseFrame + 1, x + w - 8, y, 0, 0, g);
-        this.roundCorners.drawFrame(baseFrame + 2, x, y + h - 8, 0, 0, g);
-        this.roundCorners.drawFrame(baseFrame + 3, x + w - 8, y + h - 8, 0, 0, g);
-      }
-      g.setColor(fillCol);
-      g.fillRect(x + 8, y, w - 16, 8);
-      g.fillRect(x + 8, y + h - 8, w - 16, 7);
-      g.fillRect(x, y + 8, w, h - 16);
-      g.setColor(lineCol);
-      g.fillRect(x + 8, y, w - 16, 1);
-      g.fillRect(x + 8, y + h - 1, w - 16, 1);
-      g.fillRect(x, y + 8, 1, h - 16);
-      g.fillRect(x + w - 1, y + 8, 1, h - 16);
-    }
-    paintButton(g, x, y, w, h, selected = false) {
-      if (selected) {
-        g.setColor(16753920);
-        g.fillRect(x, y, w, h);
-        g.setColor(16777215);
-        g.drawRect(x, y, w - 1, h - 1);
-      } else {
-        g.setColor(15658734);
-        g.fillRect(x, y, w, h);
-        g.setColor(_UISkinPainter.COLOR_BORDER1);
-        g.drawRect(x, y, w - 1, h - 1);
-      }
-    }
-    paintSoftkeys(g, left, center, right, screenW = 240, screenH = 320) {
-      const barH = 22;
-      const barY = screenH - barH;
-      g.setColor(2236962);
-      g.fillRect(0, barY, screenW, barH);
-      g.setColor(4473924);
-      g.drawLine(0, barY, screenW, barY);
-      if (this.font) {
-        if (left) {
-          this.font.drawString(g, left.caption, 6, barY + 4, 0);
-        }
-        if (center) {
-          this.font.drawString(g, center.caption, Math.floor(screenW / 2), barY + 4, 2);
-        }
-        if (right) {
-          this.font.drawString(g, right.caption, screenW - 6, barY + 4, 1);
-        }
-      }
-    }
-  };
-
-  // packages/game-client/src/gameplay/LoginScreen.ts
   var LoginScreen = class extends GameScreen {
     selectedIndex = 0;
     // Highlight first option by default
@@ -2305,6 +2181,9 @@ void main() {
       this.rightCmd = { caption: "\u0110\xF3ng", actionId: 2 };
     }
     update() {
+      if (typeof window !== "undefined" && window.gameMidlet?.worldMapScreen) {
+        window.gameMidlet.canvas.setCurrentScreen(window.gameMidlet.worldMapScreen);
+      }
     }
     onResize(width, height) {
       this.winX = Math.floor((width - this.winW) / 2);
@@ -2384,38 +2263,8 @@ void main() {
       } else if (this.font) {
         this.font.drawString(g, "AVATAR 258", Math.floor(screenW / 2), Math.max(25, this.winY - 45), 2);
       }
-      this.skinPainter.paintWindow(g, this.winX, this.winY, this.winW, this.winH);
-      if (this.isQuickSelectMode) {
-        if (this.selectedIndex !== -1) {
-          g.setColor(UISkinPainter.COLOR_SELECTED);
-          g.fillRect(this.winX + 5, this.winY + this.offsetY + this.selectedIndex * this.itemH, this.winW - 10, this.itemH);
-        }
-        if (this.font) {
-          for (let i = 0; i < this.options.length; i++) {
-            const textY = this.winY + this.offsetY + i * this.itemH + Math.floor(this.itemH / 2) - Math.floor(this.font.getHeight() / 2);
-            this.font.drawString(
-              g,
-              this.options[i],
-              Math.floor(screenW / 2),
-              textY,
-              2
-              // Center align
-            );
-          }
-        }
-      } else {
-        if (this.font) {
-          this.font.drawString(g, "T\xE0i kho\u1EA3n:", this.winX + 15, this.winY + 15, 0);
-          g.setColor(16777215);
-          g.fillRect(this.winX + 15, this.winY + 30, this.winW - 30, 22);
-          g.setColor(3355443);
-          g.drawRect(this.winX + 15, this.winY + 30, this.winW - 30, 22);
-          this.font.drawString(g, "M\u1EADt kh\u1EA9u:", this.winX + 15, this.winY + 58, 0);
-          g.setColor(16777215);
-          g.fillRect(this.winX + 15, this.winY + 73, this.winW - 30, 22);
-          g.setColor(3355443);
-          g.drawRect(this.winX + 15, this.winY + 73, this.winW - 30, 22);
-        }
+      if (this.font) {
+        this.font.drawString(g, "\u0110ang v\xE0o th\u1EBF gi\u1EDBi Avatar 2.5.8...", Math.floor(screenW / 2), Math.floor(screenH * 0.45), 2);
       }
       this.skinPainter.paintSoftkeys(g, this.leftCmd, this.centerCmd, this.rightCmd, screenW, screenH);
     }
@@ -3024,6 +2873,128 @@ void main() {
     }
   };
 
+  // packages/game-client/src/renderer/FrameImage.ts
+  var FrameImage = class {
+    frameWidth;
+    frameHeight;
+    totalFrames;
+    image;
+    constructor(image, frameWidth, frameHeight) {
+      this.image = image;
+      this.frameWidth = frameWidth;
+      this.frameHeight = frameHeight;
+      this.totalFrames = Math.floor(image.height / frameHeight);
+    }
+    drawFrame(frameIdx, x, y, transform, anchor, g) {
+      if (frameIdx >= 0 && frameIdx < this.totalFrames) {
+        g.drawRegion(
+          this.image,
+          0,
+          frameIdx * this.frameHeight,
+          this.frameWidth,
+          this.frameHeight,
+          transform,
+          x,
+          y,
+          anchor
+        );
+      }
+    }
+    drawGridFrame(frameX, frameY, x, y, transform, anchor, g) {
+      g.drawRegion(
+        this.image,
+        frameX * this.frameWidth,
+        frameY * this.frameHeight,
+        this.frameWidth,
+        this.frameHeight,
+        transform,
+        x,
+        y,
+        anchor
+      );
+    }
+  };
+
+  // packages/game-client/src/ui/UISkinPainter.ts
+  var UISkinPainter = class _UISkinPainter {
+    // Original je.d color palette from gw.java
+    static JE_D = [6201499, 2378578, 8705740, 2716523, 16701696, 70];
+    static COLOR_BG = 8705740;
+    // #84D6CC (cyan body fill)
+    static COLOR_BORDER1 = 2378578;
+    // #244B52 (dark cyan border)
+    static COLOR_BORDER2 = 6201499;
+    // #5EA09B (accent border)
+    static COLOR_SELECTED = 14279153;
+    // #D9E1F1 (highlight)
+    font;
+    roundCorners;
+    constructor(font, roundCornersImg) {
+      this.font = font;
+      if (roundCornersImg) {
+        this.roundCorners = new FrameImage(roundCornersImg, 8, 8);
+      }
+    }
+    paintWindow(g, x, y, w, h, style = 0) {
+      const col0 = _UISkinPainter.JE_D[style] ?? _UISkinPainter.COLOR_BORDER2;
+      const col1 = _UISkinPainter.JE_D[style + 1] ?? _UISkinPainter.COLOR_BORDER1;
+      const col2 = _UISkinPainter.JE_D[2] ?? _UISkinPainter.COLOR_BG;
+      const col3 = _UISkinPainter.JE_D[3] ?? 2716523;
+      this.paintBorderLayer(g, x, y, w, h, col0, col1, 0);
+      this.paintBorderLayer(g, x + 3, y + 3, w - 6, h - 6, col2, col3, 1);
+    }
+    paintBorderLayer(g, x, y, w, h, fillCol, lineCol, cornerStyle) {
+      if (this.roundCorners) {
+        const baseFrame = cornerStyle << 2;
+        this.roundCorners.drawFrame(baseFrame + 0, x, y, 0, 0, g);
+        this.roundCorners.drawFrame(baseFrame + 1, x + w - 8, y, 0, 0, g);
+        this.roundCorners.drawFrame(baseFrame + 2, x, y + h - 8, 0, 0, g);
+        this.roundCorners.drawFrame(baseFrame + 3, x + w - 8, y + h - 8, 0, 0, g);
+      }
+      g.setColor(fillCol);
+      g.fillRect(x + 8, y, w - 16, 8);
+      g.fillRect(x + 8, y + h - 8, w - 16, 7);
+      g.fillRect(x, y + 8, w, h - 16);
+      g.setColor(lineCol);
+      g.fillRect(x + 8, y, w - 16, 1);
+      g.fillRect(x + 8, y + h - 1, w - 16, 1);
+      g.fillRect(x, y + 8, 1, h - 16);
+      g.fillRect(x + w - 1, y + 8, 1, h - 16);
+    }
+    paintButton(g, x, y, w, h, selected = false) {
+      if (selected) {
+        g.setColor(16753920);
+        g.fillRect(x, y, w, h);
+        g.setColor(16777215);
+        g.drawRect(x, y, w - 1, h - 1);
+      } else {
+        g.setColor(15658734);
+        g.fillRect(x, y, w, h);
+        g.setColor(_UISkinPainter.COLOR_BORDER1);
+        g.drawRect(x, y, w - 1, h - 1);
+      }
+    }
+    paintSoftkeys(g, left, center, right, screenW = 240, screenH = 320) {
+      const barH = 22;
+      const barY = screenH - barH;
+      g.setColor(2236962);
+      g.fillRect(0, barY, screenW, barH);
+      g.setColor(4473924);
+      g.drawLine(0, barY, screenW, barY);
+      if (this.font) {
+        if (left) {
+          this.font.drawString(g, left.caption, 6, barY + 4, 0);
+        }
+        if (center) {
+          this.font.drawString(g, center.caption, Math.floor(screenW / 2), barY + 4, 2);
+        }
+        if (right) {
+          this.font.drawString(g, right.caption, screenW - 6, barY + 4, 1);
+        }
+      }
+    }
+  };
+
   // packages/game-client/src/renderer/BitmapFont.ts
   var BitmapFont = class {
     glyphChars = "";
@@ -3193,7 +3164,7 @@ void main() {
       this.loginScreen = new LoginScreen(this.skinPainter, this.font);
       this.worldMapScreen = new WorldMapScreen(this.skinPainter, this.font);
       this.splashScreen = new SplashScreen(void 0, () => {
-        this.canvas.setCurrentScreen(this.loginScreen);
+        this.canvas.setCurrentScreen(this.worldMapScreen);
       });
       this.canvas.setCurrentScreen(this.splashScreen);
     }
@@ -5972,8 +5943,8 @@ void main() {
     }
     const worldScreen = new GameWorldScreen(network, midlet.skinPainter, midlet.font);
     window.gameWorldScreen = worldScreen;
-    midlet.canvas.setCurrentScreen(midlet.loginScreen);
-    window.__SCENE = "login";
+    midlet.canvas.setCurrentScreen(midlet.worldMapScreen);
+    window.__SCENE = "worldmap";
     let cachedUserData = null;
     const showWorldMap = () => {
       midlet.canvas.setCurrentScreen(midlet.worldMapScreen);
@@ -6025,7 +5996,7 @@ void main() {
       console.log("[WebClient] Logged in successfully!", userData);
       cachedUserData = userData;
       worldScreen.localPlayer.id = userData.id;
-      worldScreen.localPlayer.name = document.getElementById("usernameInput")?.value || "T\xF4i";
+      worldScreen.localPlayer.name = worldScreen.localPlayer.name || document.getElementById("usernameInput")?.value || "T\xF4i";
       worldScreen.localPlayer.gender = userData.gender;
       worldScreen.localPlayer.wearing = userData.wearing || [];
       const loginOverlay = document.getElementById("login-overlay");
