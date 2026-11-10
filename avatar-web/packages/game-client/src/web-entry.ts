@@ -1,6 +1,7 @@
 import { FarmModel } from './farm/FarmModel.js';
 import { FarmNetworkHandler } from './farm/FarmNetworkHandler.js';
 import { FarmScreen } from './farm/FarmScreen.js';
+import { FarmGateScreen } from './farm/FarmGateScreen.js';
 import { WebGL2Renderer } from '@avatar/j2me-compat';
 import { GameMidlet } from './core/GameMidlet.js';
 
@@ -58,6 +59,7 @@ declare global {
 
     closeGame?: () => void;
     farmScreen?: FarmScreen;
+    farmGateScreen?: FarmGateScreen;
     farmModel?: FarmModel;
     enterFarm?: (userId?: number) => void;
 
@@ -242,19 +244,53 @@ async function startWebClient() {
 
   window.gameWorldScreen = worldScreen;
 
-  // Initialize Farm System (Map 25)
+  // Initialize Farm System (Map 25) & Farm Gate (Map 23)
   const farmNetworkHandler = new FarmNetworkHandler(network);
   const farmScreen = new FarmScreen(farmNetworkHandler, midlet.skinPainter, midlet.font);
+  const farmGateScreen = new FarmGateScreen(network, midlet.skinPainter, midlet.font, farmScreen.controller);
   window.farmScreen = farmScreen;
+  window.farmGateScreen = farmGateScreen;
   window.farmModel = farmNetworkHandler.model;
+
+  // Enter Private Farm (Map 25)
   window.enterFarm = (userId?: number) => {
     farmScreen.localPlayer.name = worldScreen.localPlayer.name;
     farmScreen.localPlayer.wearing = worldScreen.localPlayer.wearing;
+    farmScreen.localPlayer.x = 830;
+    farmScreen.localPlayer.y = 690;
+    farmScreen.localPlayer.targetX = 830;
+    farmScreen.localPlayer.targetY = 690;
+    farmScreen.localPlayer.dir = 1; // Facing up into farm
     farmNetworkHandler.enterFarm(userId || network.myUserId || 1);
     midlet.canvas.setCurrentScreen(farmScreen);
     window.__SCENE = 'farm';
   };
+
+  // When exiting Private Farm (Map 25), return to Cổng Nông Trại (Map 23)
   farmScreen.onExitToWorldMap = () => {
+    console.log('[WebClient] Exiting Private Farm -> Returning to Cổng Nông Trại (Map 23)...');
+    farmGateScreen.localPlayer.name = farmScreen.localPlayer.name;
+    farmGateScreen.localPlayer.wearing = farmScreen.localPlayer.wearing;
+    farmGateScreen.localPlayer.x = 434;
+    farmGateScreen.localPlayer.y = 250;
+    farmGateScreen.localPlayer.targetX = 434;
+    farmGateScreen.localPlayer.targetY = 270;
+    farmGateScreen.localPlayer.dir = 0; // Facing down away from gate
+    midlet.canvas.setCurrentScreen(farmGateScreen);
+    window.__SCENE = 'farm_gate';
+  };
+
+  // When selecting to enter FARM gate from Cổng Nông Trại (Map 23)
+  farmGateScreen.onEnterFarm = (userId?: number) => {
+    console.log('[WebClient] Entering Private Farm (Map 25) from Farm Gate...');
+    if (window.enterFarm) {
+      window.enterFarm(userId || network.myUserId || 1);
+    }
+  };
+
+  // When exiting Cổng Nông Trại (Map 23), return to City World Map
+  farmGateScreen.onExitToWorldMap = () => {
+    console.log('[WebClient] Leaving Cổng Nông Trại -> Returning to World Map...');
     showWorldMap();
   };
 
@@ -356,10 +392,17 @@ async function startWebClient() {
 
   midlet.worldMapScreen.onSelectRegion = (region) => {
     if (region.mapId === 25) {
-      console.log('[WebClient] Entering Farm Screen (Map 25)...');
-      if (window.enterFarm) {
-        window.enterFarm(network.myUserId || 1);
-      }
+      console.log('[WebClient] Entering Cổng Nông Trại (Map 23)...');
+      farmGateScreen.localPlayer.name = worldScreen.localPlayer.name;
+      farmGateScreen.localPlayer.wearing = worldScreen.localPlayer.wearing;
+      // Start near road on entrance facing up towards gate
+      farmGateScreen.localPlayer.x = 434;
+      farmGateScreen.localPlayer.y = 360;
+      farmGateScreen.localPlayer.targetX = 434;
+      farmGateScreen.localPlayer.targetY = 360;
+      farmGateScreen.localPlayer.dir = 1; // Facing up
+      midlet.canvas.setCurrentScreen(farmGateScreen);
+      window.__SCENE = 'farm_gate';
       return;
     }
 

@@ -195,4 +195,11 @@ export class FarmActionController {
       }
     }
   }
+
+  public buySeed(seedId: number, quantity: number = 1): void {
+    this.handler.buySeed(seedId, quantity);
+    if (this.onActionFeedback) {
+      this.onActionFeedback(`Đã gửi yêu cầu mua hạt giống #${seedId}`, '#facc15');
+    }
+  }
 }

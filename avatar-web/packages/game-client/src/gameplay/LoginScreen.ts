@@ -4,9 +4,9 @@ import { UISkinPainter } from '../ui/UISkinPainter.js';
 import { IFont } from '../renderer/BitmapFont.js';
 
 export class LoginScreen extends GameScreen {
-  public selectedIndex = 0; // Highlight first option by default
-  public options = ['Chơi mới', 'Đổi tài khoản'];
-  public isQuickSelectMode = true; // es.v == true
+  public selectedIndex = -1;
+  public options: string[] = [];
+  public isQuickSelectMode = true;
 
   public bgImages: Image[] = [];
   public bannerLogo?: Image;

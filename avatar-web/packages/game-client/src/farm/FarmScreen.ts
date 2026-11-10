@@ -113,15 +113,14 @@ export class FarmScreen extends GameScreen {
   }
 
   private async loadMap25(): Promise<void> {
-    const hour = new Date().getHours();
-    this.isNight = hour >= 18 || hour < 6;
-    const nightSuffix = this.isNight ? 'night' : 'day';
-
-    // 1. Preload authentic HD graphics from Avatar-Sv-master-master
+    // 1. Preload authentic HD graphics from Avatar-Sv-master-master (both Day & Night)
     await Promise.all([
-      this.preloadSprite('tileset', `/assets/tileset/tileset_hd_${nightSuffix}.png`),
-      this.preloadSprite('clouds', `/assets/bg/clouds_farm_${nightSuffix}.png`),
-      this.preloadSprite('horizon', `/assets/bg/horizon_farm_${nightSuffix}.png`),
+      this.preloadSprite('tileset_day', '/assets/tileset/tileset_hd_day.png'),
+      this.preloadSprite('tileset_night', '/assets/tileset/tileset_hd_night.png'),
+      this.preloadSprite('clouds_day', '/assets/bg/clouds_farm_day.png'),
+      this.preloadSprite('clouds_night', '/assets/bg/clouds_farm_night.png'),
+      this.preloadSprite('horizon_day', '/assets/bg/horizon_farm_day.png'),
+      this.preloadSprite('horizon_night', '/assets/bg/horizon_farm_night.png'),
       this.preloadSprite('house1029', '/assets/home/1029.png'),
       this.preloadSprite('barn834', '/assets/home/834.png'),
       this.preloadSprite('tree243', '/assets/home/243.png'),
@@ -296,13 +295,18 @@ export class FarmScreen extends GameScreen {
     const w = this.screenW;
     const h = this.screenH;
 
+    const isForcedDay = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).has('day') || (window as any).__FORCE_DAY);
+    const hour = new Date().getHours();
+    this.isNight = isForcedDay ? false : (hour >= 18 || hour < 6);
+    const suffix = this.isNight ? 'night' : 'day';
+
     // 1. Paint authentic sky blue background (#5DBEF7 Day or #000015 Night)
     const skyColor = this.isNight ? 0x000015 : 0x5DBEF7;
     g.setColor(skyColor);
     g.fillRect(0, 0, w, h);
 
     // 2. Paint Authentic Parallax Clouds (clouds_farm_day.png / may20.png)
-    const cloudImg = this.spriteCache.get('clouds');
+    const cloudImg = this.spriteCache.get(`clouds_${suffix}`);
     if (cloudImg) {
       const cW = cloudImg.getWidth();
       const parallaxCloud = -Math.floor(this.cameraX * 0.15) % cW;
@@ -313,7 +317,7 @@ export class FarmScreen extends GameScreen {
     }
 
     // 3. Paint Authentic Parallax Horizon Landscape (horizon_farm_day.png / 20.png)
-    const horizonImg = this.spriteCache.get('horizon');
+    const horizonImg = this.spriteCache.get(`horizon_${suffix}`);
     if (horizonImg) {
       const hW = horizonImg.getWidth();
       const hH = horizonImg.getHeight();
@@ -326,7 +330,7 @@ export class FarmScreen extends GameScreen {
     }
 
     // 4. Paint Authentic Ground Tilemap (42 cols x 8 rows, HD 48px tile size, Column-Major Indexing)
-    const tilesetImg = this.spriteCache.get('tileset');
+    const tilesetImg = this.spriteCache.get(`tileset_${suffix}`);
     if (tilesetImg && this.isMapLoaded) {
       const tileSize = 48;
       const groundY = 388;

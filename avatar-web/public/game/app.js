@@ -44,7 +44,7 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Image = void 0;
-      var Image9 = class _Image {
+      var Image10 = class _Image {
         width;
         height;
         data;
@@ -108,7 +108,7 @@
           return new _Image(width, height, bytes);
         }
       };
-      exports.Image = Image9;
+      exports.Image = Image10;
     }
   });
 
@@ -139,7 +139,7 @@
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Graphics = void 0;
       var Sprite_js_1 = require_Sprite();
-      var Graphics8 = class _Graphics {
+      var Graphics9 = class _Graphics {
         static HCENTER = 1;
         static VCENTER = 2;
         static LEFT = 4;
@@ -450,7 +450,7 @@
           this.ctx.restore();
         }
       };
-      exports.Graphics = Graphics8;
+      exports.Graphics = Graphics9;
     }
   });
 
@@ -2867,6 +2867,12 @@ void main() {
         }
       }
     }
+    buySeed(seedId, quantity = 1) {
+      this.handler.buySeed(seedId, quantity);
+      if (this.onActionFeedback) {
+        this.onActionFeedback(`\u0110\xE3 g\u1EEDi y\xEAu c\u1EA7u mua h\u1EA1t gi\u1ED1ng #${seedId}`, "#facc15");
+      }
+    }
   };
 
   // packages/game-client/src/farm/FarmScreen.ts
@@ -2936,13 +2942,13 @@ void main() {
       });
     }
     async loadMap25() {
-      const hour = (/* @__PURE__ */ new Date()).getHours();
-      this.isNight = hour >= 18 || hour < 6;
-      const nightSuffix = this.isNight ? "night" : "day";
       await Promise.all([
-        this.preloadSprite("tileset", `/assets/tileset/tileset_hd_${nightSuffix}.png`),
-        this.preloadSprite("clouds", `/assets/bg/clouds_farm_${nightSuffix}.png`),
-        this.preloadSprite("horizon", `/assets/bg/horizon_farm_${nightSuffix}.png`),
+        this.preloadSprite("tileset_day", "/assets/tileset/tileset_hd_day.png"),
+        this.preloadSprite("tileset_night", "/assets/tileset/tileset_hd_night.png"),
+        this.preloadSprite("clouds_day", "/assets/bg/clouds_farm_day.png"),
+        this.preloadSprite("clouds_night", "/assets/bg/clouds_farm_night.png"),
+        this.preloadSprite("horizon_day", "/assets/bg/horizon_farm_day.png"),
+        this.preloadSprite("horizon_night", "/assets/bg/horizon_farm_night.png"),
         this.preloadSprite("house1029", "/assets/home/1029.png"),
         this.preloadSprite("barn834", "/assets/home/834.png"),
         this.preloadSprite("tree243", "/assets/home/243.png"),
@@ -3090,10 +3096,14 @@ void main() {
     paint(g) {
       const w = this.screenW;
       const h = this.screenH;
+      const isForcedDay = typeof window !== "undefined" && (new URLSearchParams(window.location.search).has("day") || window.__FORCE_DAY);
+      const hour = (/* @__PURE__ */ new Date()).getHours();
+      this.isNight = isForcedDay ? false : hour >= 18 || hour < 6;
+      const suffix = this.isNight ? "night" : "day";
       const skyColor = this.isNight ? 21 : 6143735;
       g.setColor(skyColor);
       g.fillRect(0, 0, w, h);
-      const cloudImg = this.spriteCache.get("clouds");
+      const cloudImg = this.spriteCache.get(`clouds_${suffix}`);
       if (cloudImg) {
         const cW = cloudImg.getWidth();
         const parallaxCloud = -Math.floor(this.cameraX * 0.15) % cW;
@@ -3102,7 +3112,7 @@ void main() {
           g.drawImage(cloudImg, x, cloudY, 0);
         }
       }
-      const horizonImg = this.spriteCache.get("horizon");
+      const horizonImg = this.spriteCache.get(`horizon_${suffix}`);
       if (horizonImg) {
         const hW = horizonImg.getWidth();
         const hH = horizonImg.getHeight();
@@ -3112,7 +3122,7 @@ void main() {
           g.drawImage(horizonImg, x, horizonY, 0);
         }
       }
-      const tilesetImg = this.spriteCache.get("tileset");
+      const tilesetImg = this.spriteCache.get(`tileset_${suffix}`);
       if (tilesetImg && this.isMapLoaded) {
         const tileSize = 48;
         const groundY = 388;
@@ -3805,15 +3815,719 @@ void main() {
     }
   };
 
+  // packages/game-client/src/farm/FarmGateScreen.ts
+  var import_j2me_compat3 = __toESM(require_dist());
+  var FarmGateScreen = class extends GameScreen {
+    network;
+    skinPainter;
+    font;
+    controller;
+    // Local player state
+    localPlayer;
+    // NPC lai.buon (ID 850)
+    npcLaiBuon = {
+      id: 850,
+      name: "lai.buon",
+      x: 140,
+      y: 280,
+      dir: 0,
+      // Facing down
+      frame: 0,
+      wearing: [273, 326, 0, 82, 73, 297, 442]
+      // Nón lá, áo bà ba, fishing rod
+    };
+    // Screen dimensions
+    screenW = 640;
+    screenH = 480;
+    // Camera offset
+    cameraX = 0;
+    cameraY = 0;
+    // Map dimensions
+    MAP_WIDTH = 1302;
+    MAP_HEIGHT = 466;
+    // Walkable bounds
+    // Main dirt road: x = 50..1250, y = 300..415
+    // Gate path: x = 395..475, y = 220..300
+    // Store path: x = 720..790, y = 230..300
+    // Lai buon path: x = 110..180, y = 265..300
+    // Asset Cache
+    spriteCache = /* @__PURE__ */ new Map();
+    isAssetsLoaded = false;
+    isNight = false;
+    // Animation ticks
+    animTick = 0;
+    // Active UI
+    isMenuOpen = false;
+    isShopOpen = false;
+    isLaiBuonDialogOpen = false;
+    // Floating notifications
+    feedbackText = "Ch\xE0o m\u1EEBng b\u1EA1n \u0111\u1EBFn v\u1EDBi C\u1ED5ng N\xF4ng Tr\u1EA1i!";
+    feedbackColor = "#facc15";
+    feedbackTimer = 100;
+    // Callbacks
+    onEnterFarm;
+    onExitToWorldMap;
+    constructor(network, skinPainter, font, controller) {
+      super();
+      this.network = network;
+      this.skinPainter = skinPainter;
+      this.font = font;
+      this.controller = controller;
+      this.localPlayer = {
+        id: this.network.myUserId || 1,
+        name: "N\xF4ng d\xE2n",
+        x: 434,
+        y: 360,
+        targetX: 434,
+        targetY: 360,
+        dir: 1,
+        // Facing Up towards the gate
+        state: "idle",
+        wearing: [1, 2, 3],
+        frame: 0
+      };
+      this.loadAssets().catch((err) => {
+        console.error("[FarmGateScreen] Failed to load gate assets:", err);
+      });
+    }
+    async loadAssets() {
+      await Promise.all([
+        this.preloadSprite("clouds_day", "/assets/bg/clouds_farm_day.png"),
+        this.preloadSprite("clouds_night", "/assets/bg/clouds_farm_night.png"),
+        this.preloadSprite("horizon_day", "/assets/bg/horizon_farm_day.png"),
+        this.preloadSprite("horizon_night", "/assets/bg/horizon_farm_night.png"),
+        this.preloadSprite("layer0", "/assets/farm_gate/layer_0.png"),
+        this.preloadSprite("layer1", "/assets/farm_gate/layer_1.png"),
+        this.preloadSprite("layer2", "/assets/farm_gate/layer_2.png"),
+        this.preloadSprite("xeKem", "/assets/farm_gate/Xe_Kem_Do_An_Nhanh.png"),
+        this.preloadSprite("coin", "/assets/farm_ui/coin.png")
+      ]);
+      this.isAssetsLoaded = true;
+      console.log("[FarmGateScreen] Authentic HD gate assets loaded successfully");
+    }
+    async preloadSprite(key, url) {
+      try {
+        const img = await import_j2me_compat3.Image.createImage(url);
+        this.spriteCache.set(key, img);
+        return img;
+      } catch (err) {
+        console.warn(`[FarmGateScreen] Failed to load sprite ${key} from ${url}:`, err);
+        return void 0;
+      }
+    }
+    /**
+     * Main Simulation Update (20 ticks/sec)
+     */
+    update() {
+      this.animTick++;
+      if (this.feedbackTimer > 0) {
+        this.feedbackTimer--;
+      }
+      if (this.localPlayer.x !== this.localPlayer.targetX || this.localPlayer.y !== this.localPlayer.targetY) {
+        this.localPlayer.state = "walk";
+        const dx = this.localPlayer.targetX - this.localPlayer.x;
+        const dy = this.localPlayer.targetY - this.localPlayer.y;
+        const dist = Math.sqrt(dx * dx + dy * dy);
+        const speed = 4;
+        if (dist <= speed) {
+          this.localPlayer.x = this.localPlayer.targetX;
+          this.localPlayer.y = this.localPlayer.targetY;
+          this.localPlayer.state = "idle";
+          this.checkTriggerZones();
+        } else {
+          const nextX = this.localPlayer.x + Math.round(dx / dist * speed);
+          const nextY = this.localPlayer.y + Math.round(dy / dist * speed);
+          if (Math.abs(dx) > Math.abs(dy)) {
+            this.localPlayer.dir = dx > 0 ? 3 : 2;
+          } else {
+            this.localPlayer.dir = dy > 0 ? 0 : 1;
+          }
+          if (this.isWalkable(nextX, nextY)) {
+            this.localPlayer.x = nextX;
+            this.localPlayer.y = nextY;
+          } else if (this.isWalkable(nextX, this.localPlayer.y)) {
+            this.localPlayer.x = nextX;
+          } else if (this.isWalkable(this.localPlayer.x, nextY)) {
+            this.localPlayer.y = nextY;
+          } else {
+            this.localPlayer.targetX = this.localPlayer.x;
+            this.localPlayer.targetY = this.localPlayer.y;
+            this.localPlayer.state = "idle";
+          }
+        }
+        if (this.animTick % 3 === 0) {
+          this.localPlayer.frame = (this.localPlayer.frame + 1) % 3;
+        }
+      } else {
+        this.localPlayer.state = "idle";
+        this.localPlayer.frame = 0;
+      }
+      this.updateCamera();
+    }
+    /**
+     * Authentic walkable area calculation
+     */
+    isWalkable(x, y) {
+      if (x < 40 || x > 1260) return false;
+      if (y >= 290 && y <= 415) return true;
+      if (x >= 395 && x <= 475 && y >= 210 && y < 290) return true;
+      if (x >= 715 && x <= 790 && y >= 220 && y < 290) return true;
+      if (x >= 100 && x <= 180 && y >= 260 && y < 290) return true;
+      return false;
+    }
+    /**
+     * Check interactive zones when player stops walking
+     */
+    checkTriggerZones() {
+      if (Math.abs(this.localPlayer.x - 434) <= 45 && this.localPlayer.y <= 230) {
+        this.promptEnterFarm();
+        return;
+      }
+      if (Math.abs(this.localPlayer.x - 755) <= 40 && this.localPlayer.y <= 240) {
+        this.openShop();
+        return;
+      }
+      if (Math.abs(this.localPlayer.x - 140) <= 45 && Math.abs(this.localPlayer.y - 280) <= 30) {
+        this.openLaiBuonDialog();
+        return;
+      }
+      if (Math.abs(this.localPlayer.x - 434) <= 50 && this.localPlayer.y >= 400) {
+        this.promptExitToWorldMap();
+        return;
+      }
+    }
+    /**
+     * Smooth Camera Tracking centered on player
+     */
+    updateCamera() {
+      const targetCamX = this.localPlayer.x - Math.floor(this.screenW / 2);
+      const maxCamX = Math.max(0, this.MAP_WIDTH - this.screenW);
+      this.cameraX = Math.max(0, Math.min(targetCamX, maxCamX));
+      if (this.screenH >= this.MAP_HEIGHT) {
+        this.cameraY = 0;
+      } else {
+        const targetCamY = this.localPlayer.y - Math.floor(this.screenH / 2);
+        const maxCamY = this.MAP_HEIGHT - this.screenH;
+        this.cameraY = Math.max(0, Math.min(targetCamY, maxCamY));
+      }
+    }
+    /**
+     * Main WebGL2 Paint Routine
+     */
+    paint(g) {
+      const w = g.getClipWidth();
+      const h = g.getClipHeight();
+      this.screenW = w;
+      this.screenH = h;
+      const isForcedDay = typeof window !== "undefined" && (new URLSearchParams(window.location.search).has("day") || window.__FORCE_DAY);
+      const hour = (/* @__PURE__ */ new Date()).getHours();
+      this.isNight = isForcedDay ? false : hour >= 18 || hour < 6;
+      if (this.isNight) {
+        g.setColor(21);
+      } else {
+        g.setColor(6143735);
+      }
+      g.fillRect(0, 0, w, h);
+      const groundBaseY = Math.max(0, h - this.MAP_HEIGHT);
+      this.paintParallaxSky(g, w, groundBaseY);
+      this.paintParallaxHorizon(g, w, groundBaseY);
+      g.translate(-this.cameraX, -this.cameraY + groundBaseY);
+      this.paintGateBackdrop(g);
+      this.paintScenery(g);
+      this.paintNpcLaiBuon(g);
+      this.paintPlayer(g);
+      this.paintGuideArrows(g);
+      g.translate(this.cameraX, this.cameraY - groundBaseY);
+      this.paintHUD(g, w, h);
+      if (this.isMenuOpen) {
+        this.paintQuickMenu(g, w, h);
+      } else if (this.isLaiBuonDialogOpen) {
+        this.paintLaiBuonDialog(g, w, h);
+      } else if (this.isShopOpen) {
+        this.paintShopDialog(g, w, h);
+      }
+      this.paintSoftkeys(g, w, h);
+    }
+    /**
+     * Parallax Sky & Clouds
+     */
+    paintParallaxSky(g, screenW, groundBaseY) {
+      const suffix = this.isNight ? "night" : "day";
+      const cloudsImg = this.spriteCache.get(`clouds_${suffix}`);
+      if (!cloudsImg) return;
+      const cloudW = cloudsImg.getWidth();
+      const cloudH = cloudsImg.getHeight();
+      const parallaxX = -Math.floor(this.cameraX * 0.15) % cloudW;
+      const startX = parallaxX > 0 ? parallaxX - cloudW : parallaxX;
+      const cloudY = Math.max(0, groundBaseY - 30);
+      for (let x = startX; x < screenW; x += cloudW) {
+        g.drawImage(cloudsImg, x, cloudY, 0);
+      }
+    }
+    /**
+     * Parallax Horizon (Green Fields in background)
+     */
+    paintParallaxHorizon(g, screenW, groundBaseY) {
+      const suffix = this.isNight ? "night" : "day";
+      const horizonImg = this.spriteCache.get(`horizon_${suffix}`);
+      if (!horizonImg) return;
+      const horW = horizonImg.getWidth();
+      const parallaxX = -Math.floor(this.cameraX * 0.35) % horW;
+      const startX = parallaxX > 0 ? parallaxX - horW : parallaxX;
+      const horY = groundBaseY + 80;
+      for (let x = startX; x < screenW; x += horW) {
+        g.drawImage(horizonImg, x, horY, 0);
+      }
+    }
+    /**
+     * Paint 3-layer authentic HD composite backdrop
+     * layer_0 (434x466): Left tree, fence, left post of FARM gate
+     * layer_1 (434x422): Right post of FARM gate, bushes, CỬA HÀNG building
+     * layer_2 (434x466): Right fence, twisted trunk tree, flowers
+     */
+    paintGateBackdrop(g) {
+      const l0 = this.spriteCache.get("layer0");
+      const l1 = this.spriteCache.get("layer1");
+      const l2 = this.spriteCache.get("layer2");
+      if (l0) {
+        g.drawImage(l0, 0, 0, 0);
+      }
+      if (l1) {
+        g.drawImage(l1, 434, 44, 0);
+      }
+      if (l2) {
+        g.drawImage(l2, 868, 0, 0);
+      }
+    }
+    /**
+     * Paint Scenery: Xe Kem Đồ Ăn Nhanh on the right lawn
+     */
+    paintScenery(g) {
+      const xeKem = this.spriteCache.get("xeKem");
+      if (xeKem) {
+        g.drawImage(xeKem, 930, 168, 0);
+      }
+    }
+    /**
+     * Paint NPC lai.buon with conical hat, áo bà ba, and fishing rod
+     */
+    paintNpcLaiBuon(g) {
+      const nx = this.npcLaiBuon.x;
+      const ny = this.npcLaiBuon.y;
+      g.setColor(1120295);
+      g.fillArc(nx - 9, ny - 2, 18, 6, 0, 360);
+      AvatarRenderer.paintAvatar(
+        g,
+        nx,
+        ny,
+        this.npcLaiBuon.wearing,
+        this.npcLaiBuon.dir,
+        this.npcLaiBuon.frame,
+        this.npcLaiBuon.name,
+        true,
+        this.font
+      );
+      g.setColor(14427686);
+      g.fillArc(nx - 36, ny - 52, 8, 8, 0, 360);
+      g.setColor(16498468);
+      g.fillArc(nx - 34, ny - 50, 4, 4, 0, 360);
+    }
+    /**
+     * Paint Local Player Avatar
+     */
+    paintPlayer(g) {
+      const px = this.localPlayer.x;
+      const py = this.localPlayer.y;
+      g.setColor(1120295);
+      g.fillArc(px - 9, py - 2, 18, 6, 0, 360);
+      AvatarRenderer.paintAvatar(
+        g,
+        px,
+        py,
+        this.localPlayer.wearing,
+        this.localPlayer.dir,
+        this.localPlayer.frame,
+        this.localPlayer.name,
+        true,
+        this.font
+      );
+    }
+    /**
+     * Paint animated yellow downward arrows ("Vào") matching authentic Avatar 2.5.8
+     */
+    paintGuideArrows(g) {
+      const bounce = Math.floor(this.animTick % 12 / 4);
+      this.paintYellowArrow(g, 434, 230 + bounce, "V\xE0o");
+      this.paintYellowArrow(g, 755, 240 + bounce, "V\xE0o");
+      this.paintYellowArrow(g, 140, 230 + bounce, "V\xE0o");
+      this.paintYellowArrow(g, 434, 405 + bounce, "V\xE0o");
+    }
+    paintYellowArrow(g, x, y, text) {
+      this.font.drawString(g, text, x, y - 10, 2);
+      g.setColor(16436245);
+      for (let row = 0; row < 6; row++) {
+        g.fillRect(x - (5 - row), y + row, (5 - row) * 2 + 1, 1);
+      }
+    }
+    /**
+     * Paint Top HUD Status Bar
+     */
+    paintHUD(g, w, h) {
+      const coinImg = this.spriteCache.get("coin");
+      g.setColor(1976635);
+      g.fillRect(6, 6, 26, 22);
+      g.setColor(6583435);
+      g.drawRect(6, 6, 26, 22);
+      g.setColor(16777215);
+      g.fillRect(10, 11, 18, 2);
+      g.fillRect(10, 16, 18, 2);
+      g.fillRect(10, 21, 18, 2);
+      const title = "C\u1ED4NG N\xD4NG TR\u1EA0I (Map 23)";
+      this.font.drawString(g, title, Math.floor(w / 2), 10, 2);
+      const xuVal = Number(this.controller?.model.userXu || 0);
+      const xuStr = `${xuVal.toLocaleString("vi-VN")} Xu`;
+      const textW = xuStr.length * 7;
+      const startX = w - textW - 32;
+      if (coinImg) {
+        g.drawImage(coinImg, startX, 8, 0);
+      }
+      this.font.drawString(g, xuStr, startX + 22, 10, 0);
+      if (this.feedbackTimer > 0) {
+        const boxW = Math.min(w - 40, this.feedbackText.length * 8 + 24);
+        const boxX = Math.floor((w - boxW) / 2);
+        const boxY = 36;
+        g.setColor(988970);
+        g.fillRect(boxX, boxY, boxW, 22);
+        g.setColor(3718648);
+        g.drawRect(boxX, boxY, boxW, 22);
+        this.font.drawString(g, this.feedbackText, Math.floor(w / 2), boxY + 4, 2);
+      }
+    }
+    /**
+     * Paint Classic Bottom Softkeys (Menu, Chọn, Về phố)
+     */
+    paintSoftkeys(g, w, h) {
+      const barY = h - 24;
+      g.setColor(988970);
+      g.fillRect(0, barY, w, 24);
+      g.setColor(3359061);
+      g.drawLine(0, barY, w, barY);
+      this.font.drawString(g, "Menu", 12, barY + 5, 0);
+      this.font.drawString(g, "Ch\u1ECDn", Math.floor(w / 2), barY + 5, 2);
+      this.font.drawString(g, "V\u1EC1 ph\u1ED1", w - 12, barY + 5, 1);
+    }
+    /**
+     * Quick Menu Dialog
+     */
+    paintQuickMenu(g, w, h) {
+      const mw = 180;
+      const mh = 140;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      g.setColor(988970);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(3718648);
+      g.drawRect(mx, my, mw, mh);
+      this.font.drawString(g, "--- C\u1ED4NG N\xD4NG TR\u1EA0I ---", mx + Math.floor(mw / 2), my + 8, 2);
+      const items = [
+        "1. V\xE0o N\xF4ng Tr\u1EA1i",
+        "2. C\u1EEDa H\xE0ng H\u1EA1t Gi\u1ED1ng",
+        "3. G\u1EB7p L\xE1i Bu\xF4n",
+        "4. V\u1EC1 Th\xE0nh Ph\u1ED1",
+        "5. \u0110\xF3ng Menu"
+      ];
+      let itemY = my + 30;
+      for (const item of items) {
+        this.font.drawString(g, item, mx + 16, itemY, 0);
+        itemY += 20;
+      }
+    }
+    /**
+     * NPC lai.buon Dialog
+     */
+    paintLaiBuonDialog(g, w, h) {
+      const dw = 260;
+      const dh = 150;
+      const dx = Math.floor((w - dw) / 2);
+      const dy = Math.floor((h - dh) / 2);
+      g.setColor(988970);
+      g.fillRect(dx, dy, dw, dh);
+      g.setColor(16436245);
+      g.drawRect(dx, dy, dw, dh);
+      this.font.drawString(g, "\u{1F468}\u{1F33E} L\xC1I BU\xD4N N\xD4NG S\u1EA2N", dx + Math.floor(dw / 2), dy + 10, 2);
+      this.font.drawString(g, "Ch\xE0o b\xE0 con! T\xF4i chuy\xEAn thu mua", dx + Math.floor(dw / 2), dy + 35, 2);
+      this.font.drawString(g, "n\xF4ng s\u1EA3n v\xE0 cung c\u1EA5p c\xE1c lo\u1EA1i", dx + Math.floor(dw / 2), dy + 55, 2);
+      this.font.drawString(g, "h\u1EA1t gi\u1ED1ng n\u0103ng su\u1EA5t cao nh\u1EA5t!", dx + Math.floor(dw / 2), dy + 75, 2);
+      g.setColor(1483594);
+      g.fillRect(dx + 20, dy + 105, 100, 26);
+      g.setColor(16777215);
+      this.font.drawString(g, "C\u1EEDa H\xE0ng", dx + 70, dy + 110, 2);
+      g.setColor(4674921);
+      g.fillRect(dx + 140, dy + 105, 100, 26);
+      this.font.drawString(g, "\u0110\xF3ng", dx + 190, dy + 110, 2);
+    }
+    /**
+     * Seed Store Dialog
+     */
+    paintShopDialog(g, w, h) {
+      const mw = 280;
+      const mh = 220;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      g.setColor(988970);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(3718648);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(1976635);
+      g.fillRect(mx, my, mw, 26);
+      this.font.drawString(g, "\u{1F3EA} C\u1EECA H\xC0NG H\u1EA0T GI\u1ED0NG", mx + Math.floor(mw / 2), my + 6, 2);
+      g.setColor(15680580);
+      g.fillRect(mx + mw - 22, my + 4, 18, 18);
+      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
+      const seeds = [
+        { id: 1, name: "C\xE0 chua", price: 100, exp: 5 },
+        { id: 2, name: "C\xE0 r\u1ED1t", price: 150, exp: 8 },
+        { id: 3, name: "Kh\xF3m", price: 300, exp: 15 },
+        { id: 4, name: "D\u01B0a h\u1EA5u", price: 500, exp: 25 },
+        { id: 5, name: "B\u1EAFp", price: 200, exp: 10 }
+      ];
+      let rowY = my + 35;
+      for (const seed of seeds) {
+        g.setColor(1976635);
+        g.fillRect(mx + 10, rowY, mw - 20, 30);
+        g.setColor(3359061);
+        g.drawRect(mx + 10, rowY, mw - 20, 30);
+        this.font.drawString(g, `${seed.id}. ${seed.name} (${seed.price} Xu)`, mx + 20, rowY + 8, 0);
+        g.setColor(1483594);
+        g.fillRect(mx + mw - 70, rowY + 4, 52, 22);
+        this.font.drawString(g, "Mua", mx + mw - 44, rowY + 7, 2);
+        rowY += 34;
+      }
+    }
+    // =========================================================================
+    // User Input & Interaction Handling
+    // =========================================================================
+    pointerPressed(x, y) {
+      const w = this.screenW;
+      const h = this.screenH;
+      if (this.isLaiBuonDialogOpen) {
+        const dw = 260;
+        const dh = 150;
+        const dx = Math.floor((w - dw) / 2);
+        const dy = Math.floor((h - dh) / 2);
+        if (x >= dx + 20 && x <= dx + 120 && y >= dy + 105 && y <= dy + 131) {
+          this.isLaiBuonDialogOpen = false;
+          this.isShopOpen = true;
+          return;
+        }
+        if (x >= dx + 140 && x <= dx + 240 && y >= dy + 105 && y <= dy + 131) {
+          this.isLaiBuonDialogOpen = false;
+          return;
+        }
+        return;
+      }
+      if (this.isShopOpen) {
+        const mw = 280;
+        const mh = 220;
+        const mx = Math.floor((w - mw) / 2);
+        const my = Math.floor((h - mh) / 2);
+        if (x >= mx + mw - 26 && x <= mx + mw && y >= my && y <= my + 26) {
+          this.isShopOpen = false;
+          return;
+        }
+        let rowY = my + 35;
+        for (let i = 1; i <= 5; i++) {
+          if (x >= mx + mw - 70 && x <= mx + mw - 18 && y >= rowY + 4 && y <= rowY + 26) {
+            if (this.controller) {
+              this.controller.buySeed(i, 1);
+              this.feedbackText = `\u0110\xE3 g\u1EEDi y\xEAu c\u1EA7u mua h\u1EA1t gi\u1ED1ng #${i}`;
+              this.feedbackTimer = 60;
+            }
+            return;
+          }
+          rowY += 34;
+        }
+        return;
+      }
+      if (this.isMenuOpen) {
+        const mw = 180;
+        const mh = 140;
+        const mx = Math.floor((w - mw) / 2);
+        const my = Math.floor((h - mh) / 2);
+        const clickedIdx = Math.floor((y - (my + 30)) / 20);
+        this.isMenuOpen = false;
+        if (clickedIdx === 0) {
+          this.promptEnterFarm();
+        } else if (clickedIdx === 1) {
+          this.openShop();
+        } else if (clickedIdx === 2) {
+          this.openLaiBuonDialog();
+        } else if (clickedIdx === 3) {
+          this.promptExitToWorldMap();
+        }
+        return;
+      }
+      if (y >= h - 24) {
+        if (x <= Math.floor(w / 3)) {
+          this.isMenuOpen = !this.isMenuOpen;
+        } else if (x >= Math.floor(w * 2 / 3)) {
+          this.promptExitToWorldMap();
+        } else {
+          this.interactNearest();
+        }
+        return;
+      }
+      if (x >= 6 && x <= 32 && y >= 6 && y <= 28) {
+        this.isMenuOpen = !this.isMenuOpen;
+        return;
+      }
+      const groundBaseY = Math.max(0, h - this.MAP_HEIGHT);
+      const worldX = x + this.cameraX;
+      const worldY = y + this.cameraY - groundBaseY;
+      if (Math.abs(worldX - 434) < 55 && worldY <= 260 && worldY >= 140) {
+        this.localPlayer.targetX = 434;
+        this.localPlayer.targetY = 220;
+        this.feedbackText = "\u0110ang ti\u1EBFn v\xE0o c\u1ED5ng N\xF4ng Tr\u1EA1i...";
+        this.feedbackTimer = 50;
+        return;
+      }
+      if (Math.abs(worldX - 755) < 55 && worldY <= 265 && worldY >= 140) {
+        this.localPlayer.targetX = 755;
+        this.localPlayer.targetY = 230;
+        this.feedbackText = "\u0110ang \u0111i \u0111\u1EBFn C\u1EEDa H\xE0ng...";
+        this.feedbackTimer = 50;
+        return;
+      }
+      if (Math.abs(worldX - 140) < 55 && worldY <= 300 && worldY >= 200) {
+        this.localPlayer.targetX = 140;
+        this.localPlayer.targetY = 270;
+        this.feedbackText = "\u0110ang g\u1EB7p L\xE1i Bu\xF4n...";
+        this.feedbackTimer = 50;
+        return;
+      }
+      if (Math.abs(worldX - 434) < 60 && worldY >= 380) {
+        this.localPlayer.targetX = 434;
+        this.localPlayer.targetY = 410;
+        this.feedbackText = "\u0110ang ra ngo\xE0i Th\xE0nh Ph\u1ED1...";
+        this.feedbackTimer = 50;
+        return;
+      }
+      const clampedX = Math.max(50, Math.min(worldX, 1250));
+      const clampedY = Math.max(300, Math.min(worldY, 410));
+      this.localPlayer.targetX = clampedX;
+      this.localPlayer.targetY = clampedY;
+    }
+    keyPressed(keyCode) {
+      const step = 20;
+      switch (keyCode) {
+        case -1:
+        // Up
+        case 50:
+        // '2'
+        case 119:
+        // 'w'
+        case 87:
+          if (this.isWalkable(this.localPlayer.x, this.localPlayer.y - step)) {
+            this.localPlayer.targetY = this.localPlayer.y - step;
+          }
+          break;
+        case -2:
+        // Down
+        case 56:
+        // '8'
+        case 115:
+        // 's'
+        case 83:
+          if (this.isWalkable(this.localPlayer.x, this.localPlayer.y + step)) {
+            this.localPlayer.targetY = this.localPlayer.y + step;
+          }
+          break;
+        case -3:
+        // Left
+        case 52:
+        // '4'
+        case 97:
+        // 'a'
+        case 65:
+          if (this.isWalkable(this.localPlayer.x - step, this.localPlayer.y)) {
+            this.localPlayer.targetX = this.localPlayer.x - step;
+          }
+          break;
+        case -4:
+        // Right
+        case 54:
+        // '6'
+        case 100:
+        // 'd'
+        case 68:
+          if (this.isWalkable(this.localPlayer.x + step, this.localPlayer.y)) {
+            this.localPlayer.targetX = this.localPlayer.x + step;
+          }
+          break;
+        case -5:
+        // Center / Fire / OK
+        case 53:
+        // '5'
+        case 13:
+        // Enter
+        case 32:
+          this.interactNearest();
+          break;
+      }
+    }
+    interactNearest() {
+      const px = this.localPlayer.x;
+      const py = this.localPlayer.y;
+      const distGate = Math.hypot(px - 434, py - 220);
+      const distStore = Math.hypot(px - 755, py - 230);
+      const distLaiBuon = Math.hypot(px - 140, py - 270);
+      const distExit = Math.hypot(px - 434, py - 410);
+      const minDist = Math.min(distGate, distStore, distLaiBuon, distExit);
+      if (minDist === distGate && distGate < 120) {
+        this.promptEnterFarm();
+      } else if (minDist === distStore && distStore < 120) {
+        this.openShop();
+      } else if (minDist === distLaiBuon && distLaiBuon < 120) {
+        this.openLaiBuonDialog();
+      } else if (minDist === distExit && distExit < 100) {
+        this.promptExitToWorldMap();
+      } else {
+        this.isMenuOpen = true;
+      }
+    }
+    promptEnterFarm() {
+      console.log("[FarmGateScreen] Transitioning into Private Farm (Map 25)...");
+      this.feedbackText = "\u0110ang v\xE0o N\xF4ng Tr\u1EA1i c\u1EE7a b\u1EA1n...";
+      this.feedbackTimer = 60;
+      if (this.onEnterFarm) {
+        this.onEnterFarm(this.network.myUserId || 1);
+      }
+    }
+    promptExitToWorldMap() {
+      console.log("[FarmGateScreen] Returning to World Map (Th\xE0nh ph\u1ED1)...");
+      if (this.onExitToWorldMap) {
+        this.onExitToWorldMap();
+      }
+    }
+    openShop() {
+      this.isShopOpen = true;
+      this.feedbackText = "\u0110ang m\u1EDF C\u1EEDa H\xE0ng H\u1EA1t Gi\u1ED1ng";
+      this.feedbackTimer = 60;
+    }
+    openLaiBuonDialog() {
+      this.isLaiBuonDialogOpen = true;
+    }
+  };
+
   // packages/game-client/src/web-entry.ts
-  var import_j2me_compat10 = __toESM(require_dist());
+  var import_j2me_compat11 = __toESM(require_dist());
 
   // packages/game-client/src/core/GameMidlet.ts
-  var import_j2me_compat7 = __toESM(require_dist());
+  var import_j2me_compat8 = __toESM(require_dist());
 
   // packages/game-client/src/runtime/GameCanvas.ts
-  var import_j2me_compat3 = __toESM(require_dist());
-  var GameCanvas = class _GameCanvas extends import_j2me_compat3.Canvas {
+  var import_j2me_compat4 = __toESM(require_dist());
+  var GameCanvas = class _GameCanvas extends import_j2me_compat4.Canvas {
     static instance;
     currentScreen;
     graphics;
@@ -3832,7 +4546,7 @@ void main() {
       super();
       this.width = 1024;
       this.height = 768;
-      this.graphics = new import_j2me_compat3.Graphics(target);
+      this.graphics = new import_j2me_compat4.Graphics(target);
       _GameCanvas.instance = this;
     }
     setCurrentScreen(screen) {
@@ -3956,7 +4670,7 @@ void main() {
   };
 
   // packages/game-client/src/gameplay/SplashScreen.ts
-  var import_j2me_compat4 = __toESM(require_dist());
+  var import_j2me_compat5 = __toESM(require_dist());
   var SplashScreen = class extends GameScreen {
     timer = 0;
     logoImage;
@@ -3980,19 +4694,17 @@ void main() {
       g.setColor(0);
       g.fillRect(0, 0, w, h);
       if (this.logoImage && this.timer > 1) {
-        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat4.Graphics.HCENTER | import_j2me_compat4.Graphics.VCENTER);
+        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat5.Graphics.HCENTER | import_j2me_compat5.Graphics.VCENTER);
       }
     }
   };
 
   // packages/game-client/src/gameplay/LoginScreen.ts
-  var import_j2me_compat5 = __toESM(require_dist());
+  var import_j2me_compat6 = __toESM(require_dist());
   var LoginScreen = class extends GameScreen {
-    selectedIndex = 0;
-    // Highlight first option by default
-    options = ["Ch\u01A1i m\u1EDBi", "\u0110\u1ED5i t\xE0i kho\u1EA3n"];
+    selectedIndex = -1;
+    options = [];
     isQuickSelectMode = true;
-    // es.v == true
     bgImages = [];
     bannerLogo;
     skinPainter;
@@ -4092,7 +4804,7 @@ void main() {
         }
       }
       if (this.bannerLogo) {
-        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat5.Graphics.HCENTER | import_j2me_compat5.Graphics.VCENTER);
+        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat6.Graphics.HCENTER | import_j2me_compat6.Graphics.VCENTER);
       } else if (this.font) {
         this.font.drawString(g, "AVATAR 258", Math.floor(screenW / 2), Math.max(25, this.winY - 45), 2);
       }
@@ -4933,7 +5645,7 @@ void main() {
   };
 
   // packages/game-client/src/assets/AvArchiveLoader.ts
-  var import_j2me_compat6 = __toESM(require_dist());
+  var import_j2me_compat7 = __toESM(require_dist());
   var AvArchiveLoader = class _AvArchiveLoader {
     static KEY = new TextEncoder().encode("NguyenVanMinh");
     entries = /* @__PURE__ */ new Map();
@@ -4975,7 +5687,7 @@ void main() {
       const fileName = name.endsWith(".png") ? name : `${name}.png`;
       const bytes = this.getFileBytes(fileName);
       if (!bytes) return null;
-      return import_j2me_compat6.Image.createImage(bytes);
+      return import_j2me_compat7.Image.createImage(bytes);
     }
     getEntryNames() {
       return Array.from(this.entries.keys());
@@ -5003,11 +5715,11 @@ void main() {
     }
     async initAssets(logoPngBytes, fontMetadataBytes, fontPngBytes, bgAvBytes) {
       if (logoPngBytes) {
-        this.splashScreen.logoImage = await import_j2me_compat7.Image.createImage(logoPngBytes);
+        this.splashScreen.logoImage = await import_j2me_compat8.Image.createImage(logoPngBytes);
       }
       if (fontMetadataBytes && fontPngBytes) {
         this.font.loadMetadata(fontMetadataBytes);
-        this.font.fontImage = await import_j2me_compat7.Image.createImage(fontPngBytes);
+        this.font.fontImage = await import_j2me_compat8.Image.createImage(fontPngBytes);
       }
       if (bgAvBytes) {
         const bgLoader = new AvArchiveLoader();
@@ -5776,10 +6488,10 @@ void main() {
   };
 
   // packages/game-client/src/gameplay/GameWorldScreen.ts
-  var import_j2me_compat9 = __toESM(require_dist());
+  var import_j2me_compat10 = __toESM(require_dist());
 
   // packages/game-client/src/maps/TilemapRenderer.ts
-  var import_j2me_compat8 = __toESM(require_dist());
+  var import_j2me_compat9 = __toESM(require_dist());
   var TilemapRenderer = class _TilemapRenderer {
     static TILE_SIZE = 24;
     // i = 24 in ir.java
@@ -6114,7 +6826,7 @@ void main() {
         await Promise.all(uniquePartIds.map(async (partId) => {
           if (!this.objectImageCache.has(partId)) {
             try {
-              const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
+              const img = await import_j2me_compat9.Image.createImage(`/assets/home/${partId}.png`);
               this.objectImageCache.set(partId, img);
             } catch (e) {
               console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
@@ -6160,20 +6872,20 @@ void main() {
         };
         console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
         const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
-        this.tilesetImage = await import_j2me_compat8.Image.createImage(tilesetUrl);
+        this.tilesetImage = await import_j2me_compat9.Image.createImage(tilesetUrl);
         this.bgImage = void 0;
         this.cloudImage = void 0;
         const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
         if (bgType !== -1) {
           try {
             const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
-            this.bgImage = await import_j2me_compat8.Image.createImage(bgUrl);
+            this.bgImage = await import_j2me_compat9.Image.createImage(bgUrl);
           } catch (err) {
           }
         }
         try {
           const cloudUrl = `/assets/bg/${nightSuffix}.png`;
-          this.cloudImage = await import_j2me_compat8.Image.createImage(cloudUrl);
+          this.cloudImage = await import_j2me_compat9.Image.createImage(cloudUrl);
         } catch (err) {
         }
       } catch (err) {
@@ -6207,11 +6919,11 @@ void main() {
       await Promise.all(uniquePartIds.map(async (partId) => {
         if (!this.objectImageCache.has(partId)) {
           try {
-            const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
+            const img = await import_j2me_compat9.Image.createImage(`/assets/home/${partId}.png`);
             this.objectImageCache.set(partId, img);
           } catch {
             try {
-              const img = await import_j2me_compat8.Image.createImage(`/assets/item/${partId}.png`);
+              const img = await import_j2me_compat9.Image.createImage(`/assets/item/${partId}.png`);
               this.objectImageCache.set(partId, img);
             } catch (e) {
               console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
@@ -6551,7 +7263,7 @@ void main() {
         AvatarRenderer.preloadWearing(npc.wearing);
       }
       this.tilemapRenderer.loadMap(this.currentMapId).catch(console.error);
-      import_j2me_compat9.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
+      import_j2me_compat10.Image.createImage("/assets/normal/12Plus.png").then((img) => this.img12Plus = img).catch(() => {
       });
     }
     onResize(_width, _height) {
@@ -7411,7 +8123,7 @@ void main() {
     });
     if (gl) {
       console.log("[WebClient] WebGL 2 hardware acceleration enabled!");
-      backend = new import_j2me_compat10.WebGL2Renderer(gl);
+      backend = new import_j2me_compat11.WebGL2Renderer(gl);
       window.__RENDER_BACKEND = "webgl2";
     } else {
       console.warn("[WebClient] WebGL 2 not available, falling back to Canvas 2D");
@@ -7445,16 +8157,42 @@ void main() {
     window.gameWorldScreen = worldScreen;
     const farmNetworkHandler = new FarmNetworkHandler(network);
     const farmScreen = new FarmScreen(farmNetworkHandler, midlet.skinPainter, midlet.font);
+    const farmGateScreen = new FarmGateScreen(network, midlet.skinPainter, midlet.font, farmScreen.controller);
     window.farmScreen = farmScreen;
+    window.farmGateScreen = farmGateScreen;
     window.farmModel = farmNetworkHandler.model;
     window.enterFarm = (userId) => {
       farmScreen.localPlayer.name = worldScreen.localPlayer.name;
       farmScreen.localPlayer.wearing = worldScreen.localPlayer.wearing;
+      farmScreen.localPlayer.x = 830;
+      farmScreen.localPlayer.y = 690;
+      farmScreen.localPlayer.targetX = 830;
+      farmScreen.localPlayer.targetY = 690;
+      farmScreen.localPlayer.dir = 1;
       farmNetworkHandler.enterFarm(userId || network.myUserId || 1);
       midlet.canvas.setCurrentScreen(farmScreen);
       window.__SCENE = "farm";
     };
     farmScreen.onExitToWorldMap = () => {
+      console.log("[WebClient] Exiting Private Farm -> Returning to C\u1ED5ng N\xF4ng Tr\u1EA1i (Map 23)...");
+      farmGateScreen.localPlayer.name = farmScreen.localPlayer.name;
+      farmGateScreen.localPlayer.wearing = farmScreen.localPlayer.wearing;
+      farmGateScreen.localPlayer.x = 434;
+      farmGateScreen.localPlayer.y = 250;
+      farmGateScreen.localPlayer.targetX = 434;
+      farmGateScreen.localPlayer.targetY = 270;
+      farmGateScreen.localPlayer.dir = 0;
+      midlet.canvas.setCurrentScreen(farmGateScreen);
+      window.__SCENE = "farm_gate";
+    };
+    farmGateScreen.onEnterFarm = (userId) => {
+      console.log("[WebClient] Entering Private Farm (Map 25) from Farm Gate...");
+      if (window.enterFarm) {
+        window.enterFarm(userId || network.myUserId || 1);
+      }
+    };
+    farmGateScreen.onExitToWorldMap = () => {
+      console.log("[WebClient] Leaving C\u1ED5ng N\xF4ng Tr\u1EA1i -> Returning to World Map...");
       showWorldMap();
     };
     midlet.canvas.setCurrentScreen(midlet.worldMapScreen);
@@ -7476,10 +8214,16 @@ void main() {
     };
     midlet.worldMapScreen.onSelectRegion = (region) => {
       if (region.mapId === 25) {
-        console.log("[WebClient] Entering Farm Screen (Map 25)...");
-        if (window.enterFarm) {
-          window.enterFarm(network.myUserId || 1);
-        }
+        console.log("[WebClient] Entering C\u1ED5ng N\xF4ng Tr\u1EA1i (Map 23)...");
+        farmGateScreen.localPlayer.name = worldScreen.localPlayer.name;
+        farmGateScreen.localPlayer.wearing = worldScreen.localPlayer.wearing;
+        farmGateScreen.localPlayer.x = 434;
+        farmGateScreen.localPlayer.y = 360;
+        farmGateScreen.localPlayer.targetX = 434;
+        farmGateScreen.localPlayer.targetY = 360;
+        farmGateScreen.localPlayer.dir = 1;
+        midlet.canvas.setCurrentScreen(farmGateScreen);
+        window.__SCENE = "farm_gate";
         return;
       }
       console.log(`[WebClient] Entering Region: ${region.name} (Map ${region.mapId})`);

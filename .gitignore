@@ -19,6 +19,7 @@ resources.assets.rar
 backups/
 *.sql
 *.dump
+avatar-web/storage/
 
 # Build outputs & targets
 target/
