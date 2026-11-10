@@ -2086,26 +2086,30 @@ void main() {
     userLuong = 0;
     farmLevel = 1;
     farmPercent = 0;
-    // Authentic 2x scaled Farm grid layout anchor: aligned to Map 25 (Columns 22..27, Rows 1..5)
-    static GRID_COLS = 6;
-    static GRID_ROWS = 5;
+    // Authentic 2x scaled Farm grid layout anchor: aligned to Map 25 (go.java method v())
+    // 4 blocks of 12 plots (aG = 12, aH = 4 rows), block start columns [22, 25, 28, 31], row starts at 1
+    static GRID_ROWS = 4;
     static CELL_WIDTH = 48;
     static CELL_HEIGHT = 48;
-    static GRID_ORIGIN_X = 1058;
-    // Exact pixel alignment matching Map 25
-    static GRID_ORIGIN_Y = 452;
-    // Exact pixel alignment matching Map 25
+    static GRID_ORIGIN_X = 1056;
+    // Column 22 * 48px
+    static GRID_ORIGIN_Y = 436;
+    // Row 1 * 48px + 388px ground start
     constructor() {
       this.resetPlots(8);
     }
     resetPlots(activeCount) {
       this.landSize = activeCount;
       this.lands = [];
+      const blockStartCols = [22, 25, 28, 31];
       for (let i = 0; i < this.maxLandPlots; i++) {
-        const col = Math.floor(i / _FarmModel.GRID_ROWS);
-        const row = i % _FarmModel.GRID_ROWS;
-        const posX = _FarmModel.GRID_ORIGIN_X + col * _FarmModel.CELL_WIDTH;
-        const posY = _FarmModel.GRID_ORIGIN_Y + row * _FarmModel.CELL_HEIGHT;
+        const blockIdx = Math.floor(i / 12);
+        const inBlockIdx = i % 12;
+        const startCol = blockStartCols[blockIdx] ?? 22 + blockIdx * 3;
+        const col = startCol + Math.floor(inBlockIdx / 4);
+        const row = 1 + inBlockIdx % 4;
+        const posX = col * _FarmModel.CELL_WIDTH;
+        const posY = 388 + row * _FarmModel.CELL_HEIGHT;
         this.lands.push({
           index: i,
           type: i < activeCount ? -1 : -2,
@@ -2336,7 +2340,7 @@ void main() {
   };
 
   // packages/game-client/src/farm/FarmScreen.ts
-  var import_j2me_compat3 = __toESM(require_dist());
+  var import_j2me_compat2 = __toESM(require_dist());
 
   // packages/game-client/src/ui/GameScreen.ts
   var GameScreen = class {
@@ -2707,548 +2711,6 @@ void main() {
     }
   };
 
-  // packages/game-client/src/maps/TilemapRenderer.ts
-  var import_j2me_compat2 = __toESM(require_dist());
-  var TilemapRenderer = class _TilemapRenderer {
-    static TILE_SIZE = 24;
-    // i = 24 in ir.java
-    static TILES_PER_ROW = 7;
-    // 168 px / 24 px = 7 tiles
-    mapData;
-    mapObjects = [];
-    tilesetImage;
-    bgImage;
-    cloudImage;
-    objectImageCache = /* @__PURE__ */ new Map();
-    isNight = false;
-    cameraX = 0;
-    cameraY = 0;
-    // Authentic background mapping from ir.java line 98 (byte[] h)
-    static BG_TYPE_BY_MAP = {
-      0: 1,
-      1: 1,
-      2: 1,
-      3: 1,
-      4: 1,
-      5: 1,
-      6: 1,
-      7: 1,
-      8: 1,
-      9: 0,
-      10: 0,
-      11: 1,
-      12: 3,
-      13: 3,
-      14: 3,
-      15: 3,
-      16: 3,
-      17: 2,
-      18: -1,
-      19: -1,
-      20: -1,
-      21: 0,
-      22: 0,
-      23: 0,
-      24: 2,
-      25: 2
-    };
-    /**
-     * Authentic Map Height formula from ir.java lines 1050-1115
-     * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
-     */
-    static getMapHeightTiles(mapId) {
-      switch (mapId) {
-        case 107:
-          return 16;
-        case 25:
-          return 8;
-        // In Java ME (ir.java line 1050), Map 25 (the Farm) height is exactly 8 tiles!
-        case 21:
-          return 7;
-        case 9:
-          return 8;
-        case 20:
-        case 57:
-        case 58:
-        case 59:
-        case 62:
-        case 63:
-        case 64:
-        case 100:
-        case 101:
-        case 103:
-        case 104:
-        case 109:
-          return 11;
-        case 60:
-        case 61:
-        case 65:
-          return 5;
-        case 18:
-          return 10;
-        case 17:
-          return 6;
-        case 108:
-          return 8;
-        case 19:
-          return 13;
-        case 10:
-          return 9;
-        default:
-          return 8;
-      }
-    }
-    async loadMap(mapId) {
-      const hour = (/* @__PURE__ */ new Date()).getHours();
-      this.isNight = hour >= 18 || hour < 6;
-      const nightSuffix = this.isNight ? "1" : "0";
-      try {
-        const fileId = mapId === 25 ? 25 : mapId + 1;
-        const mapRes = await fetch(`/assets/maps/${fileId}`);
-        if (!mapRes.ok) {
-          console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId} (file ${fileId})`);
-          return;
-        }
-        const buffer = await mapRes.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const heightTiles = _TilemapRenderer.getMapHeightTiles(mapId);
-        const widthTiles = Math.floor(bytes.length / heightTiles);
-        const totalTiles = widthTiles * heightTiles;
-        const tiles = new Int16Array(totalTiles);
-        const collision = new Int16Array(totalTiles);
-        this.mapObjects = [];
-        for (let i2 = 0; i2 < totalTiles; i2++) {
-          const val = bytes[i2];
-          tiles[i2] = val === 255 ? -1 : val;
-        }
-        const spawnedObjects = [];
-        let i = 0;
-        while (i < totalTiles) {
-          const t = tiles[i];
-          const col = i % widthTiles;
-          const row = Math.floor(i / widthTiles);
-          const px = col * _TilemapRenderer.TILE_SIZE;
-          const py = row * _TilemapRenderer.TILE_SIZE;
-          if (t === 127 || t === 128 || t === 129 || t === 141 || t === 143 || t === 144 || t === 147 || t === 148 || t === 149 || t === 150 || t === 151 || t === 152 || t === 159 || t === 160 || t === 161 || t === 162 || t === 172 || t === 173 || t === 174 || t === 175 || t === 176 || t === 177 || t === 178 || t === 179 || t === 186 || t === 190 || t === 192 || t === 193 || t === 194 || t === 195 || t === 196 || t === 197 || t === 198 || t === 199 || t === 200 || t === 201 || t === 202 || t === 204 || t === 98 || t === 182 || t === 183 || t === 187 || t === 188 || t === 189 || t === 142 || mapId === 25 && t === 110) {
-            let consecutive = 1;
-            while (i + consecutive < totalTiles && Math.floor((i + consecutive) / widthTiles) === row && tiles[i + consecutive] === t) {
-              consecutive++;
-            }
-            const spanPx = consecutive * _TilemapRenderer.TILE_SIZE;
-            const centerX = px + Math.floor(spanPx / 2);
-            let floorReplacement = 96;
-            let partId = -1;
-            let objX = centerX;
-            let objY = py + _TilemapRenderer.TILE_SIZE - 4;
-            if (t === 127) {
-              partId = 830;
-              objX = px + 36;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 128) {
-              partId = 828;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
-            } else if (t === 129 || t === 160) {
-              partId = mapId === 17 ? 836 : 829;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 96;
-            } else if (t === 141) {
-              partId = 840;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
-            } else if (t === 143) {
-              partId = 831;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 51;
-            } else if (t === 144) {
-              partId = 841;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 5;
-            } else if (t === 147 || t === 161) {
-              partId = 832;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 96;
-            } else if (t === 148 || t === 162) {
-              partId = mapId === 17 ? 836 : 833;
-              objX = px + 48;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 149) {
-              partId = 834;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 4;
-            } else if (t === 150) {
-              partId = 842;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = mapId === 25 ? 4 : 0;
-            } else if (t === 151) {
-              partId = 843;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 0;
-            } else if (t === 152) {
-              partId = 835;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = mapId === 25 ? 55 : 0;
-            } else if (t === 159) {
-              partId = 848;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = mapId === 25 ? 5 : mapId === 13 ? 0 : 4;
-            } else if (t === 172) {
-              partId = 836;
-              objX = px + 37;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 173 || t === 179) {
-              partId = 837;
-              objX = px + 48;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 174) {
-              partId = 838;
-              objX = px + 48;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 175) {
-              partId = 830;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 176) {
-              partId = 829;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 177) {
-              partId = 832;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 178) {
-              partId = 830;
-              objX = px + 24;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 186) {
-              partId = 974;
-              objX = px + 24;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 17;
-            } else if (t === 190) {
-              partId = 1029;
-              objX = px + 36;
-              objY = py + 20;
-              floorReplacement = 4;
-            } else if (t === 192) {
-              partId = 1034;
-              objX = px + 36;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 193) {
-              partId = 1032;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 194) {
-              partId = 1030;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 195) {
-              partId = 1037;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 196) {
-              partId = 1035;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 197) {
-              partId = 1033;
-              objX = px + 12;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 198) {
-              partId = 1036;
-              objX = px + 12;
-              objY = py + 20;
-              floorReplacement = 4;
-            } else if (t === 199) {
-              partId = 1031;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 200) {
-              partId = 1075;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 201) {
-              partId = 1094;
-              objX = px + 24;
-              objY = py + 20;
-              floorReplacement = 5;
-            } else if (t === 202) {
-              partId = 4;
-              objX = px + 24;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 98 || t === 204) {
-              partId = 846;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 43;
-            } else if (t === 182) {
-              floorReplacement = 39;
-            } else if (t === 183) {
-              floorReplacement = 13;
-            } else if (t === 187 || t === 188 || t === 189 || t === 142) {
-              floorReplacement = 4;
-            } else if (mapId === 25 && t === 110) {
-              partId = 847;
-              objX = px + 11;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 31;
-            }
-            if (partId > 0) {
-              spawnedObjects.push({ partId, x: objX, y: objY, layer: 0 });
-            }
-            for (let k = 0; k < consecutive; k++) {
-              tiles[i + k] = floorReplacement;
-            }
-            i += consecutive;
-            continue;
-          } else if (t === 139) {
-            tiles[i] = i % widthTiles === 0 ? tiles[i + 1] : tiles[i - 1];
-          } else if (t === 140) {
-            tiles[i] = 55;
-          } else if (t >= 126) {
-            tiles[i] = i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126 ? tiles[i - 1] : 0;
-          }
-          i++;
-        }
-        const uniquePartIds = Array.from(new Set(spawnedObjects.map((o) => o.partId)));
-        await Promise.all(uniquePartIds.map(async (partId) => {
-          if (!this.objectImageCache.has(partId)) {
-            try {
-              const img = await import_j2me_compat2.Image.createImage(`/assets/home/${partId}.png`);
-              this.objectImageCache.set(partId, img);
-            } catch (e) {
-              console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
-            }
-          }
-        }));
-        for (const obj of spawnedObjects) {
-          obj.image = this.objectImageCache.get(obj.partId);
-        }
-        this.mapObjects = spawnedObjects;
-        for (let i2 = 0; i2 < totalTiles; i2++) {
-          const t = tiles[i2];
-          if (t === -4) {
-            collision[i2] = 80;
-          } else if (t === -5) {
-            collision[i2] = 88;
-          } else if (t === -1) {
-            collision[i2] = 88;
-          } else if (t >= 120 && t <= 123) {
-            collision[i2] = 80;
-          } else if (t >= 114 && t <= 119) {
-            collision[i2] = 80;
-          } else if (t === 67 || t === 85) {
-            collision[i2] = 92;
-          } else if (t >= 20 && t <= 23) {
-            collision[i2] = 79;
-          } else if (t < 7) {
-            collision[i2] = 80;
-          } else if (t >= 44 && t <= 55) {
-            collision[i2] = 80;
-          } else if (t === 111 || t === 112) {
-            collision[i2] = 80;
-          } else {
-            collision[i2] = 88;
-          }
-        }
-        this.mapData = {
-          id: mapId,
-          widthTiles,
-          heightTiles,
-          tiles,
-          collision
-        };
-        console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
-        const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
-        this.tilesetImage = await import_j2me_compat2.Image.createImage(tilesetUrl);
-        this.bgImage = void 0;
-        this.cloudImage = void 0;
-        const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
-        if (bgType !== -1) {
-          try {
-            const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
-            this.bgImage = await import_j2me_compat2.Image.createImage(bgUrl);
-          } catch (err) {
-          }
-        }
-        try {
-          const cloudUrl = `/assets/bg/${nightSuffix}.png`;
-          this.cloudImage = await import_j2me_compat2.Image.createImage(cloudUrl);
-        } catch (err) {
-        }
-      } catch (err) {
-        console.error("[TilemapRenderer] Load error:", err);
-      }
-    }
-    async setDynamicMapItems(mapItemTypes, mapItems) {
-      this.mapObjects = this.mapObjects.filter((o) => !o.isDynamic);
-      if (!mapItemTypes || !mapItems || mapItems.length === 0) return;
-      const typeMap = /* @__PURE__ */ new Map();
-      for (const t of mapItemTypes) {
-        typeMap.set(t.id, t);
-      }
-      const newDynamicObjects = [];
-      for (const it of mapItems) {
-        const itemType = typeMap.get(it.typeID);
-        if (!itemType) continue;
-        const worldX = it.tileX * _TilemapRenderer.TILE_SIZE + itemType.dx;
-        const worldY = it.tileY * _TilemapRenderer.TILE_SIZE + itemType.dy;
-        newDynamicObjects.push({
-          partId: itemType.imgID,
-          x: worldX,
-          y: worldY,
-          layer: 0,
-          isDynamic: true,
-          dynamicType: it.type,
-          dynamicId: it.typeID
-        });
-      }
-      const uniquePartIds = Array.from(new Set(newDynamicObjects.map((o) => o.partId)));
-      await Promise.all(uniquePartIds.map(async (partId) => {
-        if (!this.objectImageCache.has(partId)) {
-          try {
-            const img = await import_j2me_compat2.Image.createImage(`/assets/home/${partId}.png`);
-            this.objectImageCache.set(partId, img);
-          } catch {
-            try {
-              const img = await import_j2me_compat2.Image.createImage(`/assets/item/${partId}.png`);
-              this.objectImageCache.set(partId, img);
-            } catch (e) {
-              console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
-            }
-          }
-        }
-      }));
-      for (const obj of newDynamicObjects) {
-        obj.image = this.objectImageCache.get(obj.partId);
-        this.mapObjects.push(obj);
-      }
-      console.log(`[TilemapRenderer] Added ${newDynamicObjects.length} dynamic map items`);
-    }
-    updateCamera(targetX, targetY, screenW, screenH) {
-      if (!this.mapData) return;
-      const mapWidthPx = this.mapData.widthTiles * _TilemapRenderer.TILE_SIZE;
-      const mapHeightPx = this.mapData.heightTiles * _TilemapRenderer.TILE_SIZE;
-      let camX = targetX - Math.floor(screenW / 2);
-      let camY = targetY - Math.floor(screenH / 2);
-      if (mapWidthPx > screenW) {
-        camX = Math.max(0, Math.min(mapWidthPx - screenW, camX));
-      } else {
-        camX = Math.floor((mapWidthPx - screenW) / 2);
-      }
-      if (mapHeightPx > screenH) {
-        camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
-      } else {
-        camY = mapHeightPx - screenH;
-      }
-      this.cameraX = camX;
-      this.cameraY = camY;
-    }
-    /**
-     * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
-     */
-    paint(g, screenW, screenH) {
-      if (!this.mapData || !this.tilesetImage) return;
-      const tileSize = _TilemapRenderer.TILE_SIZE;
-      const { widthTiles, heightTiles, tiles } = this.mapData;
-      const skyColor = this.isNight ? 21 : 6143735;
-      g.setColor(skyColor);
-      g.fillRect(0, 0, screenW, screenH);
-      if (this.cloudImage) {
-        const cW = this.cloudImage.getWidth();
-        const parallaxCloud = -Math.floor(this.cameraX * 0.12) % cW;
-        const cloudY = Math.max(-20, 15 - Math.floor(this.cameraY * 0.1));
-        for (let x = parallaxCloud - cW; x < screenW + cW; x += cW) {
-          g.drawImage(this.cloudImage, x, cloudY, 0);
-        }
-      }
-      if (this.bgImage) {
-        const bgW = this.bgImage.getWidth();
-        const bgH = this.bgImage.getHeight();
-        const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
-        const groundTopY = screenH - heightTiles * tileSize;
-        const bgY = Math.max(0, groundTopY - bgH + 30);
-        for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
-          g.drawImage(this.bgImage, x, bgY, 0);
-        }
-      }
-      const startTileX = Math.floor(this.cameraX / tileSize);
-      const endTileX = Math.ceil((this.cameraX + screenW) / tileSize);
-      const startTileY = Math.max(0, Math.floor(this.cameraY / tileSize));
-      const endTileY = Math.min(heightTiles, Math.ceil((this.cameraY + screenH) / tileSize));
-      for (let ty = startTileY; ty < endTileY; ty++) {
-        for (let tx = startTileX; tx < endTileX; tx++) {
-          const clampedCol = Math.max(0, Math.min(widthTiles - 1, tx));
-          let tileIdx = tiles[ty * widthTiles + clampedCol];
-          if (tileIdx < 0) continue;
-          if (tx < 0 || tx >= widthTiles) {
-            if (tileIdx > 120 || tileIdx < 0) {
-              tileIdx = 96;
-            }
-          }
-          const numRows = 18;
-          const col = Math.floor(tileIdx / numRows);
-          const row = tileIdx % numRows;
-          const srcX = col * tileSize;
-          const srcY = row * tileSize;
-          const destX = tx * tileSize - this.cameraX;
-          const destY = ty * tileSize - this.cameraY;
-          g.drawRegion(
-            this.tilesetImage,
-            srcX,
-            srcY,
-            tileSize,
-            tileSize,
-            0,
-            destX,
-            destY,
-            0
-          );
-        }
-      }
-    }
-    isBlocked(worldX, worldY) {
-      if (!this.mapData) return false;
-      const { widthTiles, heightTiles, collision } = this.mapData;
-      const tx = Math.floor(worldX / _TilemapRenderer.TILE_SIZE);
-      const ty = Math.floor(worldY / _TilemapRenderer.TILE_SIZE);
-      if (tx < 0 || tx >= widthTiles || ty < 0 || ty >= heightTiles) {
-        return true;
-      }
-      const c = collision[ty * widthTiles + tx];
-      return c === 88 || c === 92;
-    }
-  };
-
   // packages/game-client/src/farm/FarmActionController.ts
   var FarmActionController = class {
     model;
@@ -3415,7 +2877,10 @@ void main() {
     skinPainter;
     font;
     localPlayer;
-    tilemapRenderer;
+    // Authentic Map 25 Procedural Tilemap Engine
+    mapTiles = new Int16Array(336);
+    isMapLoaded = false;
+    isNight = false;
     // Screen dimensions
     screenW = 640;
     screenH = 480;
@@ -3443,10 +2908,6 @@ void main() {
       this.controller = new FarmActionController(this.model, this.handler);
       this.skinPainter = skinPainter;
       this.font = font;
-      this.tilemapRenderer = new TilemapRenderer();
-      this.tilemapRenderer.loadMap(25).catch((err) => {
-        console.error("[FarmScreen] Failed to load Map 25 tilemap:", err);
-      });
       this.localPlayer = {
         id: this.handler.network.myUserId || 1,
         name: "N\xF4ng d\xE2n",
@@ -3470,15 +2931,75 @@ void main() {
         this.feedbackColor = "#38bdf8";
         this.feedbackTimer = 100;
       };
-      this.loadSprite("farm_bg", "/assets/maps/farm_map25_bg.png");
-      this.loadSprite("soil_cracked", "/assets/farm_ui/soil_cracked.png");
-      this.loadSprite("cell0", "/assets/farm_ui/cell0.png");
-      this.loadSprite("buyLand", "/assets/farm_ui/buyLand.png");
-      this.loadSprite("g", "/assets/farm_ui/g.png");
-      this.loadSprite("w", "/assets/farm_ui/w.png");
-      this.loadSprite("focus", "/assets/farm_ui/focus.png");
-      this.loadSprite("coin", "/assets/farm_ui/coin.png");
-      this.loadSprite("cut", "/assets/farm_ui/cut.png");
+      this.loadMap25().catch((err) => {
+        console.error("[FarmScreen] Failed to load Map 25 assets:", err);
+      });
+    }
+    async loadMap25() {
+      const hour = (/* @__PURE__ */ new Date()).getHours();
+      this.isNight = hour >= 18 || hour < 6;
+      const nightSuffix = this.isNight ? "night" : "day";
+      await Promise.all([
+        this.preloadSprite("tileset", `/assets/tileset/tileset_hd_${nightSuffix}.png`),
+        this.preloadSprite("clouds", `/assets/bg/clouds_farm_${nightSuffix}.png`),
+        this.preloadSprite("horizon", `/assets/bg/horizon_farm_${nightSuffix}.png`),
+        this.preloadSprite("house1029", "/assets/home/1029.png"),
+        this.preloadSprite("barn834", "/assets/home/834.png"),
+        this.preloadSprite("tree243", "/assets/home/243.png"),
+        this.preloadSprite("gate847", "/assets/home/847.png"),
+        this.preloadSprite("sign848", "/assets/home/848.png"),
+        this.preloadSprite("lilypad849", "/assets/home/849.png"),
+        this.preloadSprite("starfruitTree", "/assets/farm/43.png"),
+        this.preloadSprite("starfruitFruit", "/assets/farm/46.png"),
+        this.preloadSprite("cell0", "/assets/farm_ui/cell0.png"),
+        this.preloadSprite("buyLand", "/assets/farm_ui/buyLand.png"),
+        this.preloadSprite("w", "/assets/farm_ui/w.png"),
+        this.preloadSprite("g", "/assets/farm_ui/g.png"),
+        this.preloadSprite("cut", "/assets/farm_ui/cut.png"),
+        this.preloadSprite("focus", "/assets/farm_ui/focus.png"),
+        this.preloadSprite("coin", "/assets/farm_ui/coin.png")
+      ]);
+      try {
+        const res = await fetch("/assets/maps/25");
+        if (res.ok) {
+          const buffer = await res.arrayBuffer();
+          const raw = new Uint8Array(buffer);
+          for (let i = 0; i < 336; i++) {
+            const val = raw[i];
+            if (val === 149 || val === 190 || val === 189 || val === 142 || val === 187 || val === 188 || val === 28) {
+              this.mapTiles[i] = 4;
+            } else if (val === 140 || val === 155 || val === 152) {
+              this.mapTiles[i] = 55;
+            } else if (val === 110) {
+              this.mapTiles[i] = 31;
+            } else if (val === 159 || val === 156 || val === 158) {
+              this.mapTiles[i] = 5;
+            } else if (val === 182) {
+              this.mapTiles[i] = 39;
+            } else if (val === 183) {
+              this.mapTiles[i] = 13;
+            } else if (val === 157) {
+              this.mapTiles[i] = 111;
+            } else {
+              this.mapTiles[i] = val === 255 ? -1 : val;
+            }
+          }
+          this.isMapLoaded = true;
+          console.log("[FarmScreen] Authentic Map 25 tilemap loaded successfully");
+        }
+      } catch (err) {
+        console.error("[FarmScreen] Failed to load /assets/maps/25:", err);
+      }
+    }
+    async preloadSprite(key, url) {
+      try {
+        const img = await import_j2me_compat2.Image.createImage(url);
+        this.spriteCache.set(key, img);
+        return img;
+      } catch (err) {
+        console.warn(`[FarmScreen] Failed to load sprite ${key} from ${url}`);
+        return void 0;
+      }
     }
     loadSprite(key, url) {
       if (this.spriteCache.has(key)) {
@@ -3486,7 +3007,7 @@ void main() {
       }
       if (!this.loadingSprites.has(key)) {
         this.loadingSprites.add(key);
-        import_j2me_compat3.Image.createImage(url).then((img) => {
+        import_j2me_compat2.Image.createImage(url).then((img) => {
           this.spriteCache.set(key, img);
           this.loadingSprites.delete(key);
         }).catch(() => {
@@ -3565,28 +3086,143 @@ void main() {
         a.y += (a.targetY - a.y) * 0.04;
       }
     }
-    // --- Rendering Pipeline (WebGL2 Native via Graphics) ---
+    // --- Rendering Pipeline (WebGL2 Native Procedural Map 25 Engine) ---
     paint(g) {
       const w = this.screenW;
       const h = this.screenH;
-      g.setColor(6143735);
+      const skyColor = this.isNight ? 21 : 6143735;
+      g.setColor(skyColor);
       g.fillRect(0, 0, w, h);
-      const bgImg = this.spriteCache.get("farm_bg");
-      if (bgImg) {
-        g.drawImage(bgImg, -this.cameraX, -this.cameraY, 0);
-      } else {
-        this.tilemapRenderer.paint(g, w, h);
+      const cloudImg = this.spriteCache.get("clouds");
+      if (cloudImg) {
+        const cW = cloudImg.getWidth();
+        const parallaxCloud = -Math.floor(this.cameraX * 0.15) % cW;
+        const cloudY = Math.max(-20, -Math.floor(this.cameraY * 0.05));
+        for (let x = parallaxCloud - cW; x < w + cW; x += cW) {
+          g.drawImage(cloudImg, x, cloudY, 0);
+        }
+      }
+      const horizonImg = this.spriteCache.get("horizon");
+      if (horizonImg) {
+        const hW = horizonImg.getWidth();
+        const hH = horizonImg.getHeight();
+        const parallaxX = -Math.floor(this.cameraX * 0.35) % hW;
+        const horizonY = 388 - hH + 40 - this.cameraY;
+        for (let x = parallaxX - hW; x < w + hW; x += hW) {
+          g.drawImage(horizonImg, x, horizonY, 0);
+        }
+      }
+      const tilesetImg = this.spriteCache.get("tileset");
+      if (tilesetImg && this.isMapLoaded) {
+        const tileSize = 48;
+        const groundY = 388;
+        const numRowsInTileset = 18;
+        const startCol = Math.max(0, Math.floor(this.cameraX / tileSize));
+        const endCol = Math.min(42, Math.ceil((this.cameraX + w) / tileSize));
+        const startRow = Math.max(0, Math.floor((this.cameraY - groundY) / tileSize));
+        const endRow = Math.min(8, Math.ceil((this.cameraY + h - groundY) / tileSize));
+        for (let r = startRow; r < endRow; r++) {
+          const destY = groundY + r * tileSize - this.cameraY;
+          for (let c = startCol; c < endCol; c++) {
+            const tileId = this.mapTiles[r * 42 + c];
+            if (tileId < 0) continue;
+            const tc = Math.floor(tileId / numRowsInTileset);
+            const tr = tileId % numRowsInTileset;
+            const destX = c * tileSize - this.cameraX;
+            g.drawRegion(
+              tilesetImg,
+              tc * tileSize,
+              tr * tileSize,
+              tileSize,
+              tileSize,
+              0,
+              destX,
+              destY,
+              0
+            );
+          }
+        }
       }
       g.translate(-this.cameraX, -this.cameraY);
-      this.paintFarmOverlays(g);
+      this.paintSceneryObjects(g);
       this.paintLandPlots(g);
       this.paintAnimals(g);
       this.paintPlayer(g);
+      this.paintFarmOverlays(g);
       g.translate(this.cameraX, this.cameraY);
       this.paintHUD(g, w, h);
       this.paintNotificationToast(g, w, h);
       this.paintSoftkeys(g, w, h);
       this.paintModals(g, w, h);
+    }
+    /**
+     * Paint authentic scenery objects matching Avatar 2.5.8 Java ME (ir.java & go.java)
+     */
+    paintSceneryObjects(g) {
+      const groundY = 388;
+      const tileSize = 48;
+      const tree243 = this.spriteCache.get("tree243");
+      if (tree243) {
+        const tW = tree243.getWidth();
+        const tH = tree243.getHeight();
+        for (const col of [8, 28, 34]) {
+          const tx = Math.floor((col + 0.5) * tileSize - tW / 2);
+          const ty = groundY + tileSize - tH + 10;
+          g.drawImage(tree243, tx, ty, 0);
+        }
+      }
+      const houseImg = this.spriteCache.get("house1029");
+      if (houseImg) {
+        const hx = Math.floor((9 + 1.6) * tileSize - houseImg.getWidth() / 2);
+        const hy = groundY + 2 * tileSize - houseImg.getHeight() - 8;
+        g.drawImage(houseImg, hx, hy, 0);
+      }
+      const barnImg = this.spriteCache.get("barn834");
+      if (barnImg) {
+        const bx = Math.floor((13 + 1.6) * tileSize - barnImg.getWidth() / 2);
+        const by = groundY + 2 * tileSize - barnImg.getHeight() - 8;
+        g.drawImage(barnImg, bx, by, 0);
+      }
+      const starfruitTreeImg = this.spriteCache.get("starfruitTree");
+      if (starfruitTreeImg) {
+        const sx = Math.floor((19 + 0.5) * tileSize - starfruitTreeImg.getWidth() / 2);
+        const sy = groundY + 2 * tileSize - starfruitTreeImg.getHeight() - 8;
+        g.drawImage(starfruitTreeImg, sx, sy, 0);
+        const fruitImg = this.spriteCache.get("starfruitFruit");
+        if (fruitImg) {
+          const fruitOffsets = [[-25, -50], [-10, -70], [15, -45], [25, -65], [0, -40]];
+          const centerX = sx + Math.floor(starfruitTreeImg.getWidth() / 2);
+          const centerY = sy + starfruitTreeImg.getHeight();
+          for (const [fx, fy] of fruitOffsets) {
+            g.drawImage(fruitImg, centerX + fx, centerY + fy, 0);
+          }
+        }
+        g.setColor(16436245);
+        this.font.drawString(g, "Lv1", sx + starfruitTreeImg.getWidth() - 10, sy + 15, 0);
+      }
+      const gateImg = this.spriteCache.get("gate847");
+      if (gateImg) {
+        const gx = Math.floor((17 + 0.5) * tileSize - gateImg.getWidth() / 2);
+        const gy = groundY + 8 * tileSize - gateImg.getHeight() - 4;
+        g.drawImage(gateImg, gx, gy, 0);
+        const ownerName = this.model.userId === this.handler.network.myUserId ? this.localPlayer.name || "akawasi999" : `User ${this.model.userId}`;
+        this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy - 12, 2);
+      }
+      const buyLandImg = this.spriteCache.get("buyLand");
+      if (buyLandImg) {
+        const cx = Math.floor((6 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
+        const cy = groundY + 4 * tileSize - buyLandImg.getHeight() - 8;
+        g.drawImage(buyLandImg, cx, cy, 0);
+        const px = Math.floor((35 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
+        const py = groundY + 7 * tileSize - buyLandImg.getHeight() - 8;
+        g.drawImage(buyLandImg, px, py, 0);
+      }
+      const lilypadImg = this.spriteCache.get("lilypad849");
+      if (lilypadImg) {
+        g.drawImage(lilypadImg, Math.floor(38 * tileSize + 8), Math.floor(groundY + 3.2 * tileSize), 0);
+        g.drawImage(lilypadImg, Math.floor(37.2 * tileSize + 4), Math.floor(groundY + 4.5 * tileSize), 0);
+        g.drawImage(lilypadImg, Math.floor(39.2 * tileSize), Math.floor(groundY + 5.2 * tileSize), 0);
+      }
     }
     /**
      * Paint authentic farm overlays (animated yellow arrows, owner badge)
@@ -3595,8 +3231,6 @@ void main() {
       const arrowBounce = Math.floor(this.animTick % 12 / 4);
       this.paintYellowArrow(g, 502, 422 + arrowBounce, "V\xE0o");
       this.paintYellowArrow(g, 691, 420 + arrowBounce, "V\xE0o");
-      const ownerName = this.model.userId === this.handler.network.myUserId ? this.localPlayer.name || "B\u1EA1n" : `User ${this.model.userId}`;
-      this.font.drawString(g, ownerName, 830, 680, 2);
       this.paintYellowArrow(g, 830, 715 + arrowBounce, "V\xE0o");
     }
     /**
@@ -3610,10 +3244,10 @@ void main() {
       }
     }
     /**
-     * Paint 30 Land Plots in 6 vertical columns x 5 horizontal rows (Col 22..27, Row 1..5)
+     * Paint Land Plots with Authentic Soil (cell0.png), Crops & "MUA" sign
      */
     paintLandPlots(g) {
-      const soilCrackedImg = this.spriteCache.get("soil_cracked") || this.spriteCache.get("cell0");
+      const cell0Img = this.spriteCache.get("cell0");
       const soilWaterImg = this.spriteCache.get("w");
       const buyLandImg = this.spriteCache.get("buyLand");
       const focusImg = this.spriteCache.get("focus");
@@ -3635,8 +3269,8 @@ void main() {
           }
           continue;
         }
-        if (soilCrackedImg) {
-          g.drawImage(soilCrackedImg, px, py, 0);
+        if (cell0Img) {
+          g.drawImage(cell0Img, px - 2, py - 4, 0);
         } else {
           g.setColor(9268816);
           g.fillRect(px + 2, py + 2, cw - 4, ch - 4);
@@ -3675,7 +3309,7 @@ void main() {
         }
         if (i === this.controller.focusedCellIndex) {
           if (focusImg) {
-            g.drawImage(focusImg, px + 12, py + 12, 0);
+            g.drawImage(focusImg, px + 10, py + 10, 0);
           } else {
             g.setColor(16436245);
             g.drawRect(px + 2, py + 2, cw - 4, ch - 4);
@@ -4175,11 +3809,11 @@ void main() {
   var import_j2me_compat10 = __toESM(require_dist());
 
   // packages/game-client/src/core/GameMidlet.ts
-  var import_j2me_compat8 = __toESM(require_dist());
+  var import_j2me_compat7 = __toESM(require_dist());
 
   // packages/game-client/src/runtime/GameCanvas.ts
-  var import_j2me_compat4 = __toESM(require_dist());
-  var GameCanvas = class _GameCanvas extends import_j2me_compat4.Canvas {
+  var import_j2me_compat3 = __toESM(require_dist());
+  var GameCanvas = class _GameCanvas extends import_j2me_compat3.Canvas {
     static instance;
     currentScreen;
     graphics;
@@ -4198,7 +3832,7 @@ void main() {
       super();
       this.width = 1024;
       this.height = 768;
-      this.graphics = new import_j2me_compat4.Graphics(target);
+      this.graphics = new import_j2me_compat3.Graphics(target);
       _GameCanvas.instance = this;
     }
     setCurrentScreen(screen) {
@@ -4322,7 +3956,7 @@ void main() {
   };
 
   // packages/game-client/src/gameplay/SplashScreen.ts
-  var import_j2me_compat5 = __toESM(require_dist());
+  var import_j2me_compat4 = __toESM(require_dist());
   var SplashScreen = class extends GameScreen {
     timer = 0;
     logoImage;
@@ -4346,13 +3980,13 @@ void main() {
       g.setColor(0);
       g.fillRect(0, 0, w, h);
       if (this.logoImage && this.timer > 1) {
-        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat5.Graphics.HCENTER | import_j2me_compat5.Graphics.VCENTER);
+        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat4.Graphics.HCENTER | import_j2me_compat4.Graphics.VCENTER);
       }
     }
   };
 
   // packages/game-client/src/gameplay/LoginScreen.ts
-  var import_j2me_compat6 = __toESM(require_dist());
+  var import_j2me_compat5 = __toESM(require_dist());
   var LoginScreen = class extends GameScreen {
     selectedIndex = 0;
     // Highlight first option by default
@@ -4458,7 +4092,7 @@ void main() {
         }
       }
       if (this.bannerLogo) {
-        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat6.Graphics.HCENTER | import_j2me_compat6.Graphics.VCENTER);
+        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat5.Graphics.HCENTER | import_j2me_compat5.Graphics.VCENTER);
       } else if (this.font) {
         this.font.drawString(g, "AVATAR 258", Math.floor(screenW / 2), Math.max(25, this.winY - 45), 2);
       }
@@ -5299,7 +4933,7 @@ void main() {
   };
 
   // packages/game-client/src/assets/AvArchiveLoader.ts
-  var import_j2me_compat7 = __toESM(require_dist());
+  var import_j2me_compat6 = __toESM(require_dist());
   var AvArchiveLoader = class _AvArchiveLoader {
     static KEY = new TextEncoder().encode("NguyenVanMinh");
     entries = /* @__PURE__ */ new Map();
@@ -5341,7 +4975,7 @@ void main() {
       const fileName = name.endsWith(".png") ? name : `${name}.png`;
       const bytes = this.getFileBytes(fileName);
       if (!bytes) return null;
-      return import_j2me_compat7.Image.createImage(bytes);
+      return import_j2me_compat6.Image.createImage(bytes);
     }
     getEntryNames() {
       return Array.from(this.entries.keys());
@@ -5369,11 +5003,11 @@ void main() {
     }
     async initAssets(logoPngBytes, fontMetadataBytes, fontPngBytes, bgAvBytes) {
       if (logoPngBytes) {
-        this.splashScreen.logoImage = await import_j2me_compat8.Image.createImage(logoPngBytes);
+        this.splashScreen.logoImage = await import_j2me_compat7.Image.createImage(logoPngBytes);
       }
       if (fontMetadataBytes && fontPngBytes) {
         this.font.loadMetadata(fontMetadataBytes);
-        this.font.fontImage = await import_j2me_compat8.Image.createImage(fontPngBytes);
+        this.font.fontImage = await import_j2me_compat7.Image.createImage(fontPngBytes);
       }
       if (bgAvBytes) {
         const bgLoader = new AvArchiveLoader();
@@ -6143,6 +5777,550 @@ void main() {
 
   // packages/game-client/src/gameplay/GameWorldScreen.ts
   var import_j2me_compat9 = __toESM(require_dist());
+
+  // packages/game-client/src/maps/TilemapRenderer.ts
+  var import_j2me_compat8 = __toESM(require_dist());
+  var TilemapRenderer = class _TilemapRenderer {
+    static TILE_SIZE = 24;
+    // i = 24 in ir.java
+    static TILES_PER_ROW = 7;
+    // 168 px / 24 px = 7 tiles
+    mapData;
+    mapObjects = [];
+    tilesetImage;
+    bgImage;
+    cloudImage;
+    objectImageCache = /* @__PURE__ */ new Map();
+    isNight = false;
+    cameraX = 0;
+    cameraY = 0;
+    // Authentic background mapping from ir.java line 98 (byte[] h)
+    static BG_TYPE_BY_MAP = {
+      0: 1,
+      1: 1,
+      2: 1,
+      3: 1,
+      4: 1,
+      5: 1,
+      6: 1,
+      7: 1,
+      8: 1,
+      9: 0,
+      10: 0,
+      11: 1,
+      12: 3,
+      13: 3,
+      14: 3,
+      15: 3,
+      16: 3,
+      17: 2,
+      18: -1,
+      19: -1,
+      20: -1,
+      21: 0,
+      22: 0,
+      23: 0,
+      24: 2,
+      25: 2
+    };
+    /**
+     * Authentic Map Height formula from ir.java lines 1050-1115
+     * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
+     */
+    static getMapHeightTiles(mapId) {
+      switch (mapId) {
+        case 107:
+          return 16;
+        case 25:
+          return 8;
+        // In Java ME (ir.java line 1050), Map 25 (the Farm) height is exactly 8 tiles!
+        case 21:
+          return 7;
+        case 9:
+          return 8;
+        case 20:
+        case 57:
+        case 58:
+        case 59:
+        case 62:
+        case 63:
+        case 64:
+        case 100:
+        case 101:
+        case 103:
+        case 104:
+        case 109:
+          return 11;
+        case 60:
+        case 61:
+        case 65:
+          return 5;
+        case 18:
+          return 10;
+        case 17:
+          return 6;
+        case 108:
+          return 8;
+        case 19:
+          return 13;
+        case 10:
+          return 9;
+        default:
+          return 8;
+      }
+    }
+    async loadMap(mapId) {
+      const hour = (/* @__PURE__ */ new Date()).getHours();
+      this.isNight = hour >= 18 || hour < 6;
+      const nightSuffix = this.isNight ? "1" : "0";
+      try {
+        const fileId = mapId === 25 ? 25 : mapId + 1;
+        const mapRes = await fetch(`/assets/maps/${fileId}`);
+        if (!mapRes.ok) {
+          console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId} (file ${fileId})`);
+          return;
+        }
+        const buffer = await mapRes.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const heightTiles = _TilemapRenderer.getMapHeightTiles(mapId);
+        const widthTiles = Math.floor(bytes.length / heightTiles);
+        const totalTiles = widthTiles * heightTiles;
+        const tiles = new Int16Array(totalTiles);
+        const collision = new Int16Array(totalTiles);
+        this.mapObjects = [];
+        for (let i2 = 0; i2 < totalTiles; i2++) {
+          const val = bytes[i2];
+          tiles[i2] = val === 255 ? -1 : val;
+        }
+        const spawnedObjects = [];
+        let i = 0;
+        while (i < totalTiles) {
+          const t = tiles[i];
+          const col = i % widthTiles;
+          const row = Math.floor(i / widthTiles);
+          const px = col * _TilemapRenderer.TILE_SIZE;
+          const py = row * _TilemapRenderer.TILE_SIZE;
+          if (t === 127 || t === 128 || t === 129 || t === 141 || t === 143 || t === 144 || t === 147 || t === 148 || t === 149 || t === 150 || t === 151 || t === 152 || t === 159 || t === 160 || t === 161 || t === 162 || t === 172 || t === 173 || t === 174 || t === 175 || t === 176 || t === 177 || t === 178 || t === 179 || t === 186 || t === 190 || t === 192 || t === 193 || t === 194 || t === 195 || t === 196 || t === 197 || t === 198 || t === 199 || t === 200 || t === 201 || t === 202 || t === 204 || t === 98 || t === 182 || t === 183 || t === 187 || t === 188 || t === 189 || t === 142 || mapId === 25 && t === 110) {
+            let consecutive = 1;
+            while (i + consecutive < totalTiles && Math.floor((i + consecutive) / widthTiles) === row && tiles[i + consecutive] === t) {
+              consecutive++;
+            }
+            const spanPx = consecutive * _TilemapRenderer.TILE_SIZE;
+            const centerX = px + Math.floor(spanPx / 2);
+            let floorReplacement = 96;
+            let partId = -1;
+            let objX = centerX;
+            let objY = py + _TilemapRenderer.TILE_SIZE - 4;
+            if (t === 127) {
+              partId = 830;
+              objX = px + 36;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 128) {
+              partId = 828;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+            } else if (t === 129 || t === 160) {
+              partId = mapId === 17 ? 836 : 829;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 96;
+            } else if (t === 141) {
+              partId = 840;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+            } else if (t === 143) {
+              partId = 831;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 51;
+            } else if (t === 144) {
+              partId = 841;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 5;
+            } else if (t === 147 || t === 161) {
+              partId = 832;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 96;
+            } else if (t === 148 || t === 162) {
+              partId = mapId === 17 ? 836 : 833;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 149) {
+              partId = 834;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 4;
+            } else if (t === 150) {
+              partId = 842;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 4 : 0;
+            } else if (t === 151) {
+              partId = 843;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 0;
+            } else if (t === 152) {
+              partId = 835;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 55 : 0;
+            } else if (t === 159) {
+              partId = 848;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 5 : mapId === 13 ? 0 : 4;
+            } else if (t === 172) {
+              partId = 836;
+              objX = px + 37;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 173 || t === 179) {
+              partId = 837;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 174) {
+              partId = 838;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 175) {
+              partId = 830;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 176) {
+              partId = 829;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 177) {
+              partId = 832;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 178) {
+              partId = 830;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 186) {
+              partId = 974;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 17;
+            } else if (t === 190) {
+              partId = 1029;
+              objX = px + 36;
+              objY = py + 20;
+              floorReplacement = 4;
+            } else if (t === 192) {
+              partId = 1034;
+              objX = px + 36;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 193) {
+              partId = 1032;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 194) {
+              partId = 1030;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 195) {
+              partId = 1037;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 196) {
+              partId = 1035;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 197) {
+              partId = 1033;
+              objX = px + 12;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 198) {
+              partId = 1036;
+              objX = px + 12;
+              objY = py + 20;
+              floorReplacement = 4;
+            } else if (t === 199) {
+              partId = 1031;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 200) {
+              partId = 1075;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 201) {
+              partId = 1094;
+              objX = px + 24;
+              objY = py + 20;
+              floorReplacement = 5;
+            } else if (t === 202) {
+              partId = 4;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 98 || t === 204) {
+              partId = 846;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 43;
+            } else if (t === 182) {
+              floorReplacement = 39;
+            } else if (t === 183) {
+              floorReplacement = 13;
+            } else if (t === 187 || t === 188 || t === 189 || t === 142) {
+              floorReplacement = 4;
+            } else if (mapId === 25 && t === 110) {
+              partId = 847;
+              objX = px + 11;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 31;
+            }
+            if (partId > 0) {
+              spawnedObjects.push({ partId, x: objX, y: objY, layer: 0 });
+            }
+            for (let k = 0; k < consecutive; k++) {
+              tiles[i + k] = floorReplacement;
+            }
+            i += consecutive;
+            continue;
+          } else if (t === 139) {
+            tiles[i] = i % widthTiles === 0 ? tiles[i + 1] : tiles[i - 1];
+          } else if (t === 140) {
+            tiles[i] = 55;
+          } else if (t >= 126) {
+            tiles[i] = i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126 ? tiles[i - 1] : 0;
+          }
+          i++;
+        }
+        const uniquePartIds = Array.from(new Set(spawnedObjects.map((o) => o.partId)));
+        await Promise.all(uniquePartIds.map(async (partId) => {
+          if (!this.objectImageCache.has(partId)) {
+            try {
+              const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
+              this.objectImageCache.set(partId, img);
+            } catch (e) {
+              console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
+            }
+          }
+        }));
+        for (const obj of spawnedObjects) {
+          obj.image = this.objectImageCache.get(obj.partId);
+        }
+        this.mapObjects = spawnedObjects;
+        for (let i2 = 0; i2 < totalTiles; i2++) {
+          const t = tiles[i2];
+          if (t === -4) {
+            collision[i2] = 80;
+          } else if (t === -5) {
+            collision[i2] = 88;
+          } else if (t === -1) {
+            collision[i2] = 88;
+          } else if (t >= 120 && t <= 123) {
+            collision[i2] = 80;
+          } else if (t >= 114 && t <= 119) {
+            collision[i2] = 80;
+          } else if (t === 67 || t === 85) {
+            collision[i2] = 92;
+          } else if (t >= 20 && t <= 23) {
+            collision[i2] = 79;
+          } else if (t < 7) {
+            collision[i2] = 80;
+          } else if (t >= 44 && t <= 55) {
+            collision[i2] = 80;
+          } else if (t === 111 || t === 112) {
+            collision[i2] = 80;
+          } else {
+            collision[i2] = 88;
+          }
+        }
+        this.mapData = {
+          id: mapId,
+          widthTiles,
+          heightTiles,
+          tiles,
+          collision
+        };
+        console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
+        const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
+        this.tilesetImage = await import_j2me_compat8.Image.createImage(tilesetUrl);
+        this.bgImage = void 0;
+        this.cloudImage = void 0;
+        const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
+        if (bgType !== -1) {
+          try {
+            const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
+            this.bgImage = await import_j2me_compat8.Image.createImage(bgUrl);
+          } catch (err) {
+          }
+        }
+        try {
+          const cloudUrl = `/assets/bg/${nightSuffix}.png`;
+          this.cloudImage = await import_j2me_compat8.Image.createImage(cloudUrl);
+        } catch (err) {
+        }
+      } catch (err) {
+        console.error("[TilemapRenderer] Load error:", err);
+      }
+    }
+    async setDynamicMapItems(mapItemTypes, mapItems) {
+      this.mapObjects = this.mapObjects.filter((o) => !o.isDynamic);
+      if (!mapItemTypes || !mapItems || mapItems.length === 0) return;
+      const typeMap = /* @__PURE__ */ new Map();
+      for (const t of mapItemTypes) {
+        typeMap.set(t.id, t);
+      }
+      const newDynamicObjects = [];
+      for (const it of mapItems) {
+        const itemType = typeMap.get(it.typeID);
+        if (!itemType) continue;
+        const worldX = it.tileX * _TilemapRenderer.TILE_SIZE + itemType.dx;
+        const worldY = it.tileY * _TilemapRenderer.TILE_SIZE + itemType.dy;
+        newDynamicObjects.push({
+          partId: itemType.imgID,
+          x: worldX,
+          y: worldY,
+          layer: 0,
+          isDynamic: true,
+          dynamicType: it.type,
+          dynamicId: it.typeID
+        });
+      }
+      const uniquePartIds = Array.from(new Set(newDynamicObjects.map((o) => o.partId)));
+      await Promise.all(uniquePartIds.map(async (partId) => {
+        if (!this.objectImageCache.has(partId)) {
+          try {
+            const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
+            this.objectImageCache.set(partId, img);
+          } catch {
+            try {
+              const img = await import_j2me_compat8.Image.createImage(`/assets/item/${partId}.png`);
+              this.objectImageCache.set(partId, img);
+            } catch (e) {
+              console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
+            }
+          }
+        }
+      }));
+      for (const obj of newDynamicObjects) {
+        obj.image = this.objectImageCache.get(obj.partId);
+        this.mapObjects.push(obj);
+      }
+      console.log(`[TilemapRenderer] Added ${newDynamicObjects.length} dynamic map items`);
+    }
+    updateCamera(targetX, targetY, screenW, screenH) {
+      if (!this.mapData) return;
+      const mapWidthPx = this.mapData.widthTiles * _TilemapRenderer.TILE_SIZE;
+      const mapHeightPx = this.mapData.heightTiles * _TilemapRenderer.TILE_SIZE;
+      let camX = targetX - Math.floor(screenW / 2);
+      let camY = targetY - Math.floor(screenH / 2);
+      if (mapWidthPx > screenW) {
+        camX = Math.max(0, Math.min(mapWidthPx - screenW, camX));
+      } else {
+        camX = Math.floor((mapWidthPx - screenW) / 2);
+      }
+      if (mapHeightPx > screenH) {
+        camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
+      } else {
+        camY = mapHeightPx - screenH;
+      }
+      this.cameraX = camX;
+      this.cameraY = camY;
+    }
+    /**
+     * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
+     */
+    paint(g, screenW, screenH) {
+      if (!this.mapData || !this.tilesetImage) return;
+      const tileSize = _TilemapRenderer.TILE_SIZE;
+      const { widthTiles, heightTiles, tiles } = this.mapData;
+      const skyColor = this.isNight ? 21 : 6143735;
+      g.setColor(skyColor);
+      g.fillRect(0, 0, screenW, screenH);
+      if (this.cloudImage) {
+        const cW = this.cloudImage.getWidth();
+        const parallaxCloud = -Math.floor(this.cameraX * 0.12) % cW;
+        const cloudY = Math.max(-20, 15 - Math.floor(this.cameraY * 0.1));
+        for (let x = parallaxCloud - cW; x < screenW + cW; x += cW) {
+          g.drawImage(this.cloudImage, x, cloudY, 0);
+        }
+      }
+      if (this.bgImage) {
+        const bgW = this.bgImage.getWidth();
+        const bgH = this.bgImage.getHeight();
+        const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
+        const groundTopY = screenH - heightTiles * tileSize;
+        const bgY = Math.max(0, groundTopY - bgH + 30);
+        for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
+          g.drawImage(this.bgImage, x, bgY, 0);
+        }
+      }
+      const startTileX = Math.floor(this.cameraX / tileSize);
+      const endTileX = Math.ceil((this.cameraX + screenW) / tileSize);
+      const startTileY = Math.max(0, Math.floor(this.cameraY / tileSize));
+      const endTileY = Math.min(heightTiles, Math.ceil((this.cameraY + screenH) / tileSize));
+      for (let ty = startTileY; ty < endTileY; ty++) {
+        for (let tx = startTileX; tx < endTileX; tx++) {
+          const clampedCol = Math.max(0, Math.min(widthTiles - 1, tx));
+          let tileIdx = tiles[ty * widthTiles + clampedCol];
+          if (tileIdx < 0) continue;
+          if (tx < 0 || tx >= widthTiles) {
+            if (tileIdx > 120 || tileIdx < 0) {
+              tileIdx = 96;
+            }
+          }
+          const numRows = 18;
+          const col = Math.floor(tileIdx / numRows);
+          const row = tileIdx % numRows;
+          const srcX = col * tileSize;
+          const srcY = row * tileSize;
+          const destX = tx * tileSize - this.cameraX;
+          const destY = ty * tileSize - this.cameraY;
+          g.drawRegion(
+            this.tilesetImage,
+            srcX,
+            srcY,
+            tileSize,
+            tileSize,
+            0,
+            destX,
+            destY,
+            0
+          );
+        }
+      }
+    }
+    isBlocked(worldX, worldY) {
+      if (!this.mapData) return false;
+      const { widthTiles, heightTiles, collision } = this.mapData;
+      const tx = Math.floor(worldX / _TilemapRenderer.TILE_SIZE);
+      const ty = Math.floor(worldY / _TilemapRenderer.TILE_SIZE);
+      if (tx < 0 || tx >= widthTiles || ty < 0 || ty >= heightTiles) {
+        return true;
+      }
+      const c = collision[ty * widthTiles + tx];
+      return c === 88 || c === 92;
+    }
+  };
+
+  // packages/game-client/src/gameplay/GameWorldScreen.ts
   var GameWorldScreen = class _GameWorldScreen extends GameScreen {
     localPlayer = {
       id: 0,

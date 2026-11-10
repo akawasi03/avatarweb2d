@@ -175,13 +175,13 @@ export class FarmModel {
   public farmLevel: number = 1;
   public farmPercent: number = 0;
 
-  // Authentic 2x scaled Farm grid layout anchor: aligned to Map 25 (Columns 22..27, Rows 1..5)
-  public static readonly GRID_COLS = 6;
-  public static readonly GRID_ROWS = 5;
+  // Authentic 2x scaled Farm grid layout anchor: aligned to Map 25 (go.java method v())
+  // 4 blocks of 12 plots (aG = 12, aH = 4 rows), block start columns [22, 25, 28, 31], row starts at 1
+  public static readonly GRID_ROWS = 4;
   public static readonly CELL_WIDTH = 48;
   public static readonly CELL_HEIGHT = 48;
-  public static readonly GRID_ORIGIN_X = 1058; // Exact pixel alignment matching Map 25
-  public static readonly GRID_ORIGIN_Y = 452;  // Exact pixel alignment matching Map 25
+  public static readonly GRID_ORIGIN_X = 1056; // Column 22 * 48px
+  public static readonly GRID_ORIGIN_Y = 436;  // Row 1 * 48px + 388px ground start
 
   constructor() {
     this.resetPlots(8);
@@ -190,11 +190,15 @@ export class FarmModel {
   public resetPlots(activeCount: number): void {
     this.landSize = activeCount;
     this.lands = [];
+    const blockStartCols = [22, 25, 28, 31];
     for (let i = 0; i < this.maxLandPlots; i++) {
-      const col = Math.floor(i / FarmModel.GRID_ROWS); // 0..5 (6 vertical columns)
-      const row = i % FarmModel.GRID_ROWS;             // 0..4 (5 horizontal rows)
-      const posX = FarmModel.GRID_ORIGIN_X + col * FarmModel.CELL_WIDTH;
-      const posY = FarmModel.GRID_ORIGIN_Y + row * FarmModel.CELL_HEIGHT;
+      const blockIdx = Math.floor(i / 12);
+      const inBlockIdx = i % 12;
+      const startCol = blockStartCols[blockIdx] ?? (22 + blockIdx * 3);
+      const col = startCol + Math.floor(inBlockIdx / 4);
+      const row = 1 + (inBlockIdx % 4);
+      const posX = col * FarmModel.CELL_WIDTH;
+      const posY = 388 + row * FarmModel.CELL_HEIGHT;
 
       this.lands.push({
         index: i,

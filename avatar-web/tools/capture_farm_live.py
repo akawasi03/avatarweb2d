@@ -19,6 +19,8 @@ def capture_farm_live():
         )
         context = browser.new_context(viewport={'width': 1280, 'height': 720})
         page = context.new_page()
+        page.on("console", lambda msg: print("[Browser Console]", msg.text))
+        page.on("pageerror", lambda err: print("[Browser Error]", err))
 
         # Step 1: Login via portal
         print("[Step 1] Navigating to http://localhost:3000/?view=login ...")
@@ -29,7 +31,7 @@ def capture_farm_live():
         page.fill('#loginUsername', 'admin')
         page.fill('#loginPassword', '123456')
         page.click('#btnSubmitLogin')
-        time.sleep(3)
+        time.sleep(4)
 
         # Step 3: Enter Farm (Map 25)
         print("[Step 3] Entering Farm Screen (Map 25)...")
@@ -43,7 +45,7 @@ def capture_farm_live():
             }
         }""")
         print(f"  -> enterFarm result: {res}")
-        time.sleep(2)
+        time.sleep(3)
 
         # Step 4: Verify scene and render backend
         scene = page.evaluate("() => window.__SCENE")

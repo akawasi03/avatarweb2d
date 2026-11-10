@@ -10,7 +10,6 @@ import { GameScreen } from '../ui/GameScreen.js';
 import { UISkinPainter } from '../ui/UISkinPainter.js';
 import { BitmapFont } from '../renderer/BitmapFont.js';
 import { AvatarRenderer } from '../characters/AvatarRenderer.js';
-import { TilemapRenderer } from '../maps/TilemapRenderer.js';
 import { FarmModel, LandItemState, CROP_DEFINITIONS } from './FarmModel.js';
 import { FarmNetworkHandler } from './FarmNetworkHandler.js';
 import { FarmActionController, FarmToolMode } from './FarmActionController.js';
@@ -36,7 +35,11 @@ export class FarmScreen extends GameScreen {
   public skinPainter: UISkinPainter;
   public font: BitmapFont;
   public localPlayer: LocalPlayerState;
-  public tilemapRenderer: TilemapRenderer;
+
+  // Authentic Map 25 Procedural Tilemap Engine
+  public mapTiles: Int16Array = new Int16Array(336);
+  public isMapLoaded = false;
+  public isNight = false;
 
   // Screen dimensions
   public screenW = 640;
@@ -77,11 +80,6 @@ export class FarmScreen extends GameScreen {
     this.skinPainter = skinPainter;
     this.font = font;
 
-    this.tilemapRenderer = new TilemapRenderer();
-    this.tilemapRenderer.loadMap(25).catch((err) => {
-      console.error('[FarmScreen] Failed to load Map 25 tilemap:', err);
-    });
-
     // Initial player position: standing on the dirt path near farm entrance (x=830, y=690)
     this.localPlayer = {
       id: this.handler.network.myUserId || 1,
@@ -108,16 +106,83 @@ export class FarmScreen extends GameScreen {
       this.feedbackTimer = 100;
     };
 
-    // Preload critical authentic assets
-    this.loadSprite('farm_bg', '/assets/maps/farm_map25_bg.png');
-    this.loadSprite('soil_cracked', '/assets/farm_ui/soil_cracked.png');
-    this.loadSprite('cell0', '/assets/farm_ui/cell0.png');
-    this.loadSprite('buyLand', '/assets/farm_ui/buyLand.png');
-    this.loadSprite('g', '/assets/farm_ui/g.png');
-    this.loadSprite('w', '/assets/farm_ui/w.png');
-    this.loadSprite('focus', '/assets/farm_ui/focus.png');
-    this.loadSprite('coin', '/assets/farm_ui/coin.png');
-    this.loadSprite('cut', '/assets/farm_ui/cut.png');
+    // Load authentic Map 25 binary and authentic HD assets
+    this.loadMap25().catch((err) => {
+      console.error('[FarmScreen] Failed to load Map 25 assets:', err);
+    });
+  }
+
+  private async loadMap25(): Promise<void> {
+    const hour = new Date().getHours();
+    this.isNight = hour >= 18 || hour < 6;
+    const nightSuffix = this.isNight ? 'night' : 'day';
+
+    // 1. Preload authentic HD graphics from Avatar-Sv-master-master
+    await Promise.all([
+      this.preloadSprite('tileset', `/assets/tileset/tileset_hd_${nightSuffix}.png`),
+      this.preloadSprite('clouds', `/assets/bg/clouds_farm_${nightSuffix}.png`),
+      this.preloadSprite('horizon', `/assets/bg/horizon_farm_${nightSuffix}.png`),
+      this.preloadSprite('house1029', '/assets/home/1029.png'),
+      this.preloadSprite('barn834', '/assets/home/834.png'),
+      this.preloadSprite('tree243', '/assets/home/243.png'),
+      this.preloadSprite('gate847', '/assets/home/847.png'),
+      this.preloadSprite('sign848', '/assets/home/848.png'),
+      this.preloadSprite('lilypad849', '/assets/home/849.png'),
+      this.preloadSprite('starfruitTree', '/assets/farm/43.png'),
+      this.preloadSprite('starfruitFruit', '/assets/farm/46.png'),
+      this.preloadSprite('cell0', '/assets/farm_ui/cell0.png'),
+      this.preloadSprite('buyLand', '/assets/farm_ui/buyLand.png'),
+      this.preloadSprite('w', '/assets/farm_ui/w.png'),
+      this.preloadSprite('g', '/assets/farm_ui/g.png'),
+      this.preloadSprite('cut', '/assets/farm_ui/cut.png'),
+      this.preloadSprite('focus', '/assets/farm_ui/focus.png'),
+      this.preloadSprite('coin', '/assets/farm_ui/coin.png')
+    ]);
+
+    // 2. Load 336-byte Map 25 binary extracted from Avatar258.jar
+    try {
+      const res = await fetch('/assets/maps/25');
+      if (res.ok) {
+        const buffer = await res.arrayBuffer();
+        const raw = new Uint8Array(buffer);
+        for (let i = 0; i < 336; i++) {
+          const val = raw[i];
+          // Authentic special marker decoding from ir.java lines 1280-1745
+          if (val === 149 || val === 190 || val === 189 || val === 142 || val === 187 || val === 188 || val === 28) {
+            this.mapTiles[i] = 4;
+          } else if (val === 140 || val === 155 || val === 152) {
+            this.mapTiles[i] = 55;
+          } else if (val === 110) {
+            this.mapTiles[i] = 31;
+          } else if (val === 159 || val === 156 || val === 158) {
+            this.mapTiles[i] = 5;
+          } else if (val === 182) {
+            this.mapTiles[i] = 39;
+          } else if (val === 183) {
+            this.mapTiles[i] = 13;
+          } else if (val === 157) {
+            this.mapTiles[i] = 111;
+          } else {
+            this.mapTiles[i] = val === 255 ? -1 : val;
+          }
+        }
+        this.isMapLoaded = true;
+        console.log('[FarmScreen] Authentic Map 25 tilemap loaded successfully');
+      }
+    } catch (err) {
+      console.error('[FarmScreen] Failed to load /assets/maps/25:', err);
+    }
+  }
+
+  private async preloadSprite(key: string, url: string): Promise<Image | undefined> {
+    try {
+      const img = await Image.createImage(url);
+      this.spriteCache.set(key, img);
+      return img;
+    } catch (err) {
+      console.warn(`[FarmScreen] Failed to load sprite ${key} from ${url}`);
+      return undefined;
+    }
   }
 
   private loadSprite(key: string, url: string): Image | undefined {
@@ -225,53 +290,208 @@ export class FarmScreen extends GameScreen {
     }
   }
 
-  // --- Rendering Pipeline (WebGL2 Native via Graphics) ---
+  // --- Rendering Pipeline (WebGL2 Native Procedural Map 25 Engine) ---
 
   public paint(g: Graphics): void {
     const w = this.screenW;
     const h = this.screenH;
 
-    // 1. Paint authentic sky blue background (#5DBEF7)
-    g.setColor(0x5DBEF7);
+    // 1. Paint authentic sky blue background (#5DBEF7 Day or #000015 Night)
+    const skyColor = this.isNight ? 0x000015 : 0x5DBEF7;
+    g.setColor(skyColor);
     g.fillRect(0, 0, w, h);
 
-    // 2. Paint Authentic Map 25 Master Panorama Background (2016x772)
-    const bgImg = this.spriteCache.get('farm_bg');
-    if (bgImg) {
-      g.drawImage(bgImg, -this.cameraX, -this.cameraY, 0);
-    } else {
-      this.tilemapRenderer.paint(g, w, h);
+    // 2. Paint Authentic Parallax Clouds (clouds_farm_day.png / may20.png)
+    const cloudImg = this.spriteCache.get('clouds');
+    if (cloudImg) {
+      const cW = cloudImg.getWidth();
+      const parallaxCloud = -Math.floor(this.cameraX * 0.15) % cW;
+      const cloudY = Math.max(-20, -Math.floor(this.cameraY * 0.05));
+      for (let x = parallaxCloud - cW; x < w + cW; x += cW) {
+        g.drawImage(cloudImg, x, cloudY, 0);
+      }
+    }
+
+    // 3. Paint Authentic Parallax Horizon Landscape (horizon_farm_day.png / 20.png)
+    const horizonImg = this.spriteCache.get('horizon');
+    if (horizonImg) {
+      const hW = horizonImg.getWidth();
+      const hH = horizonImg.getHeight();
+      const parallaxX = -Math.floor(this.cameraX * 0.35) % hW;
+      // Horizon sits right behind ground top fence (y = 388 - hH + 40)
+      const horizonY = 388 - hH + 40 - this.cameraY;
+      for (let x = parallaxX - hW; x < w + hW; x += hW) {
+        g.drawImage(horizonImg, x, horizonY, 0);
+      }
+    }
+
+    // 4. Paint Authentic Ground Tilemap (42 cols x 8 rows, HD 48px tile size, Column-Major Indexing)
+    const tilesetImg = this.spriteCache.get('tileset');
+    if (tilesetImg && this.isMapLoaded) {
+      const tileSize = 48;
+      const groundY = 388;
+      const numRowsInTileset = 18; // 864px / 48px = 18 rows per column (ht.java & ir.java)
+
+      const startCol = Math.max(0, Math.floor(this.cameraX / tileSize));
+      const endCol = Math.min(42, Math.ceil((this.cameraX + w) / tileSize));
+      const startRow = Math.max(0, Math.floor((this.cameraY - groundY) / tileSize));
+      const endRow = Math.min(8, Math.ceil((this.cameraY + h - groundY) / tileSize));
+
+      for (let r = startRow; r < endRow; r++) {
+        const destY = groundY + r * tileSize - this.cameraY;
+        for (let c = startCol; c < endCol; c++) {
+          const tileId = this.mapTiles[r * 42 + c];
+          if (tileId < 0) continue;
+
+          // In ir.java lines 873-874:
+          // col = tileId / numRows, row = tileId % numRows (column-major)
+          const tc = Math.floor(tileId / numRowsInTileset);
+          const tr = tileId % numRowsInTileset;
+          const destX = c * tileSize - this.cameraX;
+
+          g.drawRegion(
+            tilesetImg,
+            tc * tileSize,
+            tr * tileSize,
+            tileSize,
+            tileSize,
+            0,
+            destX,
+            destY,
+            0
+          );
+        }
+      }
     }
 
     // Apply Camera Translation for Dynamic World Entities
     g.translate(-this.cameraX, -this.cameraY);
 
-    // 3. Paint Dynamic Farm Guide Elements (Yellow "Vào" arrows, Starfruit fruits, Exit sign)
-    this.paintFarmOverlays(g);
+    // 5. Paint Authentic Map Objects (Nhà Bếp, Chuồng Rơm, Cây Khế, Cây to, Cổng vào, Signpost, Biển MUA)
+    this.paintSceneryObjects(g);
 
-    // 4. Paint 30 Land Plots with Authentic Soil, Crops & "MUA" sign
+    // 6. Paint Land Plots with Authentic Soil (cell0.png), Crops & "MUA" sign
     this.paintLandPlots(g);
 
-    // 5. Paint Animals (Chickens moving inside coop)
+    // 7. Paint Animals (Chickens moving inside coop)
     this.paintAnimals(g);
 
-    // 6. Paint Local Player Avatar (10-layer rendering)
+    // 8. Paint Local Player Avatar (10-layer rendering)
     this.paintPlayer(g);
+
+    // 9. Paint Dynamic Farm Guide Elements (Yellow "Vào" arrows)
+    this.paintFarmOverlays(g);
 
     // Restore Camera Translation
     g.translate(this.cameraX, this.cameraY);
 
-    // 7. Paint Top Status Bar & HUD (Xu, Lượng, Menu button, Mail notification)
+    // 10. Paint Top Status Bar & HUD (Xu, Lượng, Menu button, Mail notification)
     this.paintHUD(g, w, h);
 
-    // 8. Paint Notification Toast (if active)
+    // 11. Paint Notification Toast (if active)
     this.paintNotificationToast(g, w, h);
 
-    // 9. Paint Softkeys Bar (Left: Menu, Center: Chọn, Right: Về phố)
+    // 12. Paint Softkeys Bar (Left: Menu, Center: Chọn, Right: Về phố)
     this.paintSoftkeys(g, w, h);
 
-    // 10. Paint Modals / Menus / Dialogs
+    // 13. Paint Modals / Menus / Dialogs
     this.paintModals(g, w, h);
+  }
+
+  /**
+   * Paint authentic scenery objects matching Avatar 2.5.8 Java ME (ir.java & go.java)
+   */
+  private paintSceneryObjects(g: Graphics): void {
+    const groundY = 388;
+    const tileSize = 48;
+
+    // 1. Big trees behind top fence (cols 8, 28, 34 in row 0)
+    const tree243 = this.spriteCache.get('tree243');
+    if (tree243) {
+      const tW = tree243.getWidth();
+      const tH = tree243.getHeight();
+      for (const col of [8, 28, 34]) {
+        const tx = Math.floor((col + 0.5) * tileSize - tW / 2);
+        const ty = groundY + tileSize - tH + 10;
+        g.drawImage(tree243, tx, ty, 0);
+      }
+    }
+
+    // 2. Nhà Bếp (Kitchen building with chef hat) at col 9..11
+    const houseImg = this.spriteCache.get('house1029');
+    if (houseImg) {
+      const hx = Math.floor((9 + 1.6) * tileSize - houseImg.getWidth() / 2);
+      const hy = groundY + 2 * tileSize - houseImg.getHeight() - 8;
+      g.drawImage(houseImg, hx, hy, 0);
+    }
+
+    // 3. Chuồng Rơm (Hay barn) at col 13..15
+    const barnImg = this.spriteCache.get('barn834');
+    if (barnImg) {
+      const bx = Math.floor((13 + 1.6) * tileSize - barnImg.getWidth() / 2);
+      const by = groundY + 2 * tileSize - barnImg.getHeight() - 8;
+      g.drawImage(barnImg, bx, by, 0);
+    }
+
+    // 4. Cây Khế (Starfruit Tree) at col 19
+    const starfruitTreeImg = this.spriteCache.get('starfruitTree');
+    if (starfruitTreeImg) {
+      const sx = Math.floor((19 + 0.5) * tileSize - starfruitTreeImg.getWidth() / 2);
+      const sy = groundY + 2 * tileSize - starfruitTreeImg.getHeight() - 8;
+      g.drawImage(starfruitTreeImg, sx, sy, 0);
+
+      // Starfruit fruits hanging on branches
+      const fruitImg = this.spriteCache.get('starfruitFruit');
+      if (fruitImg) {
+        const fruitOffsets: [number, number][] = [[-25, -50], [-10, -70], [15, -45], [25, -65], [0, -40]];
+        const centerX = sx + Math.floor(starfruitTreeImg.getWidth() / 2);
+        const centerY = sy + starfruitTreeImg.getHeight();
+        for (const [fx, fy] of fruitOffsets) {
+          g.drawImage(fruitImg, centerX + fx, centerY + fy, 0);
+        }
+      }
+
+      // "Lv1" gold level badge
+      g.setColor(0xFACC15);
+      this.font.drawString(g, 'Lv1', sx + starfruitTreeImg.getWidth() - 10, sy + 15, 0);
+    }
+
+    // 5. Exit Gateway / Entrance Sign 847 at col 17, row 7 (ir.java case 110)
+    const gateImg = this.spriteCache.get('gate847');
+    if (gateImg) {
+      const gx = Math.floor((17 + 0.5) * tileSize - gateImg.getWidth() / 2);
+      const gy = groundY + 8 * tileSize - gateImg.getHeight() - 4;
+      g.drawImage(gateImg, gx, gy, 0);
+
+      // Owner name badge above exit sign
+      const ownerName = this.model.userId === this.handler.network.myUserId
+        ? (this.localPlayer.name || 'akawasi999')
+        : `User ${this.model.userId}`;
+      this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy - 12, 2);
+    }
+
+    // 7. "MUA" signpost at Chicken coop (col 6, row 3) and Fish pond (col 35, row 6)
+    const buyLandImg = this.spriteCache.get('buyLand');
+    if (buyLandImg) {
+      const cx = Math.floor((6 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
+      const cy = groundY + 4 * tileSize - buyLandImg.getHeight() - 8;
+      g.drawImage(buyLandImg, cx, cy, 0);
+
+      const px = Math.floor((35 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
+      const py = groundY + 7 * tileSize - buyLandImg.getHeight() - 8;
+      g.drawImage(buyLandImg, px, py, 0);
+    }
+
+    // 8. Lily pads in Fish Pond (Ao Cá at cols 36..40, rows 2..6)
+    const lilypadImg = this.spriteCache.get('lilypad849');
+    if (lilypadImg) {
+      // Top lilypad (col 38, row 3.2)
+      g.drawImage(lilypadImg, Math.floor(38 * tileSize + 8), Math.floor(groundY + 3.2 * tileSize), 0);
+      // Left lilypad (col 37.2, row 4.5)
+      g.drawImage(lilypadImg, Math.floor(37.2 * tileSize + 4), Math.floor(groundY + 4.5 * tileSize), 0);
+      // Bottom-right lilypad (col 39.2, row 5.2)
+      g.drawImage(lilypadImg, Math.floor(39.2 * tileSize), Math.floor(groundY + 5.2 * tileSize), 0);
+    }
   }
 
   /**
@@ -286,11 +506,7 @@ export class FarmScreen extends GameScreen {
     // 2. Animated Yellow "Vào" arrow on Chuồng Rơm / Hay Barn doorway (x = 691, y = 420)
     this.paintYellowArrow(g, 691, 420 + arrowBounce, 'Vào');
 
-    // 3. Exit Signpost owner name badge & animated yellow "Vào" arrow (x = 830, y = 715)
-    const ownerName = this.model.userId === this.handler.network.myUserId
-      ? (this.localPlayer.name || 'Bạn')
-      : `User ${this.model.userId}`;
-    this.font.drawString(g, ownerName, 830, 680, 2);
+    // 3. Exit Signpost animated yellow "Vào" arrow (x = 830, y = 715)
     this.paintYellowArrow(g, 830, 715 + arrowBounce, 'Vào');
   }
 
@@ -307,10 +523,10 @@ export class FarmScreen extends GameScreen {
   }
 
   /**
-   * Paint 30 Land Plots in 6 vertical columns x 5 horizontal rows (Col 22..27, Row 1..5)
+   * Paint Land Plots with Authentic Soil (cell0.png), Crops & "MUA" sign
    */
   private paintLandPlots(g: Graphics): void {
-    const soilCrackedImg = this.spriteCache.get('soil_cracked') || this.spriteCache.get('cell0');
+    const cell0Img = this.spriteCache.get('cell0');
     const soilWaterImg = this.spriteCache.get('w');
     const buyLandImg = this.spriteCache.get('buyLand');
     const focusImg = this.spriteCache.get('focus');
@@ -337,9 +553,10 @@ export class FarmScreen extends GameScreen {
         continue;
       }
 
-      // 2. Unlocked Soil Plot: render authentic cracked soil texture on every open plot
-      if (soilCrackedImg) {
-        g.drawImage(soilCrackedImg, px, py, 0);
+      // 2. Unlocked Soil Plot: render authentic cracked soil texture (cell0.png)
+      if (cell0Img) {
+        // cell0 is 52x56, center on 48x48 plot
+        g.drawImage(cell0Img, px - 2, py - 4, 0);
       } else {
         g.setColor(0x8D6E50);
         g.fillRect(px + 2, py + 2, cw - 4, ch - 4);
@@ -388,7 +605,7 @@ export class FarmScreen extends GameScreen {
       // 4. Cursor Focus Selection Box
       if (i === this.controller.focusedCellIndex) {
         if (focusImg) {
-          g.drawImage(focusImg, px + 12, py + 12, 0);
+          g.drawImage(focusImg, px + 10, py + 10, 0);
         } else {
           g.setColor(0xFACC15);
           g.drawRect(px + 2, py + 2, cw - 4, ch - 4);
