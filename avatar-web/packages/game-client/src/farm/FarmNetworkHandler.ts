@@ -65,6 +65,8 @@ export class FarmNetworkHandler {
       if (this.onPlantSeedSuccess) {
         this.onPlantSeedSuccess(data.cellIndex, data.seedId);
       }
+      // Authoritative refresh of seeds & balances from server
+      this.network.sendGetFarmInventory();
     });
 
     // 4. TREE_HARVEST (Cmd.TREE_HARVEST = 66)
@@ -87,6 +89,8 @@ export class FarmNetworkHandler {
       if (this.onHarvestSuccess) {
         this.onHarvestSuccess(data.cellIndex, data.yieldCount);
       }
+      // Authoritative refresh of crops & balances from server
+      this.network.sendGetFarmInventory();
     });
 
     // 5. OPEN_LAND (Cmd.OPEN_LAND = 70)
@@ -105,6 +109,8 @@ export class FarmNetworkHandler {
       if (this.onOpenLandSuccess) {
         this.onOpenLandSuccess(data.slot, data.xu, data.luong);
       }
+      // Authoritative refresh of balances from server
+      this.network.sendGetFarmInventory();
       if (this.onNotification) {
         this.onNotification(data.msg || 'Đã mở ô đất thành công!');
       }

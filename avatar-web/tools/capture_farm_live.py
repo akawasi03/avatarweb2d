@@ -33,8 +33,17 @@ def capture_farm_live():
 
         # Step 3: Enter Farm (Map 25)
         print("[Step 3] Entering Farm Screen (Map 25)...")
-        page.evaluate("() => { if (window.enterFarm) window.enterFarm(1); }")
-        time.sleep(3)
+        res = page.evaluate("""() => {
+            if (!window.enterFarm) return 'NO_ENTER_FARM';
+            try {
+                window.enterFarm(1);
+                return 'OK_CALLED';
+            } catch(e) {
+                return 'ERR: ' + e.message;
+            }
+        }""")
+        print(f"  -> enterFarm result: {res}")
+        time.sleep(2)
 
         # Step 4: Verify scene and render backend
         scene = page.evaluate("() => window.__SCENE")

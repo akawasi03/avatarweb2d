@@ -1,4 +1,4 @@
-Summary for D:\avatarweb2d\Avatar-Sv-master-master\Avatar258.jar
+Summary for Avatar-Sv-master-master/Avatar258.jar
 Decompiled with CFR 0.152
 
 

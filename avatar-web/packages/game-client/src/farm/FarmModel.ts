@@ -175,13 +175,13 @@ export class FarmModel {
   public farmLevel: number = 1;
   public farmPercent: number = 0;
 
-  // Farm grid layout anchor: centered on Map 25
+  // Authentic 2x scaled Farm grid layout anchor: aligned to Map 25 (Columns 22..27, Rows 1..5)
   public static readonly GRID_COLS = 6;
   public static readonly GRID_ROWS = 5;
   public static readonly CELL_WIDTH = 48;
-  public static readonly CELL_HEIGHT = 28;
-  public static readonly GRID_ORIGIN_X = 140;
-  public static readonly GRID_ORIGIN_Y = 160;
+  public static readonly CELL_HEIGHT = 48;
+  public static readonly GRID_ORIGIN_X = 1058; // Exact pixel alignment matching Map 25
+  public static readonly GRID_ORIGIN_Y = 452;  // Exact pixel alignment matching Map 25
 
   constructor() {
     this.resetPlots(8);
@@ -191,8 +191,8 @@ export class FarmModel {
     this.landSize = activeCount;
     this.lands = [];
     for (let i = 0; i < this.maxLandPlots; i++) {
-      const col = i % FarmModel.GRID_COLS;
-      const row = Math.floor(i / FarmModel.GRID_COLS);
+      const col = Math.floor(i / FarmModel.GRID_ROWS); // 0..5 (6 vertical columns)
+      const row = i % FarmModel.GRID_ROWS;             // 0..4 (5 horizontal rows)
       const posX = FarmModel.GRID_ORIGIN_X + col * FarmModel.CELL_WIDTH;
       const posY = FarmModel.GRID_ORIGIN_Y + row * FarmModel.CELL_HEIGHT;
 

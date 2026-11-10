@@ -118,7 +118,7 @@
       "use strict";
       Object.defineProperty(exports, "__esModule", { value: true });
       exports.Sprite = void 0;
-      var Sprite3 = class {
+      var Sprite2 = class {
         static TRANS_NONE = 0;
         static TRANS_MIRROR_ROT180 = 1;
         static TRANS_MIRROR = 2;
@@ -128,7 +128,7 @@
         static TRANS_ROT270 = 6;
         static TRANS_MIRROR_ROT90 = 7;
       };
-      exports.Sprite = Sprite3;
+      exports.Sprite = Sprite2;
     }
   });
 
@@ -2086,13 +2086,15 @@ void main() {
     userLuong = 0;
     farmLevel = 1;
     farmPercent = 0;
-    // Farm grid layout anchor: centered on Map 25
+    // Authentic 2x scaled Farm grid layout anchor: aligned to Map 25 (Columns 22..27, Rows 1..5)
     static GRID_COLS = 6;
     static GRID_ROWS = 5;
     static CELL_WIDTH = 48;
-    static CELL_HEIGHT = 28;
-    static GRID_ORIGIN_X = 140;
-    static GRID_ORIGIN_Y = 160;
+    static CELL_HEIGHT = 48;
+    static GRID_ORIGIN_X = 1058;
+    // Exact pixel alignment matching Map 25
+    static GRID_ORIGIN_Y = 452;
+    // Exact pixel alignment matching Map 25
     constructor() {
       this.resetPlots(8);
     }
@@ -2100,8 +2102,8 @@ void main() {
       this.landSize = activeCount;
       this.lands = [];
       for (let i = 0; i < this.maxLandPlots; i++) {
-        const col = i % _FarmModel.GRID_COLS;
-        const row = Math.floor(i / _FarmModel.GRID_COLS);
+        const col = Math.floor(i / _FarmModel.GRID_ROWS);
+        const row = i % _FarmModel.GRID_ROWS;
         const posX = _FarmModel.GRID_ORIGIN_X + col * _FarmModel.CELL_WIDTH;
         const posY = _FarmModel.GRID_ORIGIN_Y + row * _FarmModel.CELL_HEIGHT;
         this.lands.push({
@@ -2247,6 +2249,7 @@ void main() {
         if (this.onPlantSeedSuccess) {
           this.onPlantSeedSuccess(data.cellIndex, data.seedId);
         }
+        this.network.sendGetFarmInventory();
       });
       this.network.on("tree_harvest", (data) => {
         console.log(`[FarmNetwork] Tree harvest confirmed: Cell ${data.cellIndex}, Yield: ${data.yieldCount}`);
@@ -2264,6 +2267,7 @@ void main() {
         if (this.onHarvestSuccess) {
           this.onHarvestSuccess(data.cellIndex, data.yieldCount);
         }
+        this.network.sendGetFarmInventory();
       });
       this.network.on("open_land", (data) => {
         console.log(`[FarmNetwork] Open land confirmed: Slot ${data.slot}`);
@@ -2279,6 +2283,7 @@ void main() {
         if (this.onOpenLandSuccess) {
           this.onOpenLandSuccess(data.slot, data.xu, data.luong);
         }
+        this.network.sendGetFarmInventory();
         if (this.onNotification) {
           this.onNotification(data.msg || "\u0110\xE3 m\u1EDF \xF4 \u0111\u1EA5t th\xE0nh c\xF4ng!");
         }
@@ -2331,7 +2336,7 @@ void main() {
   };
 
   // packages/game-client/src/farm/FarmScreen.ts
-  var import_j2me_compat2 = __toESM(require_dist());
+  var import_j2me_compat3 = __toESM(require_dist());
 
   // packages/game-client/src/ui/GameScreen.ts
   var GameScreen = class {
@@ -2702,6 +2707,548 @@ void main() {
     }
   };
 
+  // packages/game-client/src/maps/TilemapRenderer.ts
+  var import_j2me_compat2 = __toESM(require_dist());
+  var TilemapRenderer = class _TilemapRenderer {
+    static TILE_SIZE = 24;
+    // i = 24 in ir.java
+    static TILES_PER_ROW = 7;
+    // 168 px / 24 px = 7 tiles
+    mapData;
+    mapObjects = [];
+    tilesetImage;
+    bgImage;
+    cloudImage;
+    objectImageCache = /* @__PURE__ */ new Map();
+    isNight = false;
+    cameraX = 0;
+    cameraY = 0;
+    // Authentic background mapping from ir.java line 98 (byte[] h)
+    static BG_TYPE_BY_MAP = {
+      0: 1,
+      1: 1,
+      2: 1,
+      3: 1,
+      4: 1,
+      5: 1,
+      6: 1,
+      7: 1,
+      8: 1,
+      9: 0,
+      10: 0,
+      11: 1,
+      12: 3,
+      13: 3,
+      14: 3,
+      15: 3,
+      16: 3,
+      17: 2,
+      18: -1,
+      19: -1,
+      20: -1,
+      21: 0,
+      22: 0,
+      23: 0,
+      24: 2,
+      25: 2
+    };
+    /**
+     * Authentic Map Height formula from ir.java lines 1050-1115
+     * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
+     */
+    static getMapHeightTiles(mapId) {
+      switch (mapId) {
+        case 107:
+          return 16;
+        case 25:
+          return 8;
+        // In Java ME (ir.java line 1050), Map 25 (the Farm) height is exactly 8 tiles!
+        case 21:
+          return 7;
+        case 9:
+          return 8;
+        case 20:
+        case 57:
+        case 58:
+        case 59:
+        case 62:
+        case 63:
+        case 64:
+        case 100:
+        case 101:
+        case 103:
+        case 104:
+        case 109:
+          return 11;
+        case 60:
+        case 61:
+        case 65:
+          return 5;
+        case 18:
+          return 10;
+        case 17:
+          return 6;
+        case 108:
+          return 8;
+        case 19:
+          return 13;
+        case 10:
+          return 9;
+        default:
+          return 8;
+      }
+    }
+    async loadMap(mapId) {
+      const hour = (/* @__PURE__ */ new Date()).getHours();
+      this.isNight = hour >= 18 || hour < 6;
+      const nightSuffix = this.isNight ? "1" : "0";
+      try {
+        const fileId = mapId === 25 ? 25 : mapId + 1;
+        const mapRes = await fetch(`/assets/maps/${fileId}`);
+        if (!mapRes.ok) {
+          console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId} (file ${fileId})`);
+          return;
+        }
+        const buffer = await mapRes.arrayBuffer();
+        const bytes = new Uint8Array(buffer);
+        const heightTiles = _TilemapRenderer.getMapHeightTiles(mapId);
+        const widthTiles = Math.floor(bytes.length / heightTiles);
+        const totalTiles = widthTiles * heightTiles;
+        const tiles = new Int16Array(totalTiles);
+        const collision = new Int16Array(totalTiles);
+        this.mapObjects = [];
+        for (let i2 = 0; i2 < totalTiles; i2++) {
+          const val = bytes[i2];
+          tiles[i2] = val === 255 ? -1 : val;
+        }
+        const spawnedObjects = [];
+        let i = 0;
+        while (i < totalTiles) {
+          const t = tiles[i];
+          const col = i % widthTiles;
+          const row = Math.floor(i / widthTiles);
+          const px = col * _TilemapRenderer.TILE_SIZE;
+          const py = row * _TilemapRenderer.TILE_SIZE;
+          if (t === 127 || t === 128 || t === 129 || t === 141 || t === 143 || t === 144 || t === 147 || t === 148 || t === 149 || t === 150 || t === 151 || t === 152 || t === 159 || t === 160 || t === 161 || t === 162 || t === 172 || t === 173 || t === 174 || t === 175 || t === 176 || t === 177 || t === 178 || t === 179 || t === 186 || t === 190 || t === 192 || t === 193 || t === 194 || t === 195 || t === 196 || t === 197 || t === 198 || t === 199 || t === 200 || t === 201 || t === 202 || t === 204 || t === 98 || t === 182 || t === 183 || t === 187 || t === 188 || t === 189 || t === 142 || mapId === 25 && t === 110) {
+            let consecutive = 1;
+            while (i + consecutive < totalTiles && Math.floor((i + consecutive) / widthTiles) === row && tiles[i + consecutive] === t) {
+              consecutive++;
+            }
+            const spanPx = consecutive * _TilemapRenderer.TILE_SIZE;
+            const centerX = px + Math.floor(spanPx / 2);
+            let floorReplacement = 96;
+            let partId = -1;
+            let objX = centerX;
+            let objY = py + _TilemapRenderer.TILE_SIZE - 4;
+            if (t === 127) {
+              partId = 830;
+              objX = px + 36;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 128) {
+              partId = 828;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+            } else if (t === 129 || t === 160) {
+              partId = mapId === 17 ? 836 : 829;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 96;
+            } else if (t === 141) {
+              partId = 840;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
+            } else if (t === 143) {
+              partId = 831;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 51;
+            } else if (t === 144) {
+              partId = 841;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 5;
+            } else if (t === 147 || t === 161) {
+              partId = 832;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 96;
+            } else if (t === 148 || t === 162) {
+              partId = mapId === 17 ? 836 : 833;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 149) {
+              partId = 834;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 4;
+            } else if (t === 150) {
+              partId = 842;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 4 : 0;
+            } else if (t === 151) {
+              partId = 843;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = 0;
+            } else if (t === 152) {
+              partId = 835;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 55 : 0;
+            } else if (t === 159) {
+              partId = 848;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 4;
+              floorReplacement = mapId === 25 ? 5 : mapId === 13 ? 0 : 4;
+            } else if (t === 172) {
+              partId = 836;
+              objX = px + 37;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 173 || t === 179) {
+              partId = 837;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 174) {
+              partId = 838;
+              objX = px + 48;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 175) {
+              partId = 830;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 176) {
+              partId = 829;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 177) {
+              partId = 832;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 178) {
+              partId = 830;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 96;
+            } else if (t === 186) {
+              partId = 974;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 17;
+            } else if (t === 190) {
+              partId = 1029;
+              objX = px + 36;
+              objY = py + 20;
+              floorReplacement = 4;
+            } else if (t === 192) {
+              partId = 1034;
+              objX = px + 36;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 193) {
+              partId = 1032;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 194) {
+              partId = 1030;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 195) {
+              partId = 1037;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 196) {
+              partId = 1035;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 197) {
+              partId = 1033;
+              objX = px + 12;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 198) {
+              partId = 1036;
+              objX = px + 12;
+              objY = py + 20;
+              floorReplacement = 4;
+            } else if (t === 199) {
+              partId = 1031;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 200) {
+              partId = 1075;
+              objX = px + 24;
+              objY = py + 24;
+              floorReplacement = 4;
+            } else if (t === 201) {
+              partId = 1094;
+              objX = px + 24;
+              objY = py + 20;
+              floorReplacement = 5;
+            } else if (t === 202) {
+              partId = 4;
+              objX = px + 24;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 96;
+            } else if (t === 98 || t === 204) {
+              partId = 846;
+              objX = centerX;
+              objY = py + _TilemapRenderer.TILE_SIZE;
+              floorReplacement = 43;
+            } else if (t === 182) {
+              floorReplacement = 39;
+            } else if (t === 183) {
+              floorReplacement = 13;
+            } else if (t === 187 || t === 188 || t === 189 || t === 142) {
+              floorReplacement = 4;
+            } else if (mapId === 25 && t === 110) {
+              partId = 847;
+              objX = px + 11;
+              objY = py + _TilemapRenderer.TILE_SIZE - 2;
+              floorReplacement = 31;
+            }
+            if (partId > 0) {
+              spawnedObjects.push({ partId, x: objX, y: objY, layer: 0 });
+            }
+            for (let k = 0; k < consecutive; k++) {
+              tiles[i + k] = floorReplacement;
+            }
+            i += consecutive;
+            continue;
+          } else if (t === 139) {
+            tiles[i] = i % widthTiles === 0 ? tiles[i + 1] : tiles[i - 1];
+          } else if (t === 140) {
+            tiles[i] = 55;
+          } else if (t >= 126) {
+            tiles[i] = i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126 ? tiles[i - 1] : 0;
+          }
+          i++;
+        }
+        const uniquePartIds = Array.from(new Set(spawnedObjects.map((o) => o.partId)));
+        await Promise.all(uniquePartIds.map(async (partId) => {
+          if (!this.objectImageCache.has(partId)) {
+            try {
+              const img = await import_j2me_compat2.Image.createImage(`/assets/home/${partId}.png`);
+              this.objectImageCache.set(partId, img);
+            } catch (e) {
+              console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
+            }
+          }
+        }));
+        for (const obj of spawnedObjects) {
+          obj.image = this.objectImageCache.get(obj.partId);
+        }
+        this.mapObjects = spawnedObjects;
+        for (let i2 = 0; i2 < totalTiles; i2++) {
+          const t = tiles[i2];
+          if (t === -4) {
+            collision[i2] = 80;
+          } else if (t === -5) {
+            collision[i2] = 88;
+          } else if (t === -1) {
+            collision[i2] = 88;
+          } else if (t >= 120 && t <= 123) {
+            collision[i2] = 80;
+          } else if (t >= 114 && t <= 119) {
+            collision[i2] = 80;
+          } else if (t === 67 || t === 85) {
+            collision[i2] = 92;
+          } else if (t >= 20 && t <= 23) {
+            collision[i2] = 79;
+          } else if (t < 7) {
+            collision[i2] = 80;
+          } else if (t >= 44 && t <= 55) {
+            collision[i2] = 80;
+          } else if (t === 111 || t === 112) {
+            collision[i2] = 80;
+          } else {
+            collision[i2] = 88;
+          }
+        }
+        this.mapData = {
+          id: mapId,
+          widthTiles,
+          heightTiles,
+          tiles,
+          collision
+        };
+        console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
+        const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
+        this.tilesetImage = await import_j2me_compat2.Image.createImage(tilesetUrl);
+        this.bgImage = void 0;
+        this.cloudImage = void 0;
+        const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
+        if (bgType !== -1) {
+          try {
+            const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
+            this.bgImage = await import_j2me_compat2.Image.createImage(bgUrl);
+          } catch (err) {
+          }
+        }
+        try {
+          const cloudUrl = `/assets/bg/${nightSuffix}.png`;
+          this.cloudImage = await import_j2me_compat2.Image.createImage(cloudUrl);
+        } catch (err) {
+        }
+      } catch (err) {
+        console.error("[TilemapRenderer] Load error:", err);
+      }
+    }
+    async setDynamicMapItems(mapItemTypes, mapItems) {
+      this.mapObjects = this.mapObjects.filter((o) => !o.isDynamic);
+      if (!mapItemTypes || !mapItems || mapItems.length === 0) return;
+      const typeMap = /* @__PURE__ */ new Map();
+      for (const t of mapItemTypes) {
+        typeMap.set(t.id, t);
+      }
+      const newDynamicObjects = [];
+      for (const it of mapItems) {
+        const itemType = typeMap.get(it.typeID);
+        if (!itemType) continue;
+        const worldX = it.tileX * _TilemapRenderer.TILE_SIZE + itemType.dx;
+        const worldY = it.tileY * _TilemapRenderer.TILE_SIZE + itemType.dy;
+        newDynamicObjects.push({
+          partId: itemType.imgID,
+          x: worldX,
+          y: worldY,
+          layer: 0,
+          isDynamic: true,
+          dynamicType: it.type,
+          dynamicId: it.typeID
+        });
+      }
+      const uniquePartIds = Array.from(new Set(newDynamicObjects.map((o) => o.partId)));
+      await Promise.all(uniquePartIds.map(async (partId) => {
+        if (!this.objectImageCache.has(partId)) {
+          try {
+            const img = await import_j2me_compat2.Image.createImage(`/assets/home/${partId}.png`);
+            this.objectImageCache.set(partId, img);
+          } catch {
+            try {
+              const img = await import_j2me_compat2.Image.createImage(`/assets/item/${partId}.png`);
+              this.objectImageCache.set(partId, img);
+            } catch (e) {
+              console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
+            }
+          }
+        }
+      }));
+      for (const obj of newDynamicObjects) {
+        obj.image = this.objectImageCache.get(obj.partId);
+        this.mapObjects.push(obj);
+      }
+      console.log(`[TilemapRenderer] Added ${newDynamicObjects.length} dynamic map items`);
+    }
+    updateCamera(targetX, targetY, screenW, screenH) {
+      if (!this.mapData) return;
+      const mapWidthPx = this.mapData.widthTiles * _TilemapRenderer.TILE_SIZE;
+      const mapHeightPx = this.mapData.heightTiles * _TilemapRenderer.TILE_SIZE;
+      let camX = targetX - Math.floor(screenW / 2);
+      let camY = targetY - Math.floor(screenH / 2);
+      if (mapWidthPx > screenW) {
+        camX = Math.max(0, Math.min(mapWidthPx - screenW, camX));
+      } else {
+        camX = Math.floor((mapWidthPx - screenW) / 2);
+      }
+      if (mapHeightPx > screenH) {
+        camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
+      } else {
+        camY = mapHeightPx - screenH;
+      }
+      this.cameraX = camX;
+      this.cameraY = camY;
+    }
+    /**
+     * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
+     */
+    paint(g, screenW, screenH) {
+      if (!this.mapData || !this.tilesetImage) return;
+      const tileSize = _TilemapRenderer.TILE_SIZE;
+      const { widthTiles, heightTiles, tiles } = this.mapData;
+      const skyColor = this.isNight ? 21 : 6143735;
+      g.setColor(skyColor);
+      g.fillRect(0, 0, screenW, screenH);
+      if (this.cloudImage) {
+        const cW = this.cloudImage.getWidth();
+        const parallaxCloud = -Math.floor(this.cameraX * 0.12) % cW;
+        const cloudY = Math.max(-20, 15 - Math.floor(this.cameraY * 0.1));
+        for (let x = parallaxCloud - cW; x < screenW + cW; x += cW) {
+          g.drawImage(this.cloudImage, x, cloudY, 0);
+        }
+      }
+      if (this.bgImage) {
+        const bgW = this.bgImage.getWidth();
+        const bgH = this.bgImage.getHeight();
+        const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
+        const groundTopY = screenH - heightTiles * tileSize;
+        const bgY = Math.max(0, groundTopY - bgH + 30);
+        for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
+          g.drawImage(this.bgImage, x, bgY, 0);
+        }
+      }
+      const startTileX = Math.floor(this.cameraX / tileSize);
+      const endTileX = Math.ceil((this.cameraX + screenW) / tileSize);
+      const startTileY = Math.max(0, Math.floor(this.cameraY / tileSize));
+      const endTileY = Math.min(heightTiles, Math.ceil((this.cameraY + screenH) / tileSize));
+      for (let ty = startTileY; ty < endTileY; ty++) {
+        for (let tx = startTileX; tx < endTileX; tx++) {
+          const clampedCol = Math.max(0, Math.min(widthTiles - 1, tx));
+          let tileIdx = tiles[ty * widthTiles + clampedCol];
+          if (tileIdx < 0) continue;
+          if (tx < 0 || tx >= widthTiles) {
+            if (tileIdx > 120 || tileIdx < 0) {
+              tileIdx = 96;
+            }
+          }
+          const numRows = 18;
+          const col = Math.floor(tileIdx / numRows);
+          const row = tileIdx % numRows;
+          const srcX = col * tileSize;
+          const srcY = row * tileSize;
+          const destX = tx * tileSize - this.cameraX;
+          const destY = ty * tileSize - this.cameraY;
+          g.drawRegion(
+            this.tilesetImage,
+            srcX,
+            srcY,
+            tileSize,
+            tileSize,
+            0,
+            destX,
+            destY,
+            0
+          );
+        }
+      }
+    }
+    isBlocked(worldX, worldY) {
+      if (!this.mapData) return false;
+      const { widthTiles, heightTiles, collision } = this.mapData;
+      const tx = Math.floor(worldX / _TilemapRenderer.TILE_SIZE);
+      const ty = Math.floor(worldY / _TilemapRenderer.TILE_SIZE);
+      if (tx < 0 || tx >= widthTiles || ty < 0 || ty >= heightTiles) {
+        return true;
+      }
+      const c = collision[ty * widthTiles + tx];
+      return c === 88 || c === 92;
+    }
+  };
+
   // packages/game-client/src/farm/FarmActionController.ts
   var FarmActionController = class {
     model;
@@ -2725,7 +3272,6 @@ void main() {
       const nameMap = {
         ["hand" /* HAND */]: "Ki\u1EC3m tra",
         ["plant" /* PLANT */]: "Gieo h\u1EA1t",
-        ["water" /* WATER */]: "T\u01B0\u1EDBi n\u01B0\u1EDBc",
         ["harvest" /* HARVEST */]: "Thu ho\u1EA1ch",
         ["open_land" /* OPEN_LAND */]: "M\u1EDF \u0111\u1EA5t"
       };
@@ -2746,11 +3292,18 @@ void main() {
       this.focusedCellIndex = cellIndex;
       const cell = this.model.lands[cellIndex];
       if (!cell) return;
+      const isOwner = !this.model.userId || this.model.userId === (this.handler.network.myUserId || 1);
+      if (!isOwner) {
+        if (this.onActionFeedback) {
+          this.onActionFeedback("B\u1EA1n \u0111ang th\u0103m n\xF4ng tr\u1EA1i c\u1EE7a ng\u01B0\u1EDDi kh\xE1c! Kh\xF4ng th\u1EC3 thao t\xE1c.", "#ef4444");
+        }
+        return;
+      }
       if (cell.type === -2) {
         if (cellIndex === this.model.landSize) {
           this.handler.openLand(1);
           if (this.onActionFeedback) {
-            this.onActionFeedback("\u0110ang g\u1EEDi y\xEAu c\u1EA7u m\u1EDF \xF4 \u0111\u1EA5t...", "#facc15");
+            this.onActionFeedback("\u0110ang g\u1EEDi y\xEAu c\u1EA7u m\u1EDF \xF4 \u0111\u1EA5t l\xEAn m\xE1y ch\u1EE7...", "#facc15");
           }
         } else {
           if (this.onActionFeedback) {
@@ -2765,7 +3318,7 @@ void main() {
           this.handler.plantSeed(cellIndex, this.selectedSeedId);
           const name2 = CROP_DEFINITIONS[this.selectedSeedId]?.name || "c\xE2y";
           if (this.onActionFeedback) {
-            this.onActionFeedback(`\u0110\xE3 gieo ${name2} v\xE0o \xF4 #${cellIndex + 1}!`, "#4ade80");
+            this.onActionFeedback(`\u0110ang gieo ${name2} v\xE0o \xF4 #${cellIndex + 1}...`, "#4ade80");
           }
         } else {
           this.isSeedPickerOpen = true;
@@ -2780,7 +3333,7 @@ void main() {
         this.handler.harvestCrop(cellIndex);
         const name2 = CROP_DEFINITIONS[cell.type]?.name || "n\xF4ng s\u1EA3n";
         if (this.onActionFeedback) {
-          this.onActionFeedback(`Thu ho\u1EA1ch ${name2} \xF4 #${cellIndex + 1}!`, "#facc15");
+          this.onActionFeedback(`\u0110ang thu ho\u1EA1ch ${name2} \xF4 #${cellIndex + 1}...`, "#facc15");
         }
         return;
       }
@@ -2788,21 +3341,21 @@ void main() {
       const meta = CROP_DEFINITIONS[cell.type];
       const totalMin = meta ? meta.growMinutes : 100;
       const remainMin = Math.max(0, totalMin - cell.plantedMinutes);
-      if (this.currentTool === "water" /* WATER */) {
-        cell.isWatered = true;
-        if (this.onActionFeedback) {
-          this.onActionFeedback(`\u0110\xE3 t\u01B0\u1EDBi n\u01B0\u1EDBc cho ${name}!`, "#38bdf8");
-        }
-        return;
-      }
       if (this.onActionFeedback) {
         this.onActionFeedback(
-          `${name} (\xD4 #${cellIndex + 1}): C\xF2n ${remainMin} ph\xFAt n\u1EEFa ch\xEDn (S\u1EE9c kh\u1ECFe: ${cell.sucKhoe}%)`,
-          "#ffffff"
+          `C\xE2y ch\u01B0a ch\xEDn! ${name} (\xD4 #${cellIndex + 1}): C\xF2n ${remainMin} ph\xFAt n\u1EEFa m\u1EDBi c\xF3 th\u1EC3 thu ho\u1EA1ch.`,
+          "#ef4444"
         );
       }
     }
     harvestAllMature() {
+      const isOwner = !this.model.userId || this.model.userId === (this.handler.network.myUserId || 1);
+      if (!isOwner) {
+        if (this.onActionFeedback) {
+          this.onActionFeedback("B\u1EA1n \u0111ang th\u0103m n\xF4ng tr\u1EA1i c\u1EE7a ng\u01B0\u1EDDi kh\xE1c! Kh\xF4ng th\u1EC3 thao t\xE1c.", "#ef4444");
+        }
+        return;
+      }
       let harvestedCount = 0;
       for (const cell of this.model.lands) {
         if (cell.type >= 0) {
@@ -2815,13 +3368,20 @@ void main() {
       }
       if (this.onActionFeedback) {
         if (harvestedCount > 0) {
-          this.onActionFeedback(`\u0110ang thu ho\u1EA1ch ${harvestedCount} \xF4 \u0111\u1EA5t ch\xEDn!`, "#facc15");
+          this.onActionFeedback(`\u0110ang thu ho\u1EA1ch ${harvestedCount} \xF4 \u0111\u1EA5t ch\xEDn...`, "#facc15");
         } else {
           this.onActionFeedback("Ch\u01B0a c\xF3 c\xE2y n\xE0o ch\xEDn \u0111\u1EC3 thu ho\u1EA1ch!", "#94a3b8");
         }
       }
     }
     plantAllEmpty() {
+      const isOwner = !this.model.userId || this.model.userId === (this.handler.network.myUserId || 1);
+      if (!isOwner) {
+        if (this.onActionFeedback) {
+          this.onActionFeedback("B\u1EA1n \u0111ang th\u0103m n\xF4ng tr\u1EA1i c\u1EE7a ng\u01B0\u1EDDi kh\xE1c! Kh\xF4ng th\u1EC3 thao t\xE1c.", "#ef4444");
+        }
+        return;
+      }
       const availSeeds = this.model.seeds.get(this.selectedSeedId) || 0;
       if (availSeeds <= 0) {
         this.isSeedPickerOpen = true;
@@ -2839,7 +3399,7 @@ void main() {
       }
       if (this.onActionFeedback) {
         if (planted > 0) {
-          this.onActionFeedback(`\u0110\xE3 gieo ${planted} \xF4 \u0111\u1EA5t h\u1EA1t gi\u1ED1ng!`, "#4ade80");
+          this.onActionFeedback(`\u0110ang gieo ${planted} \xF4 \u0111\u1EA5t h\u1EA1t gi\u1ED1ng...`, "#4ade80");
         } else {
           this.onActionFeedback("Kh\xF4ng c\xF2n \xF4 \u0111\u1EA5t tr\u1ED1ng \u0111\u1EC3 gieo!", "#94a3b8");
         }
@@ -2855,6 +3415,7 @@ void main() {
     skinPainter;
     font;
     localPlayer;
+    tilemapRenderer;
     // Screen dimensions
     screenW = 640;
     screenH = 480;
@@ -2870,6 +3431,9 @@ void main() {
     feedbackTimer = 100;
     // Animation ticks
     animTick = 0;
+    // Active Menu / Dialogs
+    isMenuOpen = false;
+    isConfirmOpenLand = false;
     // Callbacks
     onExitToWorldMap;
     constructor(handler, skinPainter, font) {
@@ -2879,14 +3443,19 @@ void main() {
       this.controller = new FarmActionController(this.model, this.handler);
       this.skinPainter = skinPainter;
       this.font = font;
+      this.tilemapRenderer = new TilemapRenderer();
+      this.tilemapRenderer.loadMap(25).catch((err) => {
+        console.error("[FarmScreen] Failed to load Map 25 tilemap:", err);
+      });
       this.localPlayer = {
         id: this.handler.network.myUserId || 1,
         name: "N\xF4ng d\xE2n",
-        x: 200,
-        y: 220,
-        targetX: 200,
-        targetY: 220,
-        dir: 0,
+        x: 830,
+        y: 690,
+        targetX: 830,
+        targetY: 690,
+        dir: 1,
+        // Facing Up
         state: "idle",
         wearing: [1, 2, 3],
         frame: 0
@@ -2901,11 +3470,15 @@ void main() {
         this.feedbackColor = "#38bdf8";
         this.feedbackTimer = 100;
       };
-      this.loadSprite("buyLand", "/assets/farm/buyLand.png");
-      this.loadSprite("cut", "/assets/farm/cut.png");
-      this.loadSprite("coin", "/assets/farm/coin.png");
-      this.loadSprite("focus", "/assets/farm/focus.png");
-      this.loadSprite("w", "/assets/farm/w.png");
+      this.loadSprite("farm_bg", "/assets/maps/farm_map25_bg.png");
+      this.loadSprite("soil_cracked", "/assets/farm_ui/soil_cracked.png");
+      this.loadSprite("cell0", "/assets/farm_ui/cell0.png");
+      this.loadSprite("buyLand", "/assets/farm_ui/buyLand.png");
+      this.loadSprite("g", "/assets/farm_ui/g.png");
+      this.loadSprite("w", "/assets/farm_ui/w.png");
+      this.loadSprite("focus", "/assets/farm_ui/focus.png");
+      this.loadSprite("coin", "/assets/farm_ui/coin.png");
+      this.loadSprite("cut", "/assets/farm_ui/cut.png");
     }
     loadSprite(key, url) {
       if (this.spriteCache.has(key)) {
@@ -2913,7 +3486,7 @@ void main() {
       }
       if (!this.loadingSprites.has(key)) {
         this.loadingSprites.add(key);
-        import_j2me_compat2.Image.createImage(url).then((img) => {
+        import_j2me_compat3.Image.createImage(url).then((img) => {
           this.spriteCache.set(key, img);
           this.loadingSprites.delete(key);
         }).catch(() => {
@@ -2938,10 +3511,12 @@ void main() {
       const dx = this.localPlayer.targetX - this.localPlayer.x;
       const dy = this.localPlayer.targetY - this.localPlayer.y;
       const dist = Math.sqrt(dx * dx + dy * dy);
-      if (dist > 3) {
-        const speed = 4;
-        this.localPlayer.x += dx / dist * speed;
-        this.localPlayer.y += dy / dist * speed;
+      if (dist > 4) {
+        const speed = 5;
+        const nextX = this.localPlayer.x + dx / dist * speed;
+        const nextY = this.localPlayer.y + dy / dist * speed;
+        this.localPlayer.x = Math.max(50, Math.min(1960, nextX));
+        this.localPlayer.y = Math.max(460, Math.min(715, nextY));
         this.localPlayer.state = "walk";
         if (Math.abs(dx) > Math.abs(dy)) {
           this.localPlayer.dir = dx > 0 ? 3 : 2;
@@ -2955,12 +3530,20 @@ void main() {
         this.localPlayer.state = "idle";
         this.localPlayer.frame = 0;
       }
-      const targetCamX = Math.floor(this.localPlayer.x - this.screenW / 2);
-      const targetCamY = Math.floor(this.localPlayer.y - this.screenH / 2);
-      this.cameraX += Math.floor((targetCamX - this.cameraX) * 0.15);
-      this.cameraY += Math.floor((targetCamY - this.cameraY) * 0.15);
-      this.cameraX = Math.max(0, Math.min(800 - this.screenW, this.cameraX));
-      this.cameraY = Math.max(0, Math.min(500 - this.screenH, this.cameraY));
+      const MAP_WIDTH = 2016;
+      const MAP_HEIGHT = 772;
+      let camX = Math.round(this.localPlayer.x - this.screenW / 2);
+      if (MAP_WIDTH > this.screenW) {
+        camX = Math.max(0, Math.min(MAP_WIDTH - this.screenW, camX));
+      } else {
+        camX = Math.floor((MAP_WIDTH - this.screenW) / 2);
+      }
+      let camY = Math.max(0, MAP_HEIGHT - this.screenH);
+      if (this.screenH >= MAP_HEIGHT) {
+        camY = 0;
+      }
+      this.cameraX = camX;
+      this.cameraY = camY;
       for (const cell of this.model.lands) {
         if (cell.type >= 0 && cell.localPlantedTimestamp) {
           const elapsedMinutes = Math.floor((Date.now() - cell.localPlantedTimestamp) / 6e4);
@@ -2973,102 +3556,68 @@ void main() {
       }
       for (const a of this.model.animals) {
         a.moveTimer++;
-        if (a.moveTimer > 60) {
+        if (a.moveTimer > 80) {
           a.moveTimer = 0;
-          a.targetX = 420 + Math.floor(Math.random() * 80);
-          a.targetY = 150 + Math.floor(Math.random() * 60);
+          a.targetX = 120 + Math.floor(Math.random() * 120);
+          a.targetY = 520 + Math.floor(Math.random() * 80);
         }
-        a.x += (a.targetX - a.x) * 0.05;
-        a.y += (a.targetY - a.y) * 0.05;
+        a.x += (a.targetX - a.x) * 0.04;
+        a.y += (a.targetY - a.y) * 0.04;
       }
     }
     // --- Rendering Pipeline (WebGL2 Native via Graphics) ---
     paint(g) {
       const w = this.screenW;
       const h = this.screenH;
-      this.paintScenery(g, w, h);
+      g.setColor(6143735);
+      g.fillRect(0, 0, w, h);
+      const bgImg = this.spriteCache.get("farm_bg");
+      if (bgImg) {
+        g.drawImage(bgImg, -this.cameraX, -this.cameraY, 0);
+      } else {
+        this.tilemapRenderer.paint(g, w, h);
+      }
       g.translate(-this.cameraX, -this.cameraY);
-      this.paintFarmStructures(g);
-      this.paintLandGrid(g);
+      this.paintFarmOverlays(g);
+      this.paintLandPlots(g);
       this.paintAnimals(g);
       this.paintPlayer(g);
       g.translate(this.cameraX, this.cameraY);
-      this.paintTopBar(g, w, h);
-      this.paintActionToolbar(g, w, h);
+      this.paintHUD(g, w, h);
       this.paintNotificationToast(g, w, h);
+      this.paintSoftkeys(g, w, h);
       this.paintModals(g, w, h);
     }
-    paintScenery(g, w, h) {
-      g.setColor(7391226);
-      g.fillRect(0, 0, w, Math.floor(h * 0.4));
-      g.setColor(5417016);
-      g.fillRect(0, Math.floor(h * 0.35), w, Math.floor(h * 0.65));
-      g.setColor(4427308);
-      g.fillRect(0, Math.floor(h * 0.45), w, Math.floor(h * 0.55));
+    /**
+     * Paint authentic farm overlays (animated yellow arrows, owner badge)
+     */
+    paintFarmOverlays(g) {
+      const arrowBounce = Math.floor(this.animTick % 12 / 4);
+      this.paintYellowArrow(g, 502, 422 + arrowBounce, "V\xE0o");
+      this.paintYellowArrow(g, 691, 420 + arrowBounce, "V\xE0o");
+      const ownerName = this.model.userId === this.handler.network.myUserId ? this.localPlayer.name || "B\u1EA1n" : `User ${this.model.userId}`;
+      this.font.drawString(g, ownerName, 830, 680, 2);
+      this.paintYellowArrow(g, 830, 715 + arrowBounce, "V\xE0o");
     }
-    paintFarmStructures(g) {
-      g.setColor(10705448);
-      g.fillRect(30, 90, 95, 65);
-      g.setColor(13187883);
-      g.fillRect(20, 65, 115, 25);
-      g.setColor(5910549);
-      g.fillRect(65, 115, 25, 40);
-      g.setColor(9364984);
-      g.fillRect(40, 105, 18, 18);
-      g.fillRect(98, 105, 18, 18);
-      g.setColor(6699800);
-      g.fillRect(435, 95, 18, 55);
-      g.setColor(2587162);
-      g.fillRect(395, 45, 95, 60);
-      g.setColor(3842855);
-      g.fillRect(405, 55, 75, 45);
-      const fruitCount = Math.min(8, Math.max(3, this.model.starFruitFruit || 5));
-      const fruitSpots = [
-        { x: 410, y: 65 },
-        { x: 430, y: 55 },
-        { x: 455, y: 60 },
-        { x: 470, y: 75 },
-        { x: 420, y: 85 },
-        { x: 445, y: 80 },
-        { x: 460, y: 90 },
-        { x: 435, y: 70 }
-      ];
+    /**
+     * Paint yellow guide arrow with text (matching original Avatar "Vào" arrow)
+     */
+    paintYellowArrow(g, x, y, text) {
+      this.font.drawString(g, text, x, y - 10, 2);
       g.setColor(16436245);
-      for (let i = 0; i < fruitCount; i++) {
-        const pt = fruitSpots[i];
-        g.fillRect(pt.x, pt.y, 7, 7);
-        g.setColor(16776171);
-        g.fillRect(pt.x + 2, pt.y + 1, 3, 3);
-        g.setColor(16436245);
-      }
-      g.setColor(9127187);
-      g.fillRect(455, 140, 110, 75);
-      g.setColor(6636321);
-      g.fillRect(450, 130, 120, 18);
-      g.setColor(15984043);
-      g.fillRect(465, 160, 90, 45);
-      this.font.drawString(g, "Chu\u1ED3ng Gia S\xFAc", 510, 133, 2);
-      g.setColor(3043239);
-      g.fillRect(455, 255, 125, 80);
-      g.setColor(3901635);
-      g.fillRect(460, 260, 115, 70);
-      g.setColor(8174056);
-      const rippleOff = this.animTick % 20 > 10 ? 2 : 0;
-      g.fillRect(480 + rippleOff, 280, 25, 2);
-      g.fillRect(520 - rippleOff, 305, 30, 2);
-      this.font.drawString(g, "H\u1ED3 C\xE1", 517, 265, 2);
-      g.setColor(13808780);
-      for (let fx = 20; fx < 600; fx += 24) {
-        g.fillRect(fx, 40, 4, 25);
-        g.fillRect(fx, 48, 24, 3);
-        g.fillRect(fx, 58, 24, 3);
+      for (let row = 0; row < 5; row++) {
+        g.fillRect(x - (4 - row), y + row, (4 - row) * 2 + 1, 1);
       }
     }
-    paintLandGrid(g) {
+    /**
+     * Paint 30 Land Plots in 6 vertical columns x 5 horizontal rows (Col 22..27, Row 1..5)
+     */
+    paintLandPlots(g) {
+      const soilCrackedImg = this.spriteCache.get("soil_cracked") || this.spriteCache.get("cell0");
+      const soilWaterImg = this.spriteCache.get("w");
+      const buyLandImg = this.spriteCache.get("buyLand");
       const focusImg = this.spriteCache.get("focus");
       const cutImg = this.spriteCache.get("cut");
-      const buyLandImg = this.spriteCache.get("buyLand");
-      const waterImg = this.spriteCache.get("w");
       for (let i = 0; i < this.model.lands.length; i++) {
         const cell = this.model.lands[i];
         const px = cell.posX;
@@ -3076,32 +3625,30 @@ void main() {
         const cw = FarmModel.CELL_WIDTH;
         const ch = FarmModel.CELL_HEIGHT;
         if (cell.type === -2) {
-          g.setColor(4094759);
-          g.fillRect(px, py, cw - 4, ch - 4);
-          g.setColor(3104797);
-          g.drawRect(px, py, cw - 4, ch - 4);
           if (i === this.model.landSize) {
             if (buyLandImg) {
-              g.drawImage(buyLandImg, px + Math.floor(cw / 2) - 8, py + Math.floor(ch / 2) - 8, 0);
+              g.drawImage(buyLandImg, px + 3, py - 6, 0);
             } else {
               g.setColor(16436245);
-              this.font.drawString(g, "+", px + Math.floor(cw / 2) - 2, py + 4, 0);
+              this.font.drawString(g, "MUA", px + Math.floor(cw / 2), py + 14, 2);
             }
           }
           continue;
         }
-        if (cell.isWatered) {
-          g.setColor(4861723);
+        if (soilCrackedImg) {
+          g.drawImage(soilCrackedImg, px, py, 0);
         } else {
-          g.setColor(7687209);
+          g.setColor(9268816);
+          g.fillRect(px + 2, py + 2, cw - 4, ch - 4);
         }
-        g.fillRect(px, py, cw - 4, ch - 4);
-        g.setColor(cell.isWatered ? 3547409 : 6044447);
-        g.fillRect(px + 4, py + 6, cw - 12, 3);
-        g.fillRect(px + 4, py + 14, cw - 12, 3);
-        g.fillRect(px + 4, py + 21, cw - 12, 3);
-        g.setColor(cell.isWatered ? 2758925 : 4730393);
-        g.drawRect(px, py, cw - 4, ch - 4);
+        if (cell.isWatered) {
+          if (soilWaterImg) {
+            g.drawImage(soilWaterImg, px + 28, py + 24, 0);
+          } else {
+            g.setColor(4861723);
+            g.fillRect(px + 4, py + 4, cw - 8, ch - 8);
+          }
+        }
         if (cell.type >= 0) {
           const spriteId = this.model.getCropSpriteId(cell);
           const cropImg = this.getCropSprite(spriteId);
@@ -3113,62 +3660,57 @@ void main() {
             g.drawImage(cropImg, drawX, drawY, 0);
           } else {
             const stage2 = this.model.getGrowthStage(cell);
-            if (stage2 < 3) {
-              g.setColor(4906624);
-              g.fillRect(px + Math.floor(cw / 2) - 3, py + 10, 6, 8);
-            } else if (stage2 < 7) {
-              g.setColor(2278750);
-              g.fillRect(px + Math.floor(cw / 2) - 8, py + 6, 16, 14);
-            } else {
-              g.setColor(15680580);
-              g.fillRect(px + Math.floor(cw / 2) - 10, py + 2, 20, 18);
-            }
+            g.setColor(stage2 >= 7 ? 16436245 : 4906624);
+            g.fillRect(px + 14, py + 14, 20, 24);
           }
           const stage = this.model.getGrowthStage(cell);
           if (cell.isHarvestable || stage === 7) {
             if (cutImg) {
-              g.drawImage(cutImg, px + cw - 18, py - 6, 0);
+              g.drawImage(cutImg, px + cw - 18, py + 2, 0);
             } else {
               g.setColor(16436245);
-              g.fillRect(px + cw - 12, py - 2, 8, 8);
-            }
-          } else if (!cell.isWatered) {
-            if (waterImg) {
-              g.drawImage(waterImg, px + 2, py - 4, 0);
-            } else {
-              g.setColor(3718648);
-              g.fillRect(px + 2, py - 2, 6, 6);
+              g.fillRect(px + cw - 12, py + 4, 8, 8);
             }
           }
         }
         if (i === this.controller.focusedCellIndex) {
           if (focusImg) {
-            g.drawImage(focusImg, px - 2, py - 2, 0);
+            g.drawImage(focusImg, px + 12, py + 12, 0);
           } else {
             g.setColor(16436245);
-            g.drawRect(px - 1, py - 1, cw - 2, ch - 2);
-            g.drawRect(px - 2, py - 2, cw, ch);
+            g.drawRect(px + 2, py + 2, cw - 4, ch - 4);
           }
         }
       }
     }
+    /**
+     * Paint idle chickens/animals in chicken coop
+     */
     paintAnimals(g) {
       for (const a of this.model.animals) {
         const ax = Math.floor(a.x);
         const ay = Math.floor(a.y);
-        g.setColor(16776171);
-        g.fillRect(ax, ay, 12, 10);
-        g.setColor(16096779);
-        g.fillRect(ax + 10, ay + 2, 4, 3);
+        g.setColor(16777215);
+        g.fillRect(ax, ay + 2, 10, 8);
+        g.setColor(14870768);
+        g.fillRect(ax + 2, ay + 4, 6, 5);
         g.setColor(15680580);
-        g.fillRect(ax + 4, ay - 3, 4, 4);
+        g.fillRect(ax + 6, ay - 1, 3, 3);
+        g.setColor(16096779);
+        g.fillRect(ax + 9, ay + 3, 3, 2);
+        g.setColor(16096779);
+        g.fillRect(ax + 2, ay + 10, 2, 2);
+        g.fillRect(ax + 6, ay + 10, 2, 2);
       }
     }
+    /**
+     * Paint Local Player Avatar
+     */
     paintPlayer(g) {
       const px = Math.floor(this.localPlayer.x);
       const py = Math.floor(this.localPlayer.y);
-      g.setColor(2042167);
-      g.fillRect(px - 10, py - 2, 20, 5);
+      g.setColor(1120295);
+      g.fillArc(px - 9, py - 2, 18, 6, 0, 360);
       AvatarRenderer.paintAvatar(
         g,
         px,
@@ -3181,183 +3723,254 @@ void main() {
         this.font
       );
     }
-    paintTopBar(g, w, h) {
-      g.setColor(988970);
-      g.fillRect(0, 0, w, 28);
-      g.setColor(3359061);
-      g.fillRect(0, 27, w, 1);
-      const title = this.model.userId === this.handler.network.myUserId ? `\u{1F33E} N\xD4NG TR\u1EA0I C\u1EE6A B\u1EA0N (C\u1EA5p ${this.model.farmLevel})` : `\u{1F33E} N\xD4NG TR\u1EA0I: #${this.model.userId}`;
-      this.font.drawString(g, title, 8, 7, 0);
-      const xuStr = `\u{1F4B0} ${Number(this.model.userXu).toLocaleString("vi-VN")} Xu`;
-      this.font.drawString(g, xuStr, Math.floor(w * 0.55), 7, 0);
-      g.setColor(14427686);
-      g.fillRect(w - 78, 4, 72, 20);
+    /**
+     * Paint authentic Avatar 2.5.8 HUD (Top status bar with Menu, Mail, and Xu counter)
+     */
+    paintHUD(g, w, h) {
+      const coinImg = this.spriteCache.get("coin");
+      g.setColor(1976635);
+      g.fillRect(6, 6, 26, 22);
+      g.setColor(6583435);
+      g.drawRect(6, 6, 26, 22);
       g.setColor(16777215);
-      this.font.drawString(g, "V\u1EC1 Ph\u1ED1", w - 42, 7, 2);
+      g.fillRect(10, 11, 18, 2);
+      g.fillRect(10, 16, 18, 2);
+      g.fillRect(10, 21, 18, 2);
+      g.setColor(1976635);
+      g.fillRect(36, 6, 26, 22);
+      g.setColor(6583435);
+      g.drawRect(36, 6, 26, 22);
+      g.setColor(16777215);
+      g.drawRect(40, 11, 18, 12);
+      g.drawLine(40, 11, 49, 18);
+      g.drawLine(49, 18, 58, 11);
+      g.setColor(15680580);
+      g.fillArc(56, 4, 8, 8, 0, 360);
+      g.setColor(16777215);
+      g.fillRect(59, 6, 2, 3);
+      g.fillRect(59, 10, 2, 1);
+      const xuVal = Number(this.model.userXu || 0).toLocaleString("vi-VN");
+      const xuStr = `${xuVal} Xu`;
+      const xuStrW = this.font.stringWidth(xuStr);
+      const startXuX = w - xuStrW - 24;
+      if (coinImg) {
+        g.drawImage(coinImg, startXuX, 10, 0);
+      }
+      this.font.drawString(g, xuStr, startXuX + 14, 10, 0);
+      const ownerTitle = this.model.userId === this.handler.network.myUserId ? `N\xF4ng tr\u1EA1i c\u1EE7a b\u1EA1n (C\u1EA5p ${this.model.farmLevel || 1})` : `N\xF4ng tr\u1EA1i: User #${this.model.userId}`;
+      this.font.drawString(g, ownerTitle, 68, 10, 0);
     }
-    paintActionToolbar(g, w, h) {
-      const barH = 34;
+    /**
+     * Paint bottom classic softkeys (Menu, Chọn, Về phố)
+     */
+    paintSoftkeys(g, w, h) {
+      const barH = 24;
       const barY = h - barH;
       g.setColor(988970);
       g.fillRect(0, barY, w, barH);
       g.setColor(3359061);
       g.fillRect(0, barY, w, 1);
-      const buttons = [
-        { label: "Gieo H\u1EA1t", color: 1483594, action: () => this.controller.isSeedPickerOpen = true },
-        { label: "T\u01B0\u1EDBi N\u01B0\u1EDBc", color: 165063, action: () => this.controller.setTool("water" /* WATER */) },
-        { label: "Thu Ho\u1EA1ch", color: 13273604, action: () => this.controller.harvestAllMature() },
-        { label: "C\u1EEDa H\xE0ng", color: 9647082, action: () => this.controller.isShopOpen = true },
-        { label: "Nh\xE0 Kho", color: 4674921, action: () => this.controller.isWarehouseOpen = true },
-        { label: "M\u1EDF \u0110\u1EA5t", color: 366185, action: () => this.controller.handleCellClick(this.model.landSize) }
-      ];
-      const btnW = Math.min(84, Math.floor((w - 12) / buttons.length));
-      const startX = Math.floor((w - btnW * buttons.length) / 2);
-      for (let i = 0; i < buttons.length; i++) {
-        const btn = buttons[i];
-        const bx = startX + i * btnW + 2;
-        const by = barY + 5;
-        const bw = btnW - 4;
-        const bh = 24;
-        g.setColor(btn.color);
-        g.fillRect(bx, by, bw, bh);
-        g.setColor(16777215);
-        this.font.drawString(g, btn.label, bx + Math.floor(bw / 2), by + 5, 2);
-      }
+      this.font.drawString(g, "Menu", 12, barY + 5, 0);
+      this.font.drawString(g, "Ch\u1ECDn", Math.floor(w / 2), barY + 5, 2);
+      this.font.drawString(g, "V\u1EC1 ph\u1ED1", w - 12, barY + 5, 1);
     }
+    /**
+     * Paint floating toast notification
+     */
     paintNotificationToast(g, w, h) {
       if (this.feedbackTimer <= 0) return;
-      const toastW = Math.min(380, w - 40);
-      const toastH = 22;
+      const toastW = Math.min(420, w - 40);
+      const toastH = 24;
       const tx = Math.floor((w - toastW) / 2);
       const ty = 34;
       g.setColor(988970);
       g.fillRect(tx, ty, toastW, toastH);
       g.setColor(16436245);
       g.drawRect(tx, ty, toastW, toastH);
-      this.font.drawString(g, this.feedbackText, Math.floor(w / 2), ty + 5, 2);
+      this.font.drawString(g, this.feedbackText, Math.floor(w / 2), ty + 6, 2);
     }
+    /**
+     * Paint active modal windows (Menu, Seed Picker, Shop, Warehouse, Confirm Land)
+     */
     paintModals(g, w, h) {
-      if (this.controller.isSeedPickerOpen) {
+      if (this.isMenuOpen) {
+        this.paintMenuModal(g, w, h);
+      } else if (this.controller.isSeedPickerOpen) {
         this.paintSeedPickerModal(g, w, h);
       } else if (this.controller.isShopOpen) {
-        this.paintFarmShopModal(g, w, h);
+        this.paintShopModal(g, w, h);
       } else if (this.controller.isWarehouseOpen) {
         this.paintWarehouseModal(g, w, h);
+      } else if (this.isConfirmOpenLand) {
+        this.paintConfirmOpenLandModal(g, w, h);
+      }
+    }
+    /**
+     * Authentic Avatar Menu Popup
+     */
+    paintMenuModal(g, w, h) {
+      const items = [
+        { id: "plant", label: "Gieo h\u1EA1t" },
+        { id: "harvest", label: "Thu ho\u1EA1ch c\xE2y ch\xEDn" },
+        { id: "open_land", label: "M\u1EDF th\xEAm \xF4 \u0111\u1EA5t" },
+        { id: "shop", label: "C\u1EEDa h\xE0ng h\u1EA1t gi\u1ED1ng" },
+        { id: "warehouse", label: "Nh\xE0 kho n\xF4ng s\u1EA3n" },
+        { id: "exit", label: "R\u1EDDi n\xF4ng tr\u1EA1i" }
+      ];
+      const mw = 180;
+      const mh = items.length * 28 + 32;
+      const mx = 10;
+      const my = h - mh - 28;
+      g.setColor(988970);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(3718648);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(1976635);
+      g.fillRect(mx, my, mw, 22);
+      this.font.drawString(g, "N\xD4NG TR\u1EA0I", mx + Math.floor(mw / 2), my + 5, 2);
+      for (let i = 0; i < items.length; i++) {
+        const iy = my + 24 + i * 28;
+        g.setColor(i % 2 === 0 ? 1976635 : 988970);
+        g.fillRect(mx + 2, iy, mw - 4, 26);
+        g.setColor(16777215);
+        this.font.drawString(g, items[i].label, mx + 10, iy + 6, 0);
       }
     }
     paintSeedPickerModal(g, w, h) {
       const mw = Math.min(320, w - 20);
-      const mh = Math.min(240, h - 60);
+      const mh = Math.min(260, h - 60);
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(4674921);
-      g.drawRect(mx, my, mw, mh);
       g.setColor(988970);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(3718648);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(1976635);
       g.fillRect(mx, my, mw, 26);
       this.font.drawString(g, "\u{1F33E} CH\u1ECCN H\u1EA0T GI\u1ED0NG \u0110\u1EC2 GIEO", mx + Math.floor(mw / 2), my + 6, 2);
       g.setColor(15680580);
       g.fillRect(mx + mw - 22, my + 4, 18, 18);
       this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
-      const seeds = Array.from(this.model.seeds.entries());
+      const seeds = Array.from(this.model.seeds.entries()).filter(([_, count]) => count > 0);
       if (seeds.length === 0) {
-        this.font.drawString(g, "Kho ch\u01B0a c\xF3 h\u1EA1t gi\u1ED1ng n\xE0o!", mx + Math.floor(mw / 2), my + 60, 2);
-        this.font.drawString(g, "Vui l\xF2ng b\u1EA5m C\u1EEDa H\xE0ng \u0111\u1EC3 mua th\xEAm.", mx + Math.floor(mw / 2), my + 85, 2);
+        this.font.drawString(g, "Kho c\u1EE7a b\u1EA1n ch\u01B0a c\xF3 h\u1EA1t gi\u1ED1ng n\xE0o!", mx + Math.floor(mw / 2), my + 60, 2);
+        this.font.drawString(g, "H\xE3y v\xE0o C\u1EEDa H\xE0ng \u0111\u1EC3 mua h\u1EA1t gi\u1ED1ng.", mx + Math.floor(mw / 2), my + 85, 2);
         return;
       }
-      let yOffset = my + 34;
+      let yOff = my + 34;
       for (const [seedId, count] of seeds) {
         const meta = CROP_DEFINITIONS[seedId];
         const name = meta ? meta.name : `H\u1EA1t #${seedId}`;
-        g.setColor(3359061);
-        g.fillRect(mx + 10, yOffset, mw - 20, 26);
+        g.setColor(1976635);
+        g.fillRect(mx + 8, yOff, mw - 16, 28);
         g.setColor(16436245);
-        this.font.drawString(g, `${name} (C\xF2n: ${count})`, mx + 18, yOffset + 6, 0);
+        this.font.drawString(g, `${name} (C\xF2n: ${count})`, mx + 16, yOff + 7, 0);
         g.setColor(1483594);
-        g.fillRect(mx + mw - 65, yOffset + 3, 50, 20);
+        g.fillRect(mx + mw - 68, yOff + 4, 54, 20);
         g.setColor(16777215);
-        this.font.drawString(g, "Ch\u1ECDn", mx + mw - 40, yOffset + 6, 2);
-        yOffset += 30;
-        if (yOffset > my + mh - 35) break;
+        this.font.drawString(g, "Gieo", mx + mw - 41, yOff + 6, 2);
+        yOff += 32;
+        if (yOff > my + mh - 34) break;
       }
     }
-    paintFarmShopModal(g, w, h) {
+    paintShopModal(g, w, h) {
       const mw = Math.min(340, w - 20);
-      const mh = Math.min(260, h - 50);
+      const mh = Math.min(270, h - 50);
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(4674921);
-      g.drawRect(mx, my, mw, mh);
       g.setColor(988970);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(3718648);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(1976635);
       g.fillRect(mx, my, mw, 26);
-      this.font.drawString(g, "\u{1F3EA} C\u1EECA H\xC0NG N\xD4NG TR\u1EA0I (MUA B\u1EB0NG XU)", mx + Math.floor(mw / 2), my + 6, 2);
+      this.font.drawString(g, "\u{1F3EA} C\u1EECA H\xC0NG H\u1EA0T GI\u1ED0NG", mx + Math.floor(mw / 2), my + 6, 2);
       g.setColor(15680580);
       g.fillRect(mx + mw - 22, my + 4, 18, 18);
       this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
       const crops = Object.values(CROP_DEFINITIONS);
-      let yOffset = my + 32;
+      let yOff = my + 32;
       for (const c of crops) {
-        g.setColor(3359061);
-        g.fillRect(mx + 10, yOffset, mw - 20, 26);
+        g.setColor(1976635);
+        g.fillRect(mx + 8, yOff, mw - 16, 28);
         g.setColor(16777215);
-        this.font.drawString(g, `${c.name} (${c.growMinutes}p)`, mx + 16, yOffset + 6, 0);
+        this.font.drawString(g, `${c.name} (${c.growMinutes}p)`, mx + 14, yOff + 7, 0);
         g.setColor(13273604);
-        g.fillRect(mx + mw - 80, yOffset + 3, 68, 20);
+        g.fillRect(mx + mw - 78, yOff + 4, 68, 20);
         g.setColor(16777215);
-        this.font.drawString(g, `${c.seedPriceXu} Xu`, mx + mw - 46, yOffset + 6, 2);
-        yOffset += 30;
-        if (yOffset > my + mh - 35) break;
+        this.font.drawString(g, `${c.seedPriceXu} Xu`, mx + mw - 44, yOff + 6, 2);
+        yOff += 32;
+        if (yOff > my + mh - 34) break;
       }
     }
     paintWarehouseModal(g, w, h) {
       const mw = Math.min(320, w - 20);
-      const mh = Math.min(240, h - 60);
+      const mh = Math.min(250, h - 60);
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(4674921);
-      g.drawRect(mx, my, mw, mh);
       g.setColor(988970);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(3718648);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(1976635);
       g.fillRect(mx, my, mw, 26);
       this.font.drawString(g, "\u{1F4E6} NH\xC0 KHO N\xD4NG S\u1EA2N", mx + Math.floor(mw / 2), my + 6, 2);
       g.setColor(15680580);
       g.fillRect(mx + mw - 22, my + 4, 18, 18);
       this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
-      const cropEntries = Array.from(this.model.crops.entries());
+      const cropEntries = Array.from(this.model.crops.entries()).filter(([_, c]) => c > 0);
       if (cropEntries.length === 0) {
-        this.font.drawString(g, "Nh\xE0 kho tr\u1ED1ng!", mx + Math.floor(mw / 2), my + 60, 2);
-        this.font.drawString(g, "H\xE3y ch\u0103m s\xF3c c\xE2y v\xE0 thu ho\u1EA1ch \u0111\u1EC3 c\xF3 n\xF4ng s\u1EA3n.", mx + Math.floor(mw / 2), my + 85, 2);
+        this.font.drawString(g, "Nh\xE0 kho hi\u1EC7n t\u1EA1i \u0111ang tr\u1ED1ng!", mx + Math.floor(mw / 2), my + 60, 2);
+        this.font.drawString(g, "H\xE3y gieo tr\u1ED3ng v\xE0 thu ho\u1EA1ch \u0111\u1EC3 c\xF3 n\xF4ng s\u1EA3n.", mx + Math.floor(mw / 2), my + 85, 2);
         return;
       }
-      let yOffset = my + 34;
+      let yOff = my + 34;
       for (const [cropId, count] of cropEntries) {
         const meta = CROP_DEFINITIONS[cropId];
         const name = meta ? meta.name : `N\xF4ng s\u1EA3n #${cropId}`;
         const sellTotal = count * (meta ? meta.sellPriceXu : 10);
-        g.setColor(3359061);
-        g.fillRect(mx + 10, yOffset, mw - 20, 26);
+        g.setColor(1976635);
+        g.fillRect(mx + 8, yOff, mw - 16, 28);
         g.setColor(4906624);
-        this.font.drawString(g, `${name}: ${count} c\u1EE7/qu\u1EA3`, mx + 16, yOffset + 6, 0);
+        this.font.drawString(g, `${name}: ${count} c\u1EE7/qu\u1EA3`, mx + 16, yOff + 7, 0);
         g.setColor(366185);
-        g.fillRect(mx + mw - 75, yOffset + 3, 62, 20);
+        g.fillRect(mx + mw - 76, yOff + 4, 66, 20);
         g.setColor(16777215);
-        this.font.drawString(g, `B\xE1n: ${sellTotal}`, mx + mw - 44, yOffset + 6, 2);
-        yOffset += 30;
-        if (yOffset > my + mh - 35) break;
+        this.font.drawString(g, `B\xE1n: ${sellTotal}`, mx + mw - 43, yOff + 6, 2);
+        yOff += 32;
+        if (yOff > my + mh - 34) break;
       }
     }
-    // --- Input & Touch Handling ---
+    paintConfirmOpenLandModal(g, w, h) {
+      const mw = 280;
+      const mh = 140;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      g.setColor(988970);
+      g.fillRect(mx, my, mw, mh);
+      g.setColor(16436245);
+      g.drawRect(mx, my, mw, mh);
+      g.setColor(1976635);
+      g.fillRect(mx, my, mw, 24);
+      this.font.drawString(g, "M\u1EDE TH\xCAM \u0110\u1EA4T TR\u1ED2NG", mx + Math.floor(mw / 2), my + 5, 2);
+      const plotNum = this.model.landSize + 1;
+      this.font.drawString(g, `B\u1EA1n c\xF3 mu\u1ED1n m\u1EDF \xF4 \u0111\u1EA5t th\u1EE9 ${plotNum}?`, mx + Math.floor(mw / 2), my + 45, 2);
+      this.font.drawString(g, "Gi\xE1 m\u1EDF: 500 Xu t\u1EEB t\xE0i kho\u1EA3n c\u1EE7a b\u1EA1n", mx + Math.floor(mw / 2), my + 68, 2);
+      g.setColor(1483594);
+      g.fillRect(mx + 20, my + 95, 100, 28);
+      g.setColor(16777215);
+      this.font.drawString(g, "\u0110\u1ED3ng \xFD", mx + 70, my + 102, 2);
+      g.setColor(14427686);
+      g.fillRect(mx + mw - 120, my + 95, 100, 28);
+      g.setColor(16777215);
+      this.font.drawString(g, "H\u1EE7y b\u1ECF", mx + mw - 70, my + 102, 2);
+    }
+    // --- Pointer & Input Handling ---
     pointerPressed(screenX, screenY) {
       const w = this.screenW;
       const h = this.screenH;
-      if (screenY <= 28 && screenX >= w - 78) {
-        if (this.onExitToWorldMap) {
-          this.onExitToWorldMap();
-        }
+      if (this.isMenuOpen) {
+        this.handleMenuClick(screenX, screenY, w, h);
         return;
       }
       if (this.controller.isSeedPickerOpen) {
@@ -3372,157 +3985,188 @@ void main() {
         this.handleWarehouseClick(screenX, screenY, w, h);
         return;
       }
-      const barH = 34;
-      const barY = h - barH;
-      if (screenY >= barY) {
-        this.handleToolbarClick(screenX, barY, w);
+      if (this.isConfirmOpenLand) {
+        this.handleConfirmOpenLandClick(screenX, screenY, w, h);
+        return;
+      }
+      if (screenY <= 32) {
+        if (screenX <= 32) {
+          this.isMenuOpen = !this.isMenuOpen;
+          return;
+        }
+        if (screenX > 32 && screenX <= 64) {
+          this.feedbackText = "B\u1EA1n ch\u01B0a c\xF3 th\u01B0 m\u1EDBi n\xE0o t\u1EEB b\u01B0u \u0111i\u1EC7n!";
+          this.feedbackTimer = 80;
+          return;
+        }
+      }
+      const barH = 28;
+      if (screenY >= h - barH) {
+        if (screenX <= 80) {
+          this.isMenuOpen = true;
+          return;
+        }
+        if (screenX >= w - 80) {
+          if (this.onExitToWorldMap) {
+            this.onExitToWorldMap();
+          }
+          return;
+        }
+        this.controller.handleCellClick(this.controller.focusedCellIndex);
         return;
       }
       const worldX = screenX + this.cameraX;
       const worldY = screenY + this.cameraY;
-      if (worldX >= 390 && worldX <= 490 && worldY >= 50 && worldY <= 120) {
-        const harvested = this.model.starFruitFruit || 5;
-        this.model.starFruitFruit = 0;
-        this.model.userXu += harvested * 50;
-        if (this.controller.onActionFeedback) {
-          this.controller.onActionFeedback(`\u0110\xE3 h\xE1i ${harvested} qu\u1EA3 kh\u1EBF! (+${harvested * 50} Xu)`, "#facc15");
+      if (worldX >= 800 && worldX <= 860 && worldY >= 680 && worldY <= 755) {
+        if (this.onExitToWorldMap) {
+          this.onExitToWorldMap();
         }
         return;
       }
-      const clickedCellIndex = this.findCellAt(worldX, worldY);
-      if (clickedCellIndex >= 0) {
-        this.localPlayer.targetX = this.model.lands[clickedCellIndex].posX + 24;
-        this.localPlayer.targetY = this.model.lands[clickedCellIndex].posY + 14;
-        this.controller.handleCellClick(clickedCellIndex);
+      if (this.model.landSize < this.model.maxLandPlots) {
+        const nextPlot = this.model.lands[this.model.landSize];
+        if (nextPlot) {
+          if (worldX >= nextPlot.posX - 4 && worldX <= nextPlot.posX + FarmModel.CELL_WIDTH + 4 && worldY >= nextPlot.posY - 4 && worldY <= nextPlot.posY + FarmModel.CELL_HEIGHT + 4) {
+            this.localPlayer.targetX = nextPlot.posX + 24;
+            this.localPlayer.targetY = nextPlot.posY + 24;
+            this.isConfirmOpenLand = true;
+            return;
+          }
+        }
+      }
+      const clickedPlotIdx = this.findPlotAt(worldX, worldY);
+      if (clickedPlotIdx >= 0) {
+        const plot = this.model.lands[clickedPlotIdx];
+        this.localPlayer.targetX = plot.posX + 24;
+        this.localPlayer.targetY = plot.posY + 24;
+        this.controller.handleCellClick(clickedPlotIdx);
         return;
       }
-      this.localPlayer.targetX = worldX;
-      this.localPlayer.targetY = worldY;
+      this.localPlayer.targetX = Math.max(50, Math.min(1960, worldX));
+      this.localPlayer.targetY = Math.max(460, Math.min(715, worldY));
     }
-    findCellAt(worldX, worldY) {
+    findPlotAt(worldX, worldY) {
       for (let i = 0; i < this.model.lands.length; i++) {
-        const cell = this.model.lands[i];
-        if (worldX >= cell.posX && worldX <= cell.posX + FarmModel.CELL_WIDTH && worldY >= cell.posY && worldY <= cell.posY + FarmModel.CELL_HEIGHT) {
+        const p = this.model.lands[i];
+        if (worldX >= p.posX && worldX <= p.posX + FarmModel.CELL_WIDTH && worldY >= p.posY && worldY <= p.posY + FarmModel.CELL_HEIGHT) {
           return i;
         }
       }
       return -1;
     }
-    handleToolbarClick(screenX, barY, w) {
-      const buttons = [
-        () => this.controller.isSeedPickerOpen = true,
-        () => this.controller.setTool("water" /* WATER */),
-        () => this.controller.harvestAllMature(),
-        () => this.controller.isShopOpen = true,
-        () => this.controller.isWarehouseOpen = true,
-        () => this.controller.handleCellClick(this.model.landSize)
-      ];
-      const btnW = Math.min(84, Math.floor((w - 12) / buttons.length));
-      const startX = Math.floor((w - btnW * buttons.length) / 2);
-      for (let i = 0; i < buttons.length; i++) {
-        const bx = startX + i * btnW;
-        if (screenX >= bx && screenX < bx + btnW) {
-          buttons[i]();
-          return;
-        }
+    handleMenuClick(screenX, screenY, w, h) {
+      const items = ["plant", "harvest", "open_land", "shop", "warehouse", "exit"];
+      const mw = 180;
+      const mh = items.length * 28 + 32;
+      const mx = 10;
+      const my = h - mh - 28;
+      if (screenX < mx || screenX > mx + mw || screenY < my || screenY > my + mh) {
+        this.isMenuOpen = false;
+        return;
+      }
+      const clickedIdx = Math.floor((screenY - (my + 24)) / 28);
+      this.isMenuOpen = false;
+      if (clickedIdx === 0) {
+        this.controller.isSeedPickerOpen = true;
+      } else if (clickedIdx === 1) {
+        this.controller.harvestAllMature();
+      } else if (clickedIdx === 2) {
+        this.isConfirmOpenLand = true;
+      } else if (clickedIdx === 3) {
+        this.controller.isShopOpen = true;
+      } else if (clickedIdx === 4) {
+        this.controller.isWarehouseOpen = true;
+      } else if (clickedIdx === 5) {
+        if (this.onExitToWorldMap) this.onExitToWorldMap();
       }
     }
     handleSeedPickerClick(x, y, w, h) {
       const mw = Math.min(320, w - 20);
-      const mh = Math.min(240, h - 60);
+      const mh = Math.min(260, h - 60);
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      if (x >= mx + mw - 25 && y >= my && y <= my + 26) {
+      if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
         this.controller.isSeedPickerOpen = false;
         return;
       }
-      const seeds = Array.from(this.model.seeds.entries());
-      let yOffset = my + 34;
-      for (const [seedId] of seeds) {
-        if (y >= yOffset && y <= yOffset + 26) {
+      if (x < mx || x > mx + mw || y < my || y > my + mh) {
+        this.controller.isSeedPickerOpen = false;
+        return;
+      }
+      const seeds = Array.from(this.model.seeds.entries()).filter(([_, count]) => count > 0);
+      let yOff = my + 34;
+      for (const [seedId, count] of seeds) {
+        if (y >= yOff && y <= yOff + 28) {
           this.controller.selectSeed(seedId);
           return;
         }
-        yOffset += 30;
-        if (yOffset > my + mh - 35) break;
+        yOff += 32;
+        if (yOff > my + mh - 34) break;
       }
     }
     handleShopClick(x, y, w, h) {
       const mw = Math.min(340, w - 20);
-      const mh = Math.min(260, h - 50);
+      const mh = Math.min(270, h - 50);
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      if (x >= mx + mw - 25 && y >= my && y <= my + 26) {
+      if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
+        this.controller.isShopOpen = false;
+        return;
+      }
+      if (x < mx || x > mx + mw || y < my || y > my + mh) {
         this.controller.isShopOpen = false;
         return;
       }
       const crops = Object.values(CROP_DEFINITIONS);
-      let yOffset = my + 32;
+      let yOff = my + 32;
       for (const c of crops) {
-        if (y >= yOffset && y <= yOffset + 26) {
-          if (this.model.userXu >= c.seedPriceXu) {
-            this.handler.buySeed(c.id, 1, 1);
-            this.model.userXu -= c.seedPriceXu;
-            const cur = this.model.seeds.get(c.id) || 0;
-            this.model.seeds.set(c.id, cur + 1);
-            if (this.controller.onActionFeedback) {
-              this.controller.onActionFeedback(`\u0110\xE3 mua 1 h\u1EA1t gi\u1ED1ng ${c.name}! (-${c.seedPriceXu} Xu)`, "#4ade80");
-            }
-          } else {
+        if (y >= yOff && y <= yOff + 28 && x >= mx + mw - 80) {
+          if (this.model.userXu < c.seedPriceXu) {
             if (this.controller.onActionFeedback) {
               this.controller.onActionFeedback("B\u1EA1n kh\xF4ng \u0111\u1EE7 Xu \u0111\u1EC3 mua h\u1EA1t gi\u1ED1ng n\xE0y!", "#ef4444");
             }
+            return;
+          }
+          this.handler.buySeed(c.id, 1, 1);
+          if (this.controller.onActionFeedback) {
+            this.controller.onActionFeedback(`\u0110\xE3 mua 1 h\u1EA1t gi\u1ED1ng ${c.name}!`, "#4ade80");
           }
           return;
         }
-        yOffset += 30;
-        if (yOffset > my + mh - 35) break;
+        yOff += 32;
+        if (yOff > my + mh - 34) break;
       }
     }
     handleWarehouseClick(x, y, w, h) {
       const mw = Math.min(320, w - 20);
-      const mh = Math.min(240, h - 60);
+      const mh = Math.min(250, h - 60);
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      if (x >= mx + mw - 25 && y >= my && y <= my + 26) {
+      if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
         this.controller.isWarehouseOpen = false;
         return;
       }
-      const cropEntries = Array.from(this.model.crops.entries());
-      let yOffset = my + 34;
-      for (const [cropId, count] of cropEntries) {
-        if (y >= yOffset && y <= yOffset + 26) {
-          const meta = CROP_DEFINITIONS[cropId];
-          const sellTotal = count * (meta ? meta.sellPriceXu : 10);
-          this.model.userXu += sellTotal;
-          this.model.crops.delete(cropId);
-          if (this.controller.onActionFeedback) {
-            this.controller.onActionFeedback(`\u0110\xE3 b\xE1n to\xE0n b\u1ED9 ${meta?.name || "n\xF4ng s\u1EA3n"}! (+${sellTotal} Xu)`, "#facc15");
-          }
-          return;
-        }
-        yOffset += 30;
-        if (yOffset > my + mh - 35) break;
+      if (x < mx || x > mx + mw || y < my || y > my + mh) {
+        this.controller.isWarehouseOpen = false;
+        return;
       }
     }
-    keyPressed(keyCode) {
-      const cols = FarmModel.GRID_COLS;
-      if (keyCode === 52 || keyCode === -3) {
-        this.controller.focusedCellIndex = Math.max(0, this.controller.focusedCellIndex - 1);
-      } else if (keyCode === 54 || keyCode === -4) {
-        this.controller.focusedCellIndex = Math.min(this.model.lands.length - 1, this.controller.focusedCellIndex + 1);
-      } else if (keyCode === 50 || keyCode === -1) {
-        this.controller.focusedCellIndex = Math.max(0, this.controller.focusedCellIndex - cols);
-      } else if (keyCode === 56 || keyCode === -2) {
-        this.controller.focusedCellIndex = Math.min(this.model.lands.length - 1, this.controller.focusedCellIndex + cols);
-      } else if (keyCode === 53 || keyCode === 13) {
-        this.controller.handleCellClick(this.controller.focusedCellIndex);
-      } else if (keyCode === 49) {
-        this.controller.isSeedPickerOpen = !this.controller.isSeedPickerOpen;
-      } else if (keyCode === 51) {
-        this.controller.harvestAllMature();
-      } else if (keyCode === 55) {
-        this.controller.isShopOpen = !this.controller.isShopOpen;
+    handleConfirmOpenLandClick(x, y, w, h) {
+      const mw = 280;
+      const mh = 140;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + 20 && x <= mx + 120 && y >= my + 95 && y <= my + 125) {
+        this.isConfirmOpenLand = false;
+        this.handler.openLand(1);
+        if (this.controller.onActionFeedback) {
+          this.controller.onActionFeedback("\u0110ang g\u1EEDi y\xEAu c\u1EA7u m\u1EDF \xF4 \u0111\u1EA5t l\xEAn m\xE1y ch\u1EE7...", "#facc15");
+        }
+        return;
+      }
+      if (x >= mx + mw - 120 && x <= mx + mw - 20 && y >= my + 95 && y <= my + 125 || x < mx || x > mx + mw || y < my || y > my + mh) {
+        this.isConfirmOpenLand = false;
+        return;
       }
     }
   };
@@ -3531,11 +4175,11 @@ void main() {
   var import_j2me_compat10 = __toESM(require_dist());
 
   // packages/game-client/src/core/GameMidlet.ts
-  var import_j2me_compat7 = __toESM(require_dist());
+  var import_j2me_compat8 = __toESM(require_dist());
 
   // packages/game-client/src/runtime/GameCanvas.ts
-  var import_j2me_compat3 = __toESM(require_dist());
-  var GameCanvas = class _GameCanvas extends import_j2me_compat3.Canvas {
+  var import_j2me_compat4 = __toESM(require_dist());
+  var GameCanvas = class _GameCanvas extends import_j2me_compat4.Canvas {
     static instance;
     currentScreen;
     graphics;
@@ -3554,7 +4198,7 @@ void main() {
       super();
       this.width = 1024;
       this.height = 768;
-      this.graphics = new import_j2me_compat3.Graphics(target);
+      this.graphics = new import_j2me_compat4.Graphics(target);
       _GameCanvas.instance = this;
     }
     setCurrentScreen(screen) {
@@ -3678,7 +4322,7 @@ void main() {
   };
 
   // packages/game-client/src/gameplay/SplashScreen.ts
-  var import_j2me_compat4 = __toESM(require_dist());
+  var import_j2me_compat5 = __toESM(require_dist());
   var SplashScreen = class extends GameScreen {
     timer = 0;
     logoImage;
@@ -3702,13 +4346,13 @@ void main() {
       g.setColor(0);
       g.fillRect(0, 0, w, h);
       if (this.logoImage && this.timer > 1) {
-        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat4.Graphics.HCENTER | import_j2me_compat4.Graphics.VCENTER);
+        g.drawImage(this.logoImage, Math.floor(w / 2), Math.floor(h / 2), import_j2me_compat5.Graphics.HCENTER | import_j2me_compat5.Graphics.VCENTER);
       }
     }
   };
 
   // packages/game-client/src/gameplay/LoginScreen.ts
-  var import_j2me_compat5 = __toESM(require_dist());
+  var import_j2me_compat6 = __toESM(require_dist());
   var LoginScreen = class extends GameScreen {
     selectedIndex = 0;
     // Highlight first option by default
@@ -3814,7 +4458,7 @@ void main() {
         }
       }
       if (this.bannerLogo) {
-        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat5.Graphics.HCENTER | import_j2me_compat5.Graphics.VCENTER);
+        g.drawImage(this.bannerLogo, Math.floor(screenW / 2), Math.max(25, this.winY - 45), import_j2me_compat6.Graphics.HCENTER | import_j2me_compat6.Graphics.VCENTER);
       } else if (this.font) {
         this.font.drawString(g, "AVATAR 258", Math.floor(screenW / 2), Math.max(25, this.winY - 45), 2);
       }
@@ -4655,7 +5299,7 @@ void main() {
   };
 
   // packages/game-client/src/assets/AvArchiveLoader.ts
-  var import_j2me_compat6 = __toESM(require_dist());
+  var import_j2me_compat7 = __toESM(require_dist());
   var AvArchiveLoader = class _AvArchiveLoader {
     static KEY = new TextEncoder().encode("NguyenVanMinh");
     entries = /* @__PURE__ */ new Map();
@@ -4697,7 +5341,7 @@ void main() {
       const fileName = name.endsWith(".png") ? name : `${name}.png`;
       const bytes = this.getFileBytes(fileName);
       if (!bytes) return null;
-      return import_j2me_compat6.Image.createImage(bytes);
+      return import_j2me_compat7.Image.createImage(bytes);
     }
     getEntryNames() {
       return Array.from(this.entries.keys());
@@ -4725,11 +5369,11 @@ void main() {
     }
     async initAssets(logoPngBytes, fontMetadataBytes, fontPngBytes, bgAvBytes) {
       if (logoPngBytes) {
-        this.splashScreen.logoImage = await import_j2me_compat7.Image.createImage(logoPngBytes);
+        this.splashScreen.logoImage = await import_j2me_compat8.Image.createImage(logoPngBytes);
       }
       if (fontMetadataBytes && fontPngBytes) {
         this.font.loadMetadata(fontMetadataBytes);
-        this.font.fontImage = await import_j2me_compat7.Image.createImage(fontPngBytes);
+        this.font.fontImage = await import_j2me_compat8.Image.createImage(fontPngBytes);
       }
       if (bgAvBytes) {
         const bgLoader = new AvArchiveLoader();
@@ -5499,542 +6143,6 @@ void main() {
 
   // packages/game-client/src/gameplay/GameWorldScreen.ts
   var import_j2me_compat9 = __toESM(require_dist());
-
-  // packages/game-client/src/maps/TilemapRenderer.ts
-  var import_j2me_compat8 = __toESM(require_dist());
-  var TilemapRenderer = class _TilemapRenderer {
-    static TILE_SIZE = 24;
-    // i = 24 in ir.java
-    static TILES_PER_ROW = 7;
-    // 168 px / 24 px = 7 tiles
-    mapData;
-    mapObjects = [];
-    tilesetImage;
-    bgImage;
-    cloudImage;
-    objectImageCache = /* @__PURE__ */ new Map();
-    isNight = false;
-    cameraX = 0;
-    cameraY = 0;
-    // Authentic background mapping from ir.java line 98 (byte[] h)
-    static BG_TYPE_BY_MAP = {
-      0: 1,
-      1: 1,
-      2: 1,
-      3: 1,
-      4: 1,
-      5: 1,
-      6: 1,
-      7: 1,
-      8: 1,
-      9: 0,
-      10: 0,
-      11: 1,
-      12: 3,
-      13: 3,
-      14: 3,
-      15: 3,
-      16: 3,
-      17: 2,
-      18: -1,
-      19: -1,
-      20: -1,
-      21: 0,
-      22: 0,
-      23: 0,
-      24: 2,
-      25: 2
-    };
-    /**
-    
-       * Authentic Map Height formula from ir.java lines 1050-1115
-    
-       * When mapId is by2 from server, client switches on (n2 - 1) which is exactly mapId!
-    
-       */
-    static getMapHeightTiles(mapId) {
-      switch (mapId) {
-        case 107:
-          return 16;
-        case 25:
-        case 21:
-          return 7;
-        case 9:
-          return 8;
-        case 20:
-        case 57:
-        case 58:
-        case 59:
-        case 62:
-        case 63:
-        case 64:
-        case 100:
-        case 101:
-        case 103:
-        case 104:
-        case 109:
-          return 11;
-        case 60:
-        case 61:
-        case 65:
-          return 5;
-        case 18:
-          return 10;
-        case 17:
-          return 6;
-        case 108:
-          return 8;
-        case 19:
-          return 13;
-        case 10:
-          return 9;
-        default:
-          return 8;
-      }
-    }
-    async loadMap(mapId) {
-      const hour = (/* @__PURE__ */ new Date()).getHours();
-      this.isNight = hour >= 18 || hour < 6;
-      const nightSuffix = this.isNight ? "1" : "0";
-      try {
-        const fileId = mapId + 1;
-        const mapRes = await fetch(`/assets/maps/${fileId}`);
-        if (!mapRes.ok) {
-          console.warn(`[TilemapRenderer] Could not load map binary for map ${mapId} (file ${fileId})`);
-          return;
-        }
-        const buffer = await mapRes.arrayBuffer();
-        const bytes = new Uint8Array(buffer);
-        const heightTiles = _TilemapRenderer.getMapHeightTiles(mapId);
-        const widthTiles = Math.floor(bytes.length / heightTiles);
-        const totalTiles = widthTiles * heightTiles;
-        const tiles = new Int16Array(totalTiles);
-        const collision = new Int16Array(totalTiles);
-        this.mapObjects = [];
-        for (let i2 = 0; i2 < totalTiles; i2++) {
-          const val = bytes[i2];
-          tiles[i2] = val === 255 ? -1 : val;
-        }
-        const spawnedObjects = [];
-        let i = 0;
-        while (i < totalTiles) {
-          const t = tiles[i];
-          const col = i % widthTiles;
-          const row = Math.floor(i / widthTiles);
-          const px = col * _TilemapRenderer.TILE_SIZE;
-          const py = row * _TilemapRenderer.TILE_SIZE;
-          if (t === 127 || t === 128 || t === 129 || t === 141 || t === 143 || t === 144 || t === 147 || t === 148 || t === 149 || t === 150 || t === 151 || t === 152 || t === 159 || t === 160 || t === 161 || t === 162 || t === 172 || t === 173 || t === 174 || t === 175 || t === 176 || t === 177 || t === 178 || t === 179 || t === 186 || t === 190 || t === 192 || t === 193 || t === 194 || t === 195 || t === 196 || t === 197 || t === 198 || t === 199 || t === 200 || t === 201 || t === 202 || t === 204 || t === 98) {
-            let consecutive = 1;
-            while (i + consecutive < totalTiles && Math.floor((i + consecutive) / widthTiles) === row && tiles[i + consecutive] === t) {
-              consecutive++;
-            }
-            const spanPx = consecutive * _TilemapRenderer.TILE_SIZE;
-            const centerX = px + Math.floor(spanPx / 2);
-            let floorReplacement = 96;
-            let partId = -1;
-            let objX = centerX;
-            let objY = py + _TilemapRenderer.TILE_SIZE - 4;
-            if (t === 127) {
-              partId = 830;
-              objX = px + 36;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 128) {
-              partId = 828;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
-            } else if (t === 129 || t === 160) {
-              partId = mapId === 17 ? 836 : 829;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 96;
-            } else if (t === 141) {
-              partId = 840;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = i + widthTiles < totalTiles ? tiles[i + widthTiles] : 5;
-            } else if (t === 143) {
-              partId = 831;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 51;
-            } else if (t === 144) {
-              partId = 841;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 5;
-            } else if (t === 147 || t === 161) {
-              partId = 832;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 96;
-            } else if (t === 148 || t === 162) {
-              partId = mapId === 17 ? 836 : 833;
-              objX = px + 48;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 149) {
-              partId = 834;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 4;
-            } else if (t === 150) {
-              partId = 842;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = mapId === 25 ? 4 : 0;
-            } else if (t === 151) {
-              partId = 843;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = 0;
-            } else if (t === 152) {
-              partId = 835;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = mapId === 25 ? 55 : 0;
-            } else if (t === 159) {
-              partId = 848;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 4;
-              floorReplacement = mapId === 25 ? 5 : mapId === 13 ? 0 : 4;
-            } else if (t === 172) {
-              partId = 836;
-              objX = px + 37;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 173 || t === 179) {
-              partId = 837;
-              objX = px + 48;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 174) {
-              partId = 838;
-              objX = px + 48;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 175) {
-              partId = 830;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 176) {
-              partId = 829;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 177) {
-              partId = 832;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 178) {
-              partId = 830;
-              objX = px + 24;
-              objY = py + _TilemapRenderer.TILE_SIZE - 2;
-              floorReplacement = 96;
-            } else if (t === 186) {
-              partId = 974;
-              objX = px + 24;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 17;
-            } else if (t === 190) {
-              partId = 1029;
-              objX = px + 36;
-              objY = py + 20;
-              floorReplacement = 4;
-            } else if (t === 192) {
-              partId = 1034;
-              objX = px + 36;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 193) {
-              partId = 1032;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 194) {
-              partId = 1030;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 195) {
-              partId = 1037;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 196) {
-              partId = 1035;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 197) {
-              partId = 1033;
-              objX = px + 12;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 198) {
-              partId = 1036;
-              objX = px + 12;
-              objY = py + 20;
-              floorReplacement = 4;
-            } else if (t === 199) {
-              partId = 1031;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 200) {
-              partId = 1075;
-              objX = px + 24;
-              objY = py + 24;
-              floorReplacement = 4;
-            } else if (t === 201) {
-              partId = 1094;
-              objX = px + 24;
-              objY = py + 20;
-              floorReplacement = 5;
-            } else if (t === 202) {
-              partId = 4;
-              objX = px + 24;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 96;
-            } else if (t === 98 || t === 204) {
-              partId = 846;
-              objX = centerX;
-              objY = py + _TilemapRenderer.TILE_SIZE;
-              floorReplacement = 43;
-            }
-            if (partId > 0) {
-              spawnedObjects.push({ partId, x: objX, y: objY, layer: 0 });
-            }
-            for (let k = 0; k < consecutive; k++) {
-              tiles[i + k] = floorReplacement;
-            }
-            i += consecutive;
-            continue;
-          } else if (t === 139) {
-            tiles[i] = i % widthTiles === 0 ? tiles[i + 1] : tiles[i - 1];
-          } else if (t === 140) {
-            tiles[i] = 55;
-          } else if (t >= 126) {
-            tiles[i] = i > 0 && tiles[i - 1] >= 0 && tiles[i - 1] < 126 ? tiles[i - 1] : 0;
-          }
-          i++;
-        }
-        const uniquePartIds = Array.from(new Set(spawnedObjects.map((o) => o.partId)));
-        await Promise.all(uniquePartIds.map(async (partId) => {
-          if (!this.objectImageCache.has(partId)) {
-            try {
-              const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
-              this.objectImageCache.set(partId, img);
-            } catch (e) {
-              console.warn(`[TilemapRenderer] Could not load object sprite /assets/home/${partId}.png`);
-            }
-          }
-        }));
-        for (const obj of spawnedObjects) {
-          obj.image = this.objectImageCache.get(obj.partId);
-        }
-        this.mapObjects = spawnedObjects;
-        for (let i2 = 0; i2 < totalTiles; i2++) {
-          const t = tiles[i2];
-          if (t === -4) {
-            collision[i2] = 80;
-          } else if (t === -5) {
-            collision[i2] = 88;
-          } else if (t === -1) {
-            collision[i2] = 88;
-          } else if (t >= 120 && t <= 123) {
-            collision[i2] = 80;
-          } else if (t >= 114 && t <= 119) {
-            collision[i2] = 80;
-          } else if (t === 67 || t === 85) {
-            collision[i2] = 92;
-          } else if (t >= 20 && t <= 23) {
-            collision[i2] = 79;
-          } else if (t < 7) {
-            collision[i2] = 80;
-          } else if (t >= 44 && t <= 55) {
-            collision[i2] = 80;
-          } else if (t === 111 || t === 112) {
-            collision[i2] = 80;
-          } else {
-            collision[i2] = 88;
-          }
-        }
-        this.mapData = {
-          id: mapId,
-          widthTiles,
-          heightTiles,
-          tiles,
-          collision
-        };
-        console.log(`[TilemapRenderer] Loaded map ${mapId} (file ${fileId}): ${widthTiles}x${heightTiles} tiles, ${spawnedObjects.length} objects spawned`);
-        const tilesetUrl = `/assets/tileset/tileset${nightSuffix}.png`;
-        this.tilesetImage = await import_j2me_compat8.Image.createImage(tilesetUrl);
-        this.bgImage = void 0;
-        this.cloudImage = void 0;
-        const bgType = _TilemapRenderer.BG_TYPE_BY_MAP[mapId] ?? -1;
-        if (bgType !== -1) {
-          try {
-            const bgUrl = `/assets/bg/${bgType}${nightSuffix}.png`;
-            this.bgImage = await import_j2me_compat8.Image.createImage(bgUrl);
-          } catch (err) {
-          }
-        }
-        try {
-          const cloudUrl = `/assets/bg/${nightSuffix}.png`;
-          this.cloudImage = await import_j2me_compat8.Image.createImage(cloudUrl);
-        } catch (err) {
-        }
-      } catch (err) {
-        console.error("[TilemapRenderer] Load error:", err);
-      }
-    }
-    async setDynamicMapItems(mapItemTypes, mapItems) {
-      this.mapObjects = this.mapObjects.filter((o) => !o.isDynamic);
-      if (!mapItemTypes || !mapItems || mapItems.length === 0) return;
-      const typeMap = /* @__PURE__ */ new Map();
-      for (const t of mapItemTypes) {
-        typeMap.set(t.id, t);
-      }
-      const newDynamicObjects = [];
-      for (const it of mapItems) {
-        const itemType = typeMap.get(it.typeID);
-        if (!itemType) continue;
-        const worldX = it.tileX * _TilemapRenderer.TILE_SIZE + itemType.dx;
-        const worldY = it.tileY * _TilemapRenderer.TILE_SIZE + itemType.dy;
-        newDynamicObjects.push({
-          partId: itemType.imgID,
-          x: worldX,
-          y: worldY,
-          layer: 0,
-          isDynamic: true,
-          dynamicType: it.type,
-          dynamicId: it.typeID
-        });
-      }
-      const uniquePartIds = Array.from(new Set(newDynamicObjects.map((o) => o.partId)));
-      await Promise.all(uniquePartIds.map(async (partId) => {
-        if (!this.objectImageCache.has(partId)) {
-          try {
-            const img = await import_j2me_compat8.Image.createImage(`/assets/home/${partId}.png`);
-            this.objectImageCache.set(partId, img);
-          } catch {
-            try {
-              const img = await import_j2me_compat8.Image.createImage(`/assets/item/${partId}.png`);
-              this.objectImageCache.set(partId, img);
-            } catch (e) {
-              console.warn(`[TilemapRenderer] Could not load dynamic object sprite ${partId}`);
-            }
-          }
-        }
-      }));
-      for (const obj of newDynamicObjects) {
-        obj.image = this.objectImageCache.get(obj.partId);
-        this.mapObjects.push(obj);
-      }
-      console.log(`[TilemapRenderer] Added ${newDynamicObjects.length} dynamic map items`);
-    }
-    updateCamera(targetX, targetY, screenW, screenH) {
-      if (!this.mapData) return;
-      const mapWidthPx = this.mapData.widthTiles * _TilemapRenderer.TILE_SIZE;
-      const mapHeightPx = this.mapData.heightTiles * _TilemapRenderer.TILE_SIZE;
-      let camX = targetX - Math.floor(screenW / 2);
-      let camY = targetY - Math.floor(screenH / 2);
-      if (mapWidthPx > screenW) {
-        camX = Math.max(0, Math.min(mapWidthPx - screenW, camX));
-      } else {
-        camX = Math.floor((mapWidthPx - screenW) / 2);
-      }
-      if (mapHeightPx > screenH) {
-        camY = Math.max(0, Math.min(mapHeightPx - screenH, targetY - Math.floor(screenH / 2)));
-      } else {
-        camY = mapHeightPx - screenH;
-      }
-      this.cameraX = camX;
-      this.cameraY = camY;
-    }
-    /**
-    
-       * Layer 0 & Layer 1: Sky, Parallax, and Ground Tilemap
-    
-       */
-    paint(g, screenW, screenH) {
-      if (!this.mapData || !this.tilesetImage) return;
-      const tileSize = _TilemapRenderer.TILE_SIZE;
-      const { widthTiles, heightTiles, tiles } = this.mapData;
-      const skyColor = this.isNight ? 21 : 6143735;
-      g.setColor(skyColor);
-      g.fillRect(0, 0, screenW, screenH);
-      if (this.cloudImage) {
-        const cW = this.cloudImage.getWidth();
-        const parallaxCloud = -Math.floor(this.cameraX * 0.12) % cW;
-        const cloudY = Math.max(-20, 15 - Math.floor(this.cameraY * 0.1));
-        for (let x = parallaxCloud - cW; x < screenW + cW; x += cW) {
-          g.drawImage(this.cloudImage, x, cloudY, 0);
-        }
-      }
-      if (this.bgImage) {
-        const bgW = this.bgImage.getWidth();
-        const bgH = this.bgImage.getHeight();
-        const parallaxX = -Math.floor(this.cameraX * 0.3) % bgW;
-        const groundTopY = screenH - heightTiles * tileSize;
-        const bgY = Math.max(0, groundTopY - bgH + 30);
-        for (let x = parallaxX - bgW; x < screenW + bgW; x += bgW) {
-          g.drawImage(this.bgImage, x, bgY, 0);
-        }
-      }
-      const startTileX = Math.floor(this.cameraX / tileSize);
-      const endTileX = Math.ceil((this.cameraX + screenW) / tileSize);
-      const startTileY = Math.max(0, Math.floor(this.cameraY / tileSize));
-      const endTileY = Math.min(heightTiles, Math.ceil((this.cameraY + screenH) / tileSize));
-      for (let ty = startTileY; ty < endTileY; ty++) {
-        for (let tx = startTileX; tx < endTileX; tx++) {
-          const clampedCol = Math.max(0, Math.min(widthTiles - 1, tx));
-          let tileIdx = tiles[ty * widthTiles + clampedCol];
-          if (tileIdx < 0) continue;
-          if (tx < 0 || tx >= widthTiles) {
-            if (tileIdx > 120 || tileIdx < 0) {
-              tileIdx = 96;
-            }
-          }
-          const numRows = 18;
-          const col = Math.floor(tileIdx / numRows);
-          const row = tileIdx % numRows;
-          const srcX = col * tileSize;
-          const srcY = row * tileSize;
-          const destX = tx * tileSize - this.cameraX;
-          const destY = ty * tileSize - this.cameraY;
-          g.drawRegion(
-            this.tilesetImage,
-            srcX,
-            srcY,
-            tileSize,
-            tileSize,
-            0,
-            destX,
-            destY,
-            0
-          );
-        }
-      }
-    }
-    isBlocked(worldX, worldY) {
-      if (!this.mapData) return false;
-      const { widthTiles, heightTiles, collision } = this.mapData;
-      const tx = Math.floor(worldX / _TilemapRenderer.TILE_SIZE);
-      const ty = Math.floor(worldY / _TilemapRenderer.TILE_SIZE);
-      if (tx < 0 || tx >= widthTiles || ty < 0 || ty >= heightTiles) {
-        return true;
-      }
-      const c = collision[ty * widthTiles + tx];
-      return c === 88 || c === 92;
-    }
-  };
-
-  // packages/game-client/src/gameplay/GameWorldScreen.ts
   var GameWorldScreen = class _GameWorldScreen extends GameScreen {
     localPlayer = {
       id: 0,

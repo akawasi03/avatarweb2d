@@ -51,6 +51,7 @@ async function runFarmE2ETest() {
     const messages = decoder.push(raw);
 
     for (const msg of messages) {
+      console.log(`[Packet In] Cmd: ${msg.command}, length: ${msg.data ? msg.data.length : 0}`);
       // Check waiters
       let handled = false;
       for (let i = 0; i < packetWaiters.length; i++) {

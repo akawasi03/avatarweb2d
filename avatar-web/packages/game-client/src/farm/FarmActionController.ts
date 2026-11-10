@@ -1,6 +1,8 @@
 /**
  * FarmActionController.ts
  * Coordinates user interaction, tool selection, cursor navigation and action dispatching on FarmScreen.
+ * Strictly enforces Server Authority: no client balance mutation, no client-side watering/fertilizer simulation,
+ * and mature-only crop harvesting validation.
  */
 
 import { FarmModel, LandItemState, CROP_DEFINITIONS } from './FarmModel.js';
@@ -9,7 +11,6 @@ import { FarmNetworkHandler } from './FarmNetworkHandler.js';
 export enum FarmToolMode {
   HAND = 'hand',
   PLANT = 'plant',
-  WATER = 'water',
   HARVEST = 'harvest',
   OPEN_LAND = 'open_land'
 }
@@ -40,7 +41,6 @@ export class FarmActionController {
     const nameMap: Record<FarmToolMode, string> = {
       [FarmToolMode.HAND]: 'Kiểm tra',
       [FarmToolMode.PLANT]: 'Gieo hạt',
-      [FarmToolMode.WATER]: 'Tưới nước',
       [FarmToolMode.HARVEST]: 'Thu hoạch',
       [FarmToolMode.OPEN_LAND]: 'Mở đất'
     };
@@ -64,13 +64,22 @@ export class FarmActionController {
     const cell = this.model.lands[cellIndex];
     if (!cell) return;
 
+    // Server Authority Check: Visiting neighbor's farm is Read-Only
+    const isOwner = !this.model.userId || this.model.userId === (this.handler.network.myUserId || 1);
+    if (!isOwner) {
+      if (this.onActionFeedback) {
+        this.onActionFeedback('Bạn đang thăm nông trại của người khác! Không thể thao tác.', '#ef4444');
+      }
+      return;
+    }
+
     // Case 1: Locked / Unopened Plot
     if (cell.type === -2) {
       if (cellIndex === this.model.landSize) {
-        // Can open next sequential plot
+        // Can open next sequential plot via authoritative server packet
         this.handler.openLand(1); // 1 = Xu
         if (this.onActionFeedback) {
-          this.onActionFeedback('Đang gửi yêu cầu mở ô đất...', '#facc15');
+          this.onActionFeedback('Đang gửi yêu cầu mở ô đất lên máy chủ...', '#facc15');
         }
       } else {
         if (this.onActionFeedback) {
@@ -87,7 +96,7 @@ export class FarmActionController {
         this.handler.plantSeed(cellIndex, this.selectedSeedId);
         const name = CROP_DEFINITIONS[this.selectedSeedId]?.name || 'cây';
         if (this.onActionFeedback) {
-          this.onActionFeedback(`Đã gieo ${name} vào ô #${cellIndex + 1}!`, '#4ade80');
+          this.onActionFeedback(`Đang gieo ${name} vào ô #${cellIndex + 1}...`, '#4ade80');
         }
       } else {
         // Open seed picker to select available seed or visit shop
@@ -105,34 +114,34 @@ export class FarmActionController {
       this.handler.harvestCrop(cellIndex);
       const name = CROP_DEFINITIONS[cell.type]?.name || 'nông sản';
       if (this.onActionFeedback) {
-        this.onActionFeedback(`Thu hoạch ${name} ô #${cellIndex + 1}!`, '#facc15');
+        this.onActionFeedback(`Đang thu hoạch ${name} ô #${cellIndex + 1}...`, '#facc15');
       }
       return;
     }
 
-    // Case 4: Growing Crop (Care / Inspection)
+    // Case 4: Growing Crop (Server Authority: Disallow harvesting unripened crops)
     const name = CROP_DEFINITIONS[cell.type]?.name || 'Cây';
     const meta = CROP_DEFINITIONS[cell.type];
     const totalMin = meta ? meta.growMinutes : 100;
     const remainMin = Math.max(0, totalMin - cell.plantedMinutes);
 
-    if (this.currentTool === FarmToolMode.WATER) {
-      cell.isWatered = true;
-      if (this.onActionFeedback) {
-        this.onActionFeedback(`Đã tưới nước cho ${name}!`, '#38bdf8');
-      }
-      return;
-    }
-
     if (this.onActionFeedback) {
       this.onActionFeedback(
-        `${name} (Ô #${cellIndex + 1}): Còn ${remainMin} phút nữa chín (Sức khỏe: ${cell.sucKhoe}%)`,
-        '#ffffff'
+        `Cây chưa chín! ${name} (Ô #${cellIndex + 1}): Còn ${remainMin} phút nữa mới có thể thu hoạch.`,
+        '#ef4444'
       );
     }
   }
 
   public harvestAllMature(): void {
+    const isOwner = !this.model.userId || this.model.userId === (this.handler.network.myUserId || 1);
+    if (!isOwner) {
+      if (this.onActionFeedback) {
+        this.onActionFeedback('Bạn đang thăm nông trại của người khác! Không thể thao tác.', '#ef4444');
+      }
+      return;
+    }
+
     let harvestedCount = 0;
     for (const cell of this.model.lands) {
       if (cell.type >= 0) {
@@ -145,7 +154,7 @@ export class FarmActionController {
     }
     if (this.onActionFeedback) {
       if (harvestedCount > 0) {
-        this.onActionFeedback(`Đang thu hoạch ${harvestedCount} ô đất chín!`, '#facc15');
+        this.onActionFeedback(`Đang thu hoạch ${harvestedCount} ô đất chín...`, '#facc15');
       } else {
         this.onActionFeedback('Chưa có cây nào chín để thu hoạch!', '#94a3b8');
       }
@@ -153,6 +162,14 @@ export class FarmActionController {
   }
 
   public plantAllEmpty(): void {
+    const isOwner = !this.model.userId || this.model.userId === (this.handler.network.myUserId || 1);
+    if (!isOwner) {
+      if (this.onActionFeedback) {
+        this.onActionFeedback('Bạn đang thăm nông trại của người khác! Không thể thao tác.', '#ef4444');
+      }
+      return;
+    }
+
     const availSeeds = this.model.seeds.get(this.selectedSeedId) || 0;
     if (availSeeds <= 0) {
       this.isSeedPickerOpen = true;
@@ -172,7 +189,7 @@ export class FarmActionController {
 
     if (this.onActionFeedback) {
       if (planted > 0) {
-        this.onActionFeedback(`Đã gieo ${planted} ô đất hạt giống!`, '#4ade80');
+        this.onActionFeedback(`Đang gieo ${planted} ô đất hạt giống...`, '#4ade80');
       } else {
         this.onActionFeedback('Không còn ô đất trống để gieo!', '#94a3b8');
       }

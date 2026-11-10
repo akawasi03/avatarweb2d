@@ -151,6 +151,8 @@
 - [x] Khai hoang mở thêm ô đất canh tác (Cmd 70 - OPEN_LAND).
 - [x] Ghé thăm nông trại của người chơi khác (Cmd 61 - JOIN neighbor farm).
 - [x] Render đầy đủ bản đồ nông trại WebGL 2 Engine: nhà sàn, cây khế quả vàng, chuồng trại, ao cá, 30 ô đất, nông sản 8 giai đoạn sinh trưởng.
+- [x] Khôi phục đồ họa Nông Trại Map 25 nguyên bản 100% bằng tài nguyên gốc có sẵn: Bố cục panorama toàn cảnh 2016x772px chuẩn HD, gạch đất nứt nẻ `soil_cracked.png` (48x48px), biển báo gỗ `buyLand.png` (42x54px), giọt nước `w.png`, sâu bọ `g.png`, liềm gặt `cut.png`. Loại bỏ triệt để mọi hình chữ nhật vẽ tay bằng fillRect.
+- [x] Định vị pixel-perfect 30 ô đất canh tác (6 cột x 5 hàng) tại tọa độ gốc (1058, 452) chuẩn khớp với map 25 gốc của Teamobi.
 - [x] Hoàn tất bộ test E2E 10 phase kiểm thử giao thức nông trại với Java Server thật (test_farm_e2e.js).
 - [ ] Chuồng nuôi gà: Cho ăn, ấp trứng, thu hoạch trứng gà (Cmd 71/72).
 - [ ] Chuồng nuôi bò: Cho ăn, vắt sữa bò (Cmd 71/73).
