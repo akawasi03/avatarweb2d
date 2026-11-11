@@ -2917,10 +2917,10 @@ void main() {
       this.localPlayer = {
         id: this.handler.network.myUserId || 1,
         name: "N\xF4ng d\xE2n",
-        x: 830,
-        y: 690,
-        targetX: 830,
-        targetY: 690,
+        x: 888,
+        y: 670,
+        targetX: 888,
+        targetY: 670,
         dir: 1,
         // Facing Up
         state: "idle",
@@ -3162,7 +3162,6 @@ void main() {
       g.translate(this.cameraX, this.cameraY);
       this.paintHUD(g, w, h);
       this.paintNotificationToast(g, w, h);
-      this.paintSoftkeys(g, w, h);
       this.paintModals(g, w, h);
     }
     /**
@@ -3175,9 +3174,20 @@ void main() {
       if (tree243) {
         const tW = tree243.getWidth();
         const tH = tree243.getHeight();
-        for (const col of [8, 28, 34]) {
-          const tx = Math.floor((col + 0.5) * tileSize - tW / 2);
-          const ty = groundY + tileSize - tH + 10;
+        const treePositions = [
+          -20,
+          // Top-left corner (Góc trái hàng rào gỗ trên cùng)
+          Math.floor((8 + 0.5) * tileSize - tW / 2),
+          // Col 8 (Behind pen fence)
+          Math.floor((28 + 0.5) * tileSize - tW / 2),
+          // Col 28 (Above crops)
+          Math.floor((34 + 0.5) * tileSize - tW / 2),
+          // Col 34 (Above pond path)
+          1886
+          // Top-right corner (Góc phải hàng rào gỗ trên cùng)
+        ];
+        const ty = groundY + tileSize - tH + 10;
+        for (const tx of treePositions) {
           g.drawImage(tree243, tx, ty, 0);
         }
       }
@@ -3212,11 +3222,11 @@ void main() {
       }
       const gateImg = this.spriteCache.get("gate847");
       if (gateImg) {
-        const gx = Math.floor((17 + 0.5) * tileSize - gateImg.getWidth() / 2);
-        const gy = groundY + 8 * tileSize - gateImg.getHeight() - 4;
+        const gx = 762;
+        const gy = groundY + 7 * tileSize - gateImg.getHeight() + 4;
         g.drawImage(gateImg, gx, gy, 0);
         const ownerName = this.model.userId === this.handler.network.myUserId ? this.localPlayer.name || "akawasi999" : `User ${this.model.userId}`;
-        this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy - 12, 2);
+        this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy + 14, 2);
       }
       const buyLandImg = this.spriteCache.get("buyLand");
       if (buyLandImg) {
@@ -3241,7 +3251,7 @@ void main() {
       const arrowBounce = Math.floor(this.animTick % 12 / 4);
       this.paintYellowArrow(g, 502, 422 + arrowBounce, "V\xE0o");
       this.paintYellowArrow(g, 691, 420 + arrowBounce, "V\xE0o");
-      this.paintYellowArrow(g, 830, 715 + arrowBounce, "V\xE0o");
+      this.paintYellowArrow(g, 888, 706 + arrowBounce, "V\xE0o");
     }
     /**
      * Paint yellow guide arrow with text (matching original Avatar "Vào" arrow)
@@ -3644,24 +3654,9 @@ void main() {
           return;
         }
       }
-      const barH = 28;
-      if (screenY >= h - barH) {
-        if (screenX <= 80) {
-          this.isMenuOpen = true;
-          return;
-        }
-        if (screenX >= w - 80) {
-          if (this.onExitToWorldMap) {
-            this.onExitToWorldMap();
-          }
-          return;
-        }
-        this.controller.handleCellClick(this.controller.focusedCellIndex);
-        return;
-      }
       const worldX = screenX + this.cameraX;
       const worldY = screenY + this.cameraY;
-      if (worldX >= 800 && worldX <= 860 && worldY >= 680 && worldY <= 755) {
+      if (worldX >= 760 && worldX <= 920 && worldY >= 670 && worldY <= 760) {
         if (this.onExitToWorldMap) {
           this.onExitToWorldMap();
         }
@@ -4046,7 +4041,6 @@ void main() {
       } else if (this.isShopOpen) {
         this.paintShopDialog(g, w, h);
       }
-      this.paintSoftkeys(g, w, h);
     }
     /**
      * Parallax Sky & Clouds
@@ -4364,16 +4358,6 @@ void main() {
           this.openLaiBuonDialog();
         } else if (clickedIdx === 3) {
           this.promptExitToWorldMap();
-        }
-        return;
-      }
-      if (y >= h - 24) {
-        if (x <= Math.floor(w / 3)) {
-          this.isMenuOpen = !this.isMenuOpen;
-        } else if (x >= Math.floor(w * 2 / 3)) {
-          this.promptExitToWorldMap();
-        } else {
-          this.interactNearest();
         }
         return;
       }

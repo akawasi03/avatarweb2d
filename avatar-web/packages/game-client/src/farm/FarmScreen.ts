@@ -80,14 +80,14 @@ export class FarmScreen extends GameScreen {
     this.skinPainter = skinPainter;
     this.font = font;
 
-    // Initial player position: standing on the dirt path near farm entrance (x=830, y=690)
+    // Initial player position: standing on the dirt path near farm entrance (x=888, y=670)
     this.localPlayer = {
       id: this.handler.network.myUserId || 1,
       name: 'Nông dân',
-      x: 830,
-      y: 690,
-      targetX: 830,
-      targetY: 690,
+      x: 888,
+      y: 670,
+      targetX: 888,
+      targetY: 670,
       dir: 1, // Facing Up
       state: 'idle',
       wearing: [1, 2, 3],
@@ -395,10 +395,7 @@ export class FarmScreen extends GameScreen {
     // 11. Paint Notification Toast (if active)
     this.paintNotificationToast(g, w, h);
 
-    // 12. Paint Softkeys Bar (Left: Menu, Center: Chọn, Right: Về phố)
-    this.paintSoftkeys(g, w, h);
-
-    // 13. Paint Modals / Menus / Dialogs
+    // 12. Paint Modals / Menus / Dialogs
     this.paintModals(g, w, h);
   }
 
@@ -409,14 +406,20 @@ export class FarmScreen extends GameScreen {
     const groundY = 388;
     const tileSize = 48;
 
-    // 1. Big trees behind top fence (cols 8, 28, 34 in row 0)
+    // 1. Big trees behind top wooden fence (Top-left corner, cols 8, 28, 34, and Top-right corner)
     const tree243 = this.spriteCache.get('tree243');
     if (tree243) {
       const tW = tree243.getWidth();
       const tH = tree243.getHeight();
-      for (const col of [8, 28, 34]) {
-        const tx = Math.floor((col + 0.5) * tileSize - tW / 2);
-        const ty = groundY + tileSize - tH + 10;
+      const treePositions = [
+        -20,                                         // Top-left corner (Góc trái hàng rào gỗ trên cùng)
+        Math.floor((8 + 0.5) * tileSize - tW / 2),   // Col 8 (Behind pen fence)
+        Math.floor((28 + 0.5) * tileSize - tW / 2),  // Col 28 (Above crops)
+        Math.floor((34 + 0.5) * tileSize - tW / 2),  // Col 34 (Above pond path)
+        1886                                         // Top-right corner (Góc phải hàng rào gỗ trên cùng)
+      ];
+      const ty = groundY + tileSize - tH + 10;
+      for (const tx of treePositions) {
         g.drawImage(tree243, tx, ty, 0);
       }
     }
@@ -461,17 +464,18 @@ export class FarmScreen extends GameScreen {
     }
 
     // 5. Exit Gateway / Entrance Sign 847 at col 17, row 7 (ir.java case 110)
+    // Raised up onto dirt road so it stands clearly above hedge bushes (not sunken down)
     const gateImg = this.spriteCache.get('gate847');
     if (gateImg) {
-      const gx = Math.floor((17 + 0.5) * tileSize - gateImg.getWidth() / 2);
-      const gy = groundY + 8 * tileSize - gateImg.getHeight() - 4;
+      const gx = 762;
+      const gy = groundY + 7 * tileSize - gateImg.getHeight() + 4; // y = 388 + 336 - 44 + 4 = 684
       g.drawImage(gateImg, gx, gy, 0);
 
-      // Owner name badge above exit sign
+      // Owner name badge centered inside the wooden board face
       const ownerName = this.model.userId === this.handler.network.myUserId
         ? (this.localPlayer.name || 'akawasi999')
         : `User ${this.model.userId}`;
-      this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy - 12, 2);
+      this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy + 14, 2);
     }
 
     // 7. "MUA" signpost at Chicken coop (col 6, row 3) and Fish pond (col 35, row 6)
@@ -510,8 +514,8 @@ export class FarmScreen extends GameScreen {
     // 2. Animated Yellow "Vào" arrow on Chuồng Rơm / Hay Barn doorway (x = 691, y = 420)
     this.paintYellowArrow(g, 691, 420 + arrowBounce, 'Vào');
 
-    // 3. Exit Signpost animated yellow "Vào" arrow (x = 830, y = 715)
-    this.paintYellowArrow(g, 830, 715 + arrowBounce, 'Vào');
+    // 3. Exit animated yellow "Vào" arrow in the dirt exit path (col 18, row 7)
+    this.paintYellowArrow(g, 888, 706 + arrowBounce, 'Vào');
   }
 
   /**
@@ -1025,32 +1029,12 @@ export class FarmScreen extends GameScreen {
       }
     }
 
-    // 3. Handle Bottom Softkeys (Menu, Chọn, Về phố)
-    const barH = 28;
-    if (screenY >= h - barH) {
-      if (screenX <= 80) {
-        // Left: Menu
-        this.isMenuOpen = true;
-        return;
-      }
-      if (screenX >= w - 80) {
-        // Right: Về phố
-        if (this.onExitToWorldMap) {
-          this.onExitToWorldMap();
-        }
-        return;
-      }
-      // Center: Chọn current focused plot
-      this.controller.handleCellClick(this.controller.focusedCellIndex);
-      return;
-    }
-
-    // 4. World Coordinates (Account for Camera translation)
+    // 3. World Coordinates (Account for Camera translation)
     const worldX = screenX + this.cameraX;
     const worldY = screenY + this.cameraY;
 
-    // Check click on Exit Signpost (x = 800..860, y = 680..755)
-    if (worldX >= 800 && worldX <= 860 && worldY >= 680 && worldY <= 755) {
+    // Check click on Exit Signpost or Exit Path (x = 760..920, y = 670..760)
+    if (worldX >= 760 && worldX <= 920 && worldY >= 670 && worldY <= 760) {
       if (this.onExitToWorldMap) {
         this.onExitToWorldMap();
       }

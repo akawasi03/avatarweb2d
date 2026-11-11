@@ -338,9 +338,6 @@ export class FarmGateScreen extends GameScreen {
     } else if (this.isShopOpen) {
       this.paintShopDialog(g, w, h);
     }
-
-    // 11. Paint Classic Softkeys Bar (Menu, Chọn, Về phố)
-    this.paintSoftkeys(g, w, h);
   }
 
   /**
@@ -753,22 +750,7 @@ export class FarmGateScreen extends GameScreen {
       return;
     }
 
-    // 2. Check Bottom Softkeys Bar (h - 24 to h)
-    if (y >= h - 24) {
-      if (x <= Math.floor(w / 3)) {
-        // Left: Menu
-        this.isMenuOpen = !this.isMenuOpen;
-      } else if (x >= Math.floor((w * 2) / 3)) {
-        // Right: Về phố
-        this.promptExitToWorldMap();
-      } else {
-        // Center: Chọn (Interact)
-        this.interactNearest();
-      }
-      return;
-    }
-
-    // 3. Top Left Hamburger Menu Button
+    // 2. Top Left Hamburger Menu Button
     if (x >= 6 && x <= 32 && y >= 6 && y <= 28) {
       this.isMenuOpen = !this.isMenuOpen;
       return;
