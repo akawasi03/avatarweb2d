@@ -3053,15 +3053,17 @@ void main() {
         this.preloadSprite("clouds_night", "/assets/bg/clouds_farm_night.png"),
         this.preloadSprite("horizon_day", "/assets/bg/horizon_farm_day.png"),
         this.preloadSprite("horizon_night", "/assets/bg/horizon_farm_night.png"),
-        this.preloadSprite("tiles_farm", "/assets/tileset/tileset0.png"),
+        this.preloadSprite("tileset_day", "/assets/tileset/tileset_hd_day.png"),
+        this.preloadSprite("tileset_night", "/assets/tileset/tileset_hd_night.png"),
         this.preloadSprite("soil_cracked", "/assets/farm_ui/soil_cracked.png"),
         this.preloadSprite("gate847", "/assets/home/847.png"),
         this.preloadSprite("mua848", "/assets/home/848.png"),
         this.preloadSprite("tree244", "/assets/home/244.png"),
         this.preloadSprite("pond840", "/assets/home/840.png"),
-        this.preloadSprite("tree834", "/assets/home/834.png"),
-        this.preloadSprite("nha_bep", "/assets/home/829.png"),
-        this.preloadSprite("chuong_lon", "/assets/home/828.png"),
+        this.preloadSprite("tree834", "/assets/farm/43.png"),
+        this.preloadSprite("starfruit", "/assets/farm/46.png"),
+        this.preloadSprite("nha_bep", "/assets/home/1029.png"),
+        this.preloadSprite("chuong_lon", "/assets/home/834.png"),
         this.preloadSprite("fence838", "/assets/home/838.png"),
         this.preloadSprite("fence839", "/assets/home/839.png"),
         this.preloadSprite("coin", "/assets/farm_ui/coin.png")
@@ -3286,39 +3288,35 @@ void main() {
       this.paintModals(g, w, h);
     }
     paintTilemap(g) {
-      const tileSheet = this.spriteCache.get("tiles_farm");
+      const suffix = this.isNight ? "night" : "day";
+      const tileSheet = this.spriteCache.get(`tileset_${suffix}`) || this.spriteCache.get("tileset_day");
       if (!tileSheet || !this.isMapLoaded) return;
-      const TILE_SIZE = 42;
-      const COLS = 48;
-      const ROWS = 7;
-      const MAP_BASE_Y = 478;
-      const startCol = Math.max(0, Math.floor(this.cameraX / TILE_SIZE));
-      const endCol = Math.min(COLS - 1, Math.ceil((this.cameraX + this.screenW) / TILE_SIZE));
-      for (let r = 0; r < ROWS; r++) {
-        const destY = MAP_BASE_Y + r * TILE_SIZE;
-        for (let c = startCol; c <= endCol; c++) {
-          const tileIdx = this.mapTiles[r * COLS + c];
+      const tileSize = 48;
+      const groundY = 388;
+      const numRowsInTileset = 18;
+      const startCol = Math.max(0, Math.floor(this.cameraX / tileSize));
+      const endCol = Math.min(42, Math.ceil((this.cameraX + this.screenW) / tileSize));
+      for (let r = 0; r < 8; r++) {
+        const destY = groundY + r * tileSize;
+        for (let c = startCol; c < endCol; c++) {
+          const tileIdx = this.mapTiles[r * 42 + c];
           if (tileIdx >= 0) {
-            const destX = c * TILE_SIZE;
-            const srcX = tileIdx % 10 * 24;
-            const srcY = Math.floor(tileIdx / 10) * 24;
-            g.drawRegion(tileSheet, srcX, srcY, 24, 24, 0, destX, destY, 0);
+            const tc = Math.floor(tileIdx / numRowsInTileset);
+            const tr = tileIdx % numRowsInTileset;
+            const destX = c * tileSize;
+            const srcX = tc * tileSize;
+            const srcY = tr * tileSize;
+            g.drawRegion(tileSheet, srcX, srcY, tileSize, tileSize, 0, destX, destY, 0);
           }
         }
       }
     }
     paintSceneryObjects(g) {
-      const fenceImg = this.spriteCache.get("fence838");
-      if (fenceImg) {
-        for (let fx = 0; fx < 2016; fx += fenceImg.getWidth()) {
-          g.drawImage(fenceImg, fx, 492, 0);
-        }
-      }
       const tree244 = this.spriteCache.get("tree244");
       if (tree244) {
         g.drawImage(tree244, -30, 320, 0);
+        g.drawImage(tree244, 1344, 320, 0);
         g.drawImage(tree244, 1860, 320, 0);
-        g.drawImage(tree244, 34 * 42 - 10, 320, 0);
       }
       const nhaBep = this.spriteCache.get("nha_bep");
       if (nhaBep) {
@@ -3331,11 +3329,18 @@ void main() {
       const treeImg = this.spriteCache.get("tree834");
       if (treeImg) {
         g.drawImage(treeImg, 842, 440, 0);
-        this.font.drawString(g, "Lv1", 948, 388, 2);
+        const starfruit = this.spriteCache.get("starfruit");
+        if (starfruit) {
+          g.drawImage(starfruit, 882, 510, 0);
+          g.drawImage(starfruit, 898, 524, 0);
+          g.drawImage(starfruit, 922, 518, 0);
+          g.drawImage(starfruit, 940, 528, 0);
+        }
+        this.font.drawString(g, "Lv1", 948, 416, 2);
       }
       const pondImg = this.spriteCache.get("pond840");
       if (pondImg) {
-        g.drawImage(pondImg, 1618, 590, 0);
+        g.drawImage(pondImg, 1618, 520, 0);
       }
       const gateImg = this.spriteCache.get("gate847");
       if (gateImg) {
@@ -4385,11 +4390,12 @@ void main() {
         this.preloadSprite("clouds_night", "/assets/bg/clouds_farm_night.png"),
         this.preloadSprite("horizon_day", "/assets/bg/horizon_farm_day.png"),
         this.preloadSprite("horizon_night", "/assets/bg/horizon_farm_night.png"),
-        this.preloadSprite("backdrop", "/assets/farm_gate/map23_backdrop.png"),
         this.preloadSprite("gateArch", "/assets/farm_gate/gate_arch.png"),
         this.preloadSprite("fruitStall", "/assets/farm_gate/fruit_stall.png"),
         this.preloadSprite("shopBuilding", "/assets/farm_gate/cua_hang.png"),
         this.preloadSprite("xeKem", "/assets/farm_gate/xe_kem.png"),
+        this.preloadSprite("fence838", "/assets/home/838.png"),
+        this.preloadSprite("tree244", "/assets/home/244.png"),
         this.preloadSprite("coin", "/assets/farm_ui/coin.png")
       ]);
       this.isAssetsLoaded = true;
@@ -4596,13 +4602,34 @@ void main() {
       }
     }
     /**
-     * Paint authentic seamless composite backdrop (Map 23)
+     * Paint authentic landscape, fence, grass and dirt roads (Map 23)
      */
     paintGateBackdrop(g) {
-      const backdrop = this.spriteCache.get("backdrop");
-      if (backdrop) {
-        g.drawImage(backdrop, 0, 0, 0);
+      const fence = this.spriteCache.get("fence838");
+      if (fence) {
+        const fW = fence.getWidth();
+        for (let x = 0; x < this.MAP_WIDTH; x += fW) {
+          g.drawImage(fence, x, 140, 0);
+        }
       }
+      const tree = this.spriteCache.get("tree244");
+      if (tree) {
+        g.drawImage(tree, -30, 10, 0);
+        g.drawImage(tree, 1150, 10, 0);
+      }
+      const grassColor = this.isNight ? 2250005 : 5617963;
+      g.setColor(grassColor);
+      g.fillRect(0, 180, this.MAP_WIDTH, this.MAP_HEIGHT - 180);
+      const roadColor = this.isNight ? 7233085 : 13811340;
+      g.setColor(roadColor);
+      g.fillRect(380, 190, 95, 120);
+      g.fillRect(720, 190, 95, 120);
+      g.fillRect(0, 300, this.MAP_WIDTH, 125);
+      const curbColor = this.isNight ? 4734247 : 10521695;
+      g.setColor(curbColor);
+      g.fillRect(0, 425, this.MAP_WIDTH, 41);
+      g.setColor(this.isNight ? 3682078 : 9206355);
+      g.fillRect(0, 425, this.MAP_WIDTH, 3);
     }
     /**
      * Paint Authentic Scenery:

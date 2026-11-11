@@ -128,11 +128,12 @@ export class FarmGateScreen extends GameScreen {
       this.preloadSprite('clouds_night', '/assets/bg/clouds_farm_night.png'),
       this.preloadSprite('horizon_day', '/assets/bg/horizon_farm_day.png'),
       this.preloadSprite('horizon_night', '/assets/bg/horizon_farm_night.png'),
-      this.preloadSprite('backdrop', '/assets/farm_gate/map23_backdrop.png'),
       this.preloadSprite('gateArch', '/assets/farm_gate/gate_arch.png'),
       this.preloadSprite('fruitStall', '/assets/farm_gate/fruit_stall.png'),
       this.preloadSprite('shopBuilding', '/assets/farm_gate/cua_hang.png'),
       this.preloadSprite('xeKem', '/assets/farm_gate/xe_kem.png'),
+      this.preloadSprite('fence838', '/assets/home/838.png'),
+      this.preloadSprite('tree244', '/assets/home/244.png'),
       this.preloadSprite('coin', '/assets/farm_ui/coin.png')
     ]);
 
@@ -425,13 +426,49 @@ export class FarmGateScreen extends GameScreen {
   }
 
   /**
-   * Paint authentic seamless composite backdrop (Map 23)
+   * Paint authentic landscape, fence, grass and dirt roads (Map 23)
    */
   private paintGateBackdrop(g: Graphics): void {
-    const backdrop = this.spriteCache.get('backdrop');
-    if (backdrop) {
-      g.drawImage(backdrop, 0, 0, 0);
+    // 1. Top wooden fence running across the screen (y = 140)
+    const fence = this.spriteCache.get('fence838');
+    if (fence) {
+      const fW = fence.getWidth();
+      for (let x = 0; x < this.MAP_WIDTH; x += fW) {
+        g.drawImage(fence, x, 140, 0);
+      }
     }
+
+    // 2. Big lush trees behind top fence
+    const tree = this.spriteCache.get('tree244');
+    if (tree) {
+      g.drawImage(tree, -30, 10, 0);
+      g.drawImage(tree, 1150, 10, 0);
+    }
+
+    // 3. Green grass base (y = 180 to bottom)
+    const grassColor = this.isNight ? 0x225515 : 0x55B92B;
+    g.setColor(grassColor);
+    g.fillRect(0, 180, this.MAP_WIDTH, this.MAP_HEIGHT - 180);
+
+    // 4. Earth dirt pathways
+    const roadColor = this.isNight ? 0x6E5E3D : 0xD2BE8C;
+    g.setColor(roadColor);
+
+    // Left vertical dirt path leading to the "FARM" gate arch (x = 380..470, y = 190..310)
+    g.fillRect(380, 190, 95, 120);
+
+    // Right vertical dirt path leading to the "CỬA HÀNG" shop (x = 720..810, y = 190..310)
+    g.fillRect(720, 190, 95, 120);
+
+    // Main horizontal dirt roadway (y = 300 to 425)
+    g.fillRect(0, 300, this.MAP_WIDTH, 125);
+
+    // 5. Road bottom embankment / cobblestone curb (y = 425 to 466)
+    const curbColor = this.isNight ? 0x483D27 : 0xA08C5F;
+    g.setColor(curbColor);
+    g.fillRect(0, 425, this.MAP_WIDTH, 41);
+    g.setColor(this.isNight ? 0x382F1E : 0x8C7A53);
+    g.fillRect(0, 425, this.MAP_WIDTH, 3);
   }
 
   /**
