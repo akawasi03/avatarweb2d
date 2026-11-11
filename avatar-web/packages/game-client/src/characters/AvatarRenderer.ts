@@ -437,10 +437,15 @@ export class AvatarRenderer {
 
     // 5. Draw Name Tag with subtle dark backdrop pill for 100% contrast & readability
     if (name) {
-      const tagY = y - 46;
+      const tx = g.getTranslateX();
+      const ty = g.getTranslateY();
+      const screenX = x + tx;
+      const screenTagY = y - 46 + ty;
       const ctx = g.ctx as CanvasRenderingContext2D | undefined;
       const nameW = font ? font.stringWidth(name) : name.length * 6;
-      const tagX = x - Math.floor(nameW / 2);
+      const isLaiBuon = name === 'lai.buon';
+      const extraFlowerW = isLaiBuon ? 12 : 0;
+      const tagX = screenX - Math.floor((nameW + extraFlowerW) / 2);
 
       if (ctx) {
         ctx.save();
@@ -448,9 +453,9 @@ export class AvatarRenderer {
         ctx.fillStyle = 'rgba(15, 23, 42, 0.75)';
         ctx.beginPath();
         if (typeof ctx.roundRect === 'function') {
-          ctx.roundRect(tagX - 4, tagY - 1, nameW + 8, 14, 3);
+          ctx.roundRect(tagX - 4, screenTagY - 1, nameW + extraFlowerW + 8, 14, 3);
         } else {
-          ctx.rect(tagX - 4, tagY - 1, nameW + 8, 14);
+          ctx.rect(tagX - 4, screenTagY - 1, nameW + extraFlowerW + 8, 14);
         }
         ctx.fill();
 
@@ -459,27 +464,43 @@ export class AvatarRenderer {
         ctx.lineWidth = 1;
         ctx.stroke();
 
+        // Red flower rosette for lai.buon
+        if (isLaiBuon) {
+          const flX = tagX + nameW + 6;
+          const flY = screenTagY + 6;
+          ctx.fillStyle = '#dc2626';
+          ctx.beginPath();
+          ctx.arc(flX, flY, 4, 0, Math.PI * 2);
+          ctx.fill();
+          ctx.fillStyle = '#fde047';
+          ctx.beginPath();
+          ctx.arc(flX, flY, 2, 0, Math.PI * 2);
+          ctx.fill();
+        }
+
         // High contrast text with 1px drop shadow
         ctx.font = 'bold 11px Arial, sans-serif';
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
 
+        const textCenterX = screenX - (isLaiBuon ? 6 : 0);
+
         // Shadow
         ctx.fillStyle = '#000000';
-        ctx.fillText(name, x + 1, tagY + 7);
+        ctx.fillText(name, textCenterX + 1, screenTagY + 7);
 
         // Foreground color
         if (isLocal) {
           ctx.fillStyle = '#fde047'; // Bright gold for local player
-        } else if (name.includes('Lovanga') || name.includes('Tài Xỉu') || name.includes('Vé số') || name.includes('đấu giá') || name.includes('quay số')) {
+        } else if (name.includes('Lovanga') || name.includes('Tài Xỉu') || name.includes('Vé số') || name.includes('đấu giá') || name.includes('quay số') || isLaiBuon) {
           ctx.fillStyle = '#38bdf8'; // Bright cyan for NPCs
         } else {
           ctx.fillStyle = '#ffffff'; // Crisp white for other players
         }
-        ctx.fillText(name, x, tagY + 6);
+        ctx.fillText(name, textCenterX, screenTagY + 6);
         ctx.restore();
       } else if (font) {
-        font.drawString(g, name, x, tagY, 2);
+        font.drawString(g, name, x, y - 46, 2);
       }
     }
 
@@ -512,10 +533,15 @@ export class AvatarRenderer {
         }
       }
 
+      const tx = g.getTranslateX();
+      const ty = g.getTranslateY();
+      const screenX = x + tx;
+      const screenY = y + ty;
+
       const bubbleW = Math.min(maxBubbleW, Math.round(maxLineW + 14));
       const bubbleH = lines.length * 13 + 6;
-      const bx = x - Math.floor(bubbleW / 2);
-      const by = y - 56 - bubbleH;
+      const bx = screenX - Math.floor(bubbleW / 2);
+      const by = screenY - 56 - bubbleH;
 
       if (ctx) {
         ctx.save();
@@ -539,9 +565,9 @@ export class AvatarRenderer {
 
         // Pointer triangle down towards head
         ctx.beginPath();
-        ctx.moveTo(x - 3, by + bubbleH);
-        ctx.lineTo(x, by + bubbleH + 4);
-        ctx.lineTo(x + 3, by + bubbleH);
+        ctx.moveTo(screenX - 3, by + bubbleH);
+        ctx.lineTo(screenX, by + bubbleH + 4);
+        ctx.lineTo(screenX + 3, by + bubbleH);
         ctx.fillStyle = '#ffffff';
         ctx.fill();
         ctx.strokeStyle = '#1e293b';
@@ -556,7 +582,7 @@ export class AvatarRenderer {
         ctx.textAlign = 'center';
         ctx.textBaseline = 'middle';
         for (let i = 0; i < lines.length; i++) {
-          ctx.fillText(lines[i], x, by + 7 + i * 13);
+          ctx.fillText(lines[i], screenX, by + 7 + i * 13);
         }
         ctx.restore();
       }

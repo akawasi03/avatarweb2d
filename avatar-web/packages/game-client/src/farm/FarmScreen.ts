@@ -124,6 +124,7 @@ export class FarmScreen extends GameScreen {
       this.preloadSprite('house1029', '/assets/home/1029.png'),
       this.preloadSprite('barn834', '/assets/home/834.png'),
       this.preloadSprite('tree243', '/assets/home/243.png'),
+      this.preloadSprite('tree244', '/assets/home/244.png'),
       this.preloadSprite('gate847', '/assets/home/847.png'),
       this.preloadSprite('sign848', '/assets/home/848.png'),
       this.preloadSprite('lilypad849', '/assets/home/849.png'),
@@ -406,22 +407,36 @@ export class FarmScreen extends GameScreen {
     const groundY = 388;
     const tileSize = 48;
 
-    // 1. Big trees behind top wooden fence (Top-left corner, cols 8, 28, 34, and Top-right corner)
+    // 1. Big trees behind top wooden fence
     const tree243 = this.spriteCache.get('tree243');
+    const tree244 = this.spriteCache.get('tree244');
+
+    if (tree244) {
+      const tW4 = tree244.getWidth();
+      const tH4 = tree244.getHeight();
+      const ty4 = groundY + tileSize - tH4 + 10;
+
+      // 2 góc trái phải ở hàng rào gỗ trên cùng có cái cây to đùng (Sprite 244)
+      // Top-left corner (Góc trái hàng rào gỗ trên cùng)
+      g.drawImage(tree244, -30, ty4, 0);
+
+      // Col 34 (Above pond path)
+      g.drawImage(tree244, Math.floor((34 + 0.5) * tileSize - tW4 / 2), ty4, 0);
+
+      // Top-right corner (Góc phải hàng rào gỗ trên cùng)
+      g.drawImage(tree244, 1860, ty4, 0);
+    }
+
     if (tree243) {
-      const tW = tree243.getWidth();
-      const tH = tree243.getHeight();
-      const treePositions = [
-        -20,                                         // Top-left corner (Góc trái hàng rào gỗ trên cùng)
-        Math.floor((8 + 0.5) * tileSize - tW / 2),   // Col 8 (Behind pen fence)
-        Math.floor((28 + 0.5) * tileSize - tW / 2),  // Col 28 (Above crops)
-        Math.floor((34 + 0.5) * tileSize - tW / 2),  // Col 34 (Above pond path)
-        1886                                         // Top-right corner (Góc phải hàng rào gỗ trên cùng)
-      ];
-      const ty = groundY + tileSize - tH + 10;
-      for (const tx of treePositions) {
-        g.drawImage(tree243, tx, ty, 0);
-      }
+      const tW3 = tree243.getWidth();
+      const tH3 = tree243.getHeight();
+      const ty3 = groundY + tileSize - tH3 + 10;
+
+      // Col 8 (Behind animal pen fence)
+      g.drawImage(tree243, Math.floor((8 + 0.5) * tileSize - tW3 / 2), ty3, 0);
+
+      // Col 28 (Above crops)
+      g.drawImage(tree243, Math.floor((28 + 0.5) * tileSize - tW3 / 2), ty3, 0);
     }
 
     // 2. Nhà Bếp (Kitchen building with chef hat) at col 9..11
@@ -464,11 +479,11 @@ export class FarmScreen extends GameScreen {
     }
 
     // 5. Exit Gateway / Entrance Sign 847 at col 17, row 7 (ir.java case 110)
-    // Raised up onto dirt road so it stands clearly above hedge bushes (not sunken down)
+    // Raised up onto grass road so it stands clearly above hedge bushes (not sunken down)
     const gateImg = this.spriteCache.get('gate847');
     if (gateImg) {
       const gx = 762;
-      const gy = groundY + 7 * tileSize - gateImg.getHeight() + 4; // y = 388 + 336 - 44 + 4 = 684
+      const gy = groundY + 6 * tileSize - gateImg.getHeight() + 20; // y = 388 + 288 - 44 + 20 = 652
       g.drawImage(gateImg, gx, gy, 0);
 
       // Owner name badge centered inside the wooden board face
@@ -515,7 +530,7 @@ export class FarmScreen extends GameScreen {
     this.paintYellowArrow(g, 691, 420 + arrowBounce, 'Vào');
 
     // 3. Exit animated yellow "Vào" arrow in the dirt exit path (col 18, row 7)
-    this.paintYellowArrow(g, 888, 706 + arrowBounce, 'Vào');
+    this.paintYellowArrow(g, 888, 666 + arrowBounce, 'Vào');
   }
 
   /**
@@ -721,29 +736,6 @@ export class FarmScreen extends GameScreen {
       ? `Nông trại của bạn (Cấp ${this.model.farmLevel || 1})`
       : `Nông trại: User #${this.model.userId}`;
     this.font.drawString(g, ownerTitle, 68, 10, 0);
-  }
-
-  /**
-   * Paint bottom classic softkeys (Menu, Chọn, Về phố)
-   */
-  private paintSoftkeys(g: Graphics, w: number, h: number): void {
-    const barH = 24;
-    const barY = h - barH;
-
-    // Dark translucent background strip
-    g.setColor(0x0F172A);
-    g.fillRect(0, barY, w, barH);
-    g.setColor(0x334155);
-    g.fillRect(0, barY, w, 1);
-
-    // Left softkey: Menu
-    this.font.drawString(g, 'Menu', 12, barY + 5, 0);
-
-    // Center softkey: Chọn
-    this.font.drawString(g, 'Chọn', Math.floor(w / 2), barY + 5, 2);
-
-    // Right softkey: Về phố
-    this.font.drawString(g, 'Về phố', w - 12, barY + 5, 1);
   }
 
   /**

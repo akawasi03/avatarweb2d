@@ -37,6 +37,13 @@ export class BitmapFont implements IFont {
     this.fontHeight = bytes[pos++];
   }
 
+  public mapChar(ch: string): string {
+    if (this.glyphChars.indexOf(ch) !== -1) return ch;
+    const lower = ch.toLowerCase();
+    if (this.glyphChars.indexOf(lower) !== -1) return lower;
+    return ch;
+  }
+
   public stringWidth(text: string): number {
     let width = 0;
     for (let i = 0; i < text.length; i++) {
@@ -44,7 +51,8 @@ export class BitmapFont implements IFont {
       if (ch === ' ') {
         width += (this.glyphWidths[0] || 6) >> 1;
       } else {
-        const idx = this.glyphChars.indexOf(ch);
+        const mappedCh = this.mapChar(ch);
+        const idx = this.glyphChars.indexOf(mappedCh);
         if (idx >= 0 && idx < this.glyphWidths.length) {
           width += this.glyphWidths[idx];
         } else {
@@ -75,7 +83,8 @@ export class BitmapFont implements IFont {
       if (ch === ' ') {
         drawX += (this.glyphWidths[0] || 6) >> 1;
       } else {
-        let idx = this.glyphChars.indexOf(ch);
+        const mappedCh = this.mapChar(ch);
+        let idx = this.glyphChars.indexOf(mappedCh);
         if (idx === -1) idx = 0;
         const charW = this.glyphWidths[idx] || 6;
 

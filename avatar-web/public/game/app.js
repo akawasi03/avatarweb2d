@@ -2610,39 +2610,57 @@ void main() {
         }
       }
       if (name) {
-        const tagY = y - 46;
+        const tx = g.getTranslateX();
+        const ty = g.getTranslateY();
+        const screenX = x + tx;
+        const screenTagY = y - 46 + ty;
         const ctx = g.ctx;
         const nameW = font ? font.stringWidth(name) : name.length * 6;
-        const tagX = x - Math.floor(nameW / 2);
+        const isLaiBuon = name === "lai.buon";
+        const extraFlowerW = isLaiBuon ? 12 : 0;
+        const tagX = screenX - Math.floor((nameW + extraFlowerW) / 2);
         if (ctx) {
           ctx.save();
           ctx.fillStyle = "rgba(15, 23, 42, 0.75)";
           ctx.beginPath();
           if (typeof ctx.roundRect === "function") {
-            ctx.roundRect(tagX - 4, tagY - 1, nameW + 8, 14, 3);
+            ctx.roundRect(tagX - 4, screenTagY - 1, nameW + extraFlowerW + 8, 14, 3);
           } else {
-            ctx.rect(tagX - 4, tagY - 1, nameW + 8, 14);
+            ctx.rect(tagX - 4, screenTagY - 1, nameW + extraFlowerW + 8, 14);
           }
           ctx.fill();
           ctx.strokeStyle = isLocal ? "#facc15" : "rgba(255, 255, 255, 0.2)";
           ctx.lineWidth = 1;
           ctx.stroke();
+          if (isLaiBuon) {
+            const flX = tagX + nameW + 6;
+            const flY = screenTagY + 6;
+            ctx.fillStyle = "#dc2626";
+            ctx.beginPath();
+            ctx.arc(flX, flY, 4, 0, Math.PI * 2);
+            ctx.fill();
+            ctx.fillStyle = "#fde047";
+            ctx.beginPath();
+            ctx.arc(flX, flY, 2, 0, Math.PI * 2);
+            ctx.fill();
+          }
           ctx.font = "bold 11px Arial, sans-serif";
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
+          const textCenterX = screenX - (isLaiBuon ? 6 : 0);
           ctx.fillStyle = "#000000";
-          ctx.fillText(name, x + 1, tagY + 7);
+          ctx.fillText(name, textCenterX + 1, screenTagY + 7);
           if (isLocal) {
             ctx.fillStyle = "#fde047";
-          } else if (name.includes("Lovanga") || name.includes("T\xE0i X\u1EC9u") || name.includes("V\xE9 s\u1ED1") || name.includes("\u0111\u1EA5u gi\xE1") || name.includes("quay s\u1ED1")) {
+          } else if (name.includes("Lovanga") || name.includes("T\xE0i X\u1EC9u") || name.includes("V\xE9 s\u1ED1") || name.includes("\u0111\u1EA5u gi\xE1") || name.includes("quay s\u1ED1") || isLaiBuon) {
             ctx.fillStyle = "#38bdf8";
           } else {
             ctx.fillStyle = "#ffffff";
           }
-          ctx.fillText(name, x, tagY + 6);
+          ctx.fillText(name, textCenterX, screenTagY + 6);
           ctx.restore();
         } else if (font) {
-          font.drawString(g, name, x, tagY, 2);
+          font.drawString(g, name, x, y - 46, 2);
         }
       }
       if (chatMessage && chatMessage.length > 0) {
@@ -2668,10 +2686,14 @@ void main() {
             maxLineW = Math.max(maxLineW, ctx.measureText(l).width);
           }
         }
+        const tx = g.getTranslateX();
+        const ty = g.getTranslateY();
+        const screenX = x + tx;
+        const screenY = y + ty;
         const bubbleW = Math.min(maxBubbleW, Math.round(maxLineW + 14));
         const bubbleH = lines.length * 13 + 6;
-        const bx = x - Math.floor(bubbleW / 2);
-        const by = y - 56 - bubbleH;
+        const bx = screenX - Math.floor(bubbleW / 2);
+        const by = screenY - 56 - bubbleH;
         if (ctx) {
           ctx.save();
           ctx.shadowColor = "rgba(0, 0, 0, 0.4)";
@@ -2689,9 +2711,9 @@ void main() {
           ctx.fill();
           ctx.stroke();
           ctx.beginPath();
-          ctx.moveTo(x - 3, by + bubbleH);
-          ctx.lineTo(x, by + bubbleH + 4);
-          ctx.lineTo(x + 3, by + bubbleH);
+          ctx.moveTo(screenX - 3, by + bubbleH);
+          ctx.lineTo(screenX, by + bubbleH + 4);
+          ctx.lineTo(screenX + 3, by + bubbleH);
           ctx.fillStyle = "#ffffff";
           ctx.fill();
           ctx.strokeStyle = "#1e293b";
@@ -2703,7 +2725,7 @@ void main() {
           ctx.textAlign = "center";
           ctx.textBaseline = "middle";
           for (let i = 0; i < lines.length; i++) {
-            ctx.fillText(lines[i], x, by + 7 + i * 13);
+            ctx.fillText(lines[i], screenX, by + 7 + i * 13);
           }
           ctx.restore();
         }
@@ -2952,6 +2974,7 @@ void main() {
         this.preloadSprite("house1029", "/assets/home/1029.png"),
         this.preloadSprite("barn834", "/assets/home/834.png"),
         this.preloadSprite("tree243", "/assets/home/243.png"),
+        this.preloadSprite("tree244", "/assets/home/244.png"),
         this.preloadSprite("gate847", "/assets/home/847.png"),
         this.preloadSprite("sign848", "/assets/home/848.png"),
         this.preloadSprite("lilypad849", "/assets/home/849.png"),
@@ -3171,25 +3194,21 @@ void main() {
       const groundY = 388;
       const tileSize = 48;
       const tree243 = this.spriteCache.get("tree243");
+      const tree244 = this.spriteCache.get("tree244");
+      if (tree244) {
+        const tW4 = tree244.getWidth();
+        const tH4 = tree244.getHeight();
+        const ty4 = groundY + tileSize - tH4 + 10;
+        g.drawImage(tree244, -30, ty4, 0);
+        g.drawImage(tree244, Math.floor((34 + 0.5) * tileSize - tW4 / 2), ty4, 0);
+        g.drawImage(tree244, 1860, ty4, 0);
+      }
       if (tree243) {
-        const tW = tree243.getWidth();
-        const tH = tree243.getHeight();
-        const treePositions = [
-          -20,
-          // Top-left corner (Góc trái hàng rào gỗ trên cùng)
-          Math.floor((8 + 0.5) * tileSize - tW / 2),
-          // Col 8 (Behind pen fence)
-          Math.floor((28 + 0.5) * tileSize - tW / 2),
-          // Col 28 (Above crops)
-          Math.floor((34 + 0.5) * tileSize - tW / 2),
-          // Col 34 (Above pond path)
-          1886
-          // Top-right corner (Góc phải hàng rào gỗ trên cùng)
-        ];
-        const ty = groundY + tileSize - tH + 10;
-        for (const tx of treePositions) {
-          g.drawImage(tree243, tx, ty, 0);
-        }
+        const tW3 = tree243.getWidth();
+        const tH3 = tree243.getHeight();
+        const ty3 = groundY + tileSize - tH3 + 10;
+        g.drawImage(tree243, Math.floor((8 + 0.5) * tileSize - tW3 / 2), ty3, 0);
+        g.drawImage(tree243, Math.floor((28 + 0.5) * tileSize - tW3 / 2), ty3, 0);
       }
       const houseImg = this.spriteCache.get("house1029");
       if (houseImg) {
@@ -3223,7 +3242,7 @@ void main() {
       const gateImg = this.spriteCache.get("gate847");
       if (gateImg) {
         const gx = 762;
-        const gy = groundY + 7 * tileSize - gateImg.getHeight() + 4;
+        const gy = groundY + 6 * tileSize - gateImg.getHeight() + 20;
         g.drawImage(gateImg, gx, gy, 0);
         const ownerName = this.model.userId === this.handler.network.myUserId ? this.localPlayer.name || "akawasi999" : `User ${this.model.userId}`;
         this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy + 14, 2);
@@ -3251,7 +3270,7 @@ void main() {
       const arrowBounce = Math.floor(this.animTick % 12 / 4);
       this.paintYellowArrow(g, 502, 422 + arrowBounce, "V\xE0o");
       this.paintYellowArrow(g, 691, 420 + arrowBounce, "V\xE0o");
-      this.paintYellowArrow(g, 888, 706 + arrowBounce, "V\xE0o");
+      this.paintYellowArrow(g, 888, 666 + arrowBounce, "V\xE0o");
     }
     /**
      * Paint yellow guide arrow with text (matching original Avatar "Vào" arrow)
@@ -3413,20 +3432,6 @@ void main() {
       this.font.drawString(g, xuStr, startXuX + 14, 10, 0);
       const ownerTitle = this.model.userId === this.handler.network.myUserId ? `N\xF4ng tr\u1EA1i c\u1EE7a b\u1EA1n (C\u1EA5p ${this.model.farmLevel || 1})` : `N\xF4ng tr\u1EA1i: User #${this.model.userId}`;
       this.font.drawString(g, ownerTitle, 68, 10, 0);
-    }
-    /**
-     * Paint bottom classic softkeys (Menu, Chọn, Về phố)
-     */
-    paintSoftkeys(g, w, h) {
-      const barH = 24;
-      const barY = h - barH;
-      g.setColor(988970);
-      g.fillRect(0, barY, w, barH);
-      g.setColor(3359061);
-      g.fillRect(0, barY, w, 1);
-      this.font.drawString(g, "Menu", 12, barY + 5, 0);
-      this.font.drawString(g, "Ch\u1ECDn", Math.floor(w / 2), barY + 5, 2);
-      this.font.drawString(g, "V\u1EC1 ph\u1ED1", w - 12, barY + 5, 1);
     }
     /**
      * Paint floating toast notification
@@ -3838,7 +3843,7 @@ void main() {
     cameraX = 0;
     cameraY = 0;
     // Map dimensions
-    MAP_WIDTH = 1302;
+    MAP_WIDTH = 1296;
     MAP_HEIGHT = 466;
     // Walkable bounds
     // Main dirt road: x = 50..1250, y = 300..415
@@ -3891,10 +3896,11 @@ void main() {
         this.preloadSprite("clouds_night", "/assets/bg/clouds_farm_night.png"),
         this.preloadSprite("horizon_day", "/assets/bg/horizon_farm_day.png"),
         this.preloadSprite("horizon_night", "/assets/bg/horizon_farm_night.png"),
-        this.preloadSprite("layer0", "/assets/farm_gate/layer_0.png"),
-        this.preloadSprite("layer1", "/assets/farm_gate/layer_1.png"),
-        this.preloadSprite("layer2", "/assets/farm_gate/layer_2.png"),
-        this.preloadSprite("xeKem", "/assets/farm_gate/Xe_Kem_Do_An_Nhanh.png"),
+        this.preloadSprite("backdrop", "/assets/farm_gate/map23_backdrop.png"),
+        this.preloadSprite("gateArch", "/assets/farm_gate/gate_arch.png"),
+        this.preloadSprite("fruitStall", "/assets/farm_gate/fruit_stall.png"),
+        this.preloadSprite("shopBuilding", "/assets/farm_gate/cua_hang.png"),
+        this.preloadSprite("xeKem", "/assets/farm_gate/xe_kem.png"),
         this.preloadSprite("coin", "/assets/farm_ui/coin.png")
       ]);
       this.isAssetsLoaded = true;
@@ -3980,6 +3986,10 @@ void main() {
       }
       if (Math.abs(this.localPlayer.x - 755) <= 40 && this.localPlayer.y <= 240) {
         this.openShop();
+        return;
+      }
+      if (Math.abs(this.localPlayer.x - 600) <= 50 && Math.abs(this.localPlayer.y - 320) <= 30) {
+        this.openLaiBuonDialog();
         return;
       }
       if (Math.abs(this.localPlayer.x - 140) <= 45 && Math.abs(this.localPlayer.y - 280) <= 30) {
@@ -4074,32 +4084,38 @@ void main() {
       }
     }
     /**
-     * Paint 3-layer authentic HD composite backdrop
-     * layer_0 (434x466): Left tree, fence, left post of FARM gate
-     * layer_1 (434x422): Right post of FARM gate, bushes, CỬA HÀNG building
-     * layer_2 (434x466): Right fence, twisted trunk tree, flowers
+     * Paint authentic seamless composite backdrop (Map 23)
+     * Pristine original panorama: Left oak tree, wooden fence, FARM gate, CỬA HÀNG, right twisted tree.
      */
     paintGateBackdrop(g) {
-      const l0 = this.spriteCache.get("layer0");
-      const l1 = this.spriteCache.get("layer1");
-      const l2 = this.spriteCache.get("layer2");
-      if (l0) {
-        g.drawImage(l0, 0, 0, 0);
-      }
-      if (l1) {
-        g.drawImage(l1, 434, 44, 0);
-      }
-      if (l2) {
-        g.drawImage(l2, 868, 0, 0);
+      const backdrop = this.spriteCache.get("backdrop");
+      if (backdrop) {
+        g.drawImage(backdrop, 0, 0, 0);
       }
     }
     /**
-     * Paint Scenery: Xe Kem Đồ Ăn Nhanh on the right lawn
+     * Paint Authentic Scenery:
+     * 1. Gate Arch (ID 831) at the entrance to Farm
+     * 2. Fruit & Vegetable Stall (ID 1214) between FARM gate and CỬA HÀNG
+     * 3. CỬA HÀNG building (ID 835)
+     * 4. Xe Kem Đồ Ăn Nhanh (ID 842) on the lawn to the right of CỬA HÀNG
      */
     paintScenery(g) {
+      const gateArch = this.spriteCache.get("gateArch");
+      if (gateArch) {
+        g.drawImage(gateArch, 341, 146, 0);
+      }
+      const fruitStall = this.spriteCache.get("fruitStall");
+      if (fruitStall) {
+        g.drawImage(fruitStall, 518, 140, 0);
+      }
+      const shop = this.spriteCache.get("shopBuilding");
+      if (shop) {
+        g.drawImage(shop, 658, 144, 0);
+      }
       const xeKem = this.spriteCache.get("xeKem");
       if (xeKem) {
-        g.drawImage(xeKem, 930, 168, 0);
+        g.drawImage(xeKem, 888, 176, 0);
       }
     }
     /**
@@ -4118,13 +4134,9 @@ void main() {
         this.npcLaiBuon.dir,
         this.npcLaiBuon.frame,
         this.npcLaiBuon.name,
-        true,
+        false,
         this.font
       );
-      g.setColor(14427686);
-      g.fillArc(nx - 36, ny - 52, 8, 8, 0, 360);
-      g.setColor(16498468);
-      g.fillArc(nx - 34, ny - 50, 4, 4, 0, 360);
     }
     /**
      * Paint Local Player Avatar
@@ -4152,8 +4164,9 @@ void main() {
     paintGuideArrows(g) {
       const bounce = Math.floor(this.animTick % 12 / 4);
       this.paintYellowArrow(g, 434, 230 + bounce, "V\xE0o");
-      this.paintYellowArrow(g, 755, 240 + bounce, "V\xE0o");
-      this.paintYellowArrow(g, 140, 230 + bounce, "V\xE0o");
+      this.paintYellowArrow(g, 600, 235 + bounce, "V\xE0o");
+      this.paintYellowArrow(g, 760, 240 + bounce, "V\xE0o");
+      this.paintYellowArrow(g, 140, 245 + bounce, "V\xE0o");
       this.paintYellowArrow(g, 434, 405 + bounce, "V\xE0o");
     }
     paintYellowArrow(g, x, y, text) {
@@ -4176,7 +4189,7 @@ void main() {
       g.fillRect(10, 11, 18, 2);
       g.fillRect(10, 16, 18, 2);
       g.fillRect(10, 21, 18, 2);
-      const title = "C\u1ED4NG N\xD4NG TR\u1EA0I (Map 23)";
+      const title = "C\u1ED5ng n\xF4ng tr\u1EA1i (Map 23)";
       this.font.drawString(g, title, Math.floor(w / 2), 10, 2);
       const xuVal = Number(this.controller?.model.userXu || 0);
       const xuStr = `${xuVal.toLocaleString("vi-VN")} Xu`;
@@ -4196,19 +4209,6 @@ void main() {
         g.drawRect(boxX, boxY, boxW, 22);
         this.font.drawString(g, this.feedbackText, Math.floor(w / 2), boxY + 4, 2);
       }
-    }
-    /**
-     * Paint Classic Bottom Softkeys (Menu, Chọn, Về phố)
-     */
-    paintSoftkeys(g, w, h) {
-      const barY = h - 24;
-      g.setColor(988970);
-      g.fillRect(0, barY, w, 24);
-      g.setColor(3359061);
-      g.drawLine(0, barY, w, barY);
-      this.font.drawString(g, "Menu", 12, barY + 5, 0);
-      this.font.drawString(g, "Ch\u1ECDn", Math.floor(w / 2), barY + 5, 2);
-      this.font.drawString(g, "V\u1EC1 ph\u1ED1", w - 12, barY + 5, 1);
     }
     /**
      * Quick Menu Dialog
@@ -4382,10 +4382,24 @@ void main() {
         this.feedbackTimer = 50;
         return;
       }
+      if (worldX >= 500 && worldX <= 690 && worldY >= 180 && worldY <= 340) {
+        this.localPlayer.targetX = 600;
+        this.localPlayer.targetY = 320;
+        this.feedbackText = "\u0110ang \u0111\u1EBFn s\u1EA1p h\xE0ng n\xF4ng s\u1EA3n...";
+        this.feedbackTimer = 50;
+        return;
+      }
       if (Math.abs(worldX - 140) < 55 && worldY <= 300 && worldY >= 200) {
         this.localPlayer.targetX = 140;
         this.localPlayer.targetY = 270;
         this.feedbackText = "\u0110ang g\u1EB7p L\xE1i Bu\xF4n...";
+        this.feedbackTimer = 50;
+        return;
+      }
+      if (worldX >= 860 && worldX <= 990 && worldY >= 160 && worldY <= 300) {
+        this.localPlayer.targetX = 930;
+        this.localPlayer.targetY = 280;
+        this.feedbackText = "Xe kem & \u0111\u1ED3 \u0103n nhanh";
         this.feedbackTimer = 50;
         return;
       }
@@ -5551,6 +5565,12 @@ void main() {
       }
       this.fontHeight = bytes[pos++];
     }
+    mapChar(ch) {
+      if (this.glyphChars.indexOf(ch) !== -1) return ch;
+      const lower = ch.toLowerCase();
+      if (this.glyphChars.indexOf(lower) !== -1) return lower;
+      return ch;
+    }
     stringWidth(text) {
       let width = 0;
       for (let i = 0; i < text.length; i++) {
@@ -5558,7 +5578,8 @@ void main() {
         if (ch === " ") {
           width += (this.glyphWidths[0] || 6) >> 1;
         } else {
-          const idx = this.glyphChars.indexOf(ch);
+          const mappedCh = this.mapChar(ch);
+          const idx = this.glyphChars.indexOf(mappedCh);
           if (idx >= 0 && idx < this.glyphWidths.length) {
             width += this.glyphWidths[idx];
           } else {
@@ -5585,7 +5606,8 @@ void main() {
         if (ch === " ") {
           drawX += (this.glyphWidths[0] || 6) >> 1;
         } else {
-          let idx = this.glyphChars.indexOf(ch);
+          const mappedCh = this.mapChar(ch);
+          let idx = this.glyphChars.indexOf(mappedCh);
           if (idx === -1) idx = 0;
           const charW = this.glyphWidths[idx] || 6;
           if (this.fontImage) {

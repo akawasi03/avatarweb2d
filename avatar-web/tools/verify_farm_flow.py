@@ -13,7 +13,7 @@ def verify_farm_flow():
     print("=== STARTING FULL FARM GATE & PRIVATE FARM VERIFICATION ===")
     with sync_playwright() as p:
         browser = p.chromium.launch(
-            channel='chrome',
+            channel='msedge',
             headless=True,
             args=['--use-gl=angle', '--use-angle=swiftshader']
         )

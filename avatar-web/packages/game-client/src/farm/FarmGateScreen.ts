@@ -52,7 +52,7 @@ export class FarmGateScreen extends GameScreen {
   public cameraY = 0;
 
   // Map dimensions
-  public readonly MAP_WIDTH = 1302;
+  public readonly MAP_WIDTH = 1296;
   public readonly MAP_HEIGHT = 466;
 
   // Walkable bounds
@@ -121,10 +121,11 @@ export class FarmGateScreen extends GameScreen {
       this.preloadSprite('clouds_night', '/assets/bg/clouds_farm_night.png'),
       this.preloadSprite('horizon_day', '/assets/bg/horizon_farm_day.png'),
       this.preloadSprite('horizon_night', '/assets/bg/horizon_farm_night.png'),
-      this.preloadSprite('layer0', '/assets/farm_gate/layer_0.png'),
-      this.preloadSprite('layer1', '/assets/farm_gate/layer_1.png'),
-      this.preloadSprite('layer2', '/assets/farm_gate/layer_2.png'),
-      this.preloadSprite('xeKem', '/assets/farm_gate/Xe_Kem_Do_An_Nhanh.png'),
+      this.preloadSprite('backdrop', '/assets/farm_gate/map23_backdrop.png'),
+      this.preloadSprite('gateArch', '/assets/farm_gate/gate_arch.png'),
+      this.preloadSprite('fruitStall', '/assets/farm_gate/fruit_stall.png'),
+      this.preloadSprite('shopBuilding', '/assets/farm_gate/cua_hang.png'),
+      this.preloadSprite('xeKem', '/assets/farm_gate/xe_kem.png'),
       this.preloadSprite('coin', '/assets/farm_ui/coin.png')
     ]);
 
@@ -245,7 +246,13 @@ export class FarmGateScreen extends GameScreen {
       return;
     }
 
-    // 3. Beside NPC lai.buon
+    // 3. Beside Fruit Stall (x = 600, y = 320)
+    if (Math.abs(this.localPlayer.x - 600) <= 50 && Math.abs(this.localPlayer.y - 320) <= 30) {
+      this.openLaiBuonDialog();
+      return;
+    }
+
+    // 4. Beside NPC lai.buon
     if (Math.abs(this.localPlayer.x - 140) <= 45 && Math.abs(this.localPlayer.y - 280) <= 30) {
       this.openLaiBuonDialog();
       return;
@@ -378,40 +385,46 @@ export class FarmGateScreen extends GameScreen {
   }
 
   /**
-   * Paint 3-layer authentic HD composite backdrop
-   * layer_0 (434x466): Left tree, fence, left post of FARM gate
-   * layer_1 (434x422): Right post of FARM gate, bushes, CỬA HÀNG building
-   * layer_2 (434x466): Right fence, twisted trunk tree, flowers
+   * Paint authentic seamless composite backdrop (Map 23)
+   * Pristine original panorama: Left oak tree, wooden fence, FARM gate, CỬA HÀNG, right twisted tree.
    */
   private paintGateBackdrop(g: Graphics): void {
-    const l0 = this.spriteCache.get('layer0');
-    const l1 = this.spriteCache.get('layer1');
-    const l2 = this.spriteCache.get('layer2');
-
-    // Layer 0: x = 0, y = 0
-    if (l0) {
-      g.drawImage(l0, 0, 0, 0);
-    }
-
-    // Layer 1: x = 434, y = 44 (aligned at ground y = 466)
-    if (l1) {
-      g.drawImage(l1, 434, 44, 0);
-    }
-
-    // Layer 2: x = 868, y = 0
-    if (l2) {
-      g.drawImage(l2, 868, 0, 0);
+    const backdrop = this.spriteCache.get('backdrop');
+    if (backdrop) {
+      g.drawImage(backdrop, 0, 0, 0);
     }
   }
 
   /**
-   * Paint Scenery: Xe Kem Đồ Ăn Nhanh on the right lawn
+   * Paint Authentic Scenery:
+   * 1. Gate Arch (ID 831) at the entrance to Farm
+   * 2. Fruit & Vegetable Stall (ID 1214) between FARM gate and CỬA HÀNG
+   * 3. CỬA HÀNG building (ID 835)
+   * 4. Xe Kem Đồ Ăn Nhanh (ID 842) on the lawn to the right of CỬA HÀNG
    */
   private paintScenery(g: Graphics): void {
+    // 1. Gate arch (ID 831) at the entrance to Farm
+    const gateArch = this.spriteCache.get('gateArch');
+    if (gateArch) {
+      g.drawImage(gateArch, 341, 146, 0);
+    }
+
+    // 2. Fruit & Vegetable Stall (ID 1214) between FARM gate and CỬA HÀNG
+    const fruitStall = this.spriteCache.get('fruitStall');
+    if (fruitStall) {
+      g.drawImage(fruitStall, 518, 140, 0);
+    }
+
+    // 3. CỬA HÀNG building (ID 835)
+    const shop = this.spriteCache.get('shopBuilding');
+    if (shop) {
+      g.drawImage(shop, 658, 144, 0);
+    }
+
+    // 4. Xe Kem Đồ Ăn Nhanh (ID 842) on the lawn to the right of CỬA HÀNG
     const xeKem = this.spriteCache.get('xeKem');
     if (xeKem) {
-      // Resting on the grass to the right of CỬA HÀNG: x = 930, y = 168 (bottom = 300)
-      g.drawImage(xeKem, 930, 168, 0);
+      g.drawImage(xeKem, 888, 176, 0);
     }
   }
 
@@ -426,7 +439,7 @@ export class FarmGateScreen extends GameScreen {
     g.setColor(0x111827);
     g.fillArc(nx - 9, ny - 2, 18, 6, 0, 360);
 
-    // 10-layer avatar rendering for NPC
+    // 10-layer avatar rendering for NPC with authentic red rosette badge
     AvatarRenderer.paintAvatar(
       g,
       nx,
@@ -435,15 +448,9 @@ export class FarmGateScreen extends GameScreen {
       this.npcLaiBuon.dir,
       this.npcLaiBuon.frame,
       this.npcLaiBuon.name,
-      true,
+      false,
       this.font
     );
-
-    // Cute red flower/star icon beside NPC name
-    g.setColor(0xDC2626);
-    g.fillArc(nx - 36, ny - 52, 8, 8, 0, 360);
-    g.setColor(0xFBBF24);
-    g.fillArc(nx - 34, ny - 50, 4, 4, 0, 360);
   }
 
   /**
@@ -480,13 +487,16 @@ export class FarmGateScreen extends GameScreen {
     // 1. "FARM" Wooden Gate Entrance (x = 434, y = 230)
     this.paintYellowArrow(g, 434, 230 + bounce, 'Vào');
 
-    // 2. "CỬA HÀNG" Store Doorway (x = 755, y = 240)
-    this.paintYellowArrow(g, 755, 240 + bounce, 'Vào');
+    // 2. Fruit Stall / Sạp hàng trái cây nông sản (x = 600, y = 235)
+    this.paintYellowArrow(g, 600, 235 + bounce, 'Vào');
 
-    // 3. NPC lai.buon (x = 140, y = 230)
-    this.paintYellowArrow(g, 140, 230 + bounce, 'Vào');
+    // 3. "CỬA HÀNG" Store Doorway (x = 760, y = 240)
+    this.paintYellowArrow(g, 760, 240 + bounce, 'Vào');
 
-    // 4. Bottom Exit to World Map / City (x = 434, y = 405)
+    // 4. NPC lai.buon (x = 140, y = 245)
+    this.paintYellowArrow(g, 140, 245 + bounce, 'Vào');
+
+    // 5. Bottom Exit to World Map / City (x = 434, y = 405)
     this.paintYellowArrow(g, 434, 405 + bounce, 'Vào');
   }
 
@@ -516,7 +526,7 @@ export class FarmGateScreen extends GameScreen {
     g.fillRect(10, 21, 18, 2);
 
     // 2. Center Banner / Title
-    const title = 'CỔNG NÔNG TRẠI (Map 23)';
+    const title = 'Cổng nông trại (Map 23)';
     this.font.drawString(g, title, Math.floor(w / 2), 10, 2);
 
     // 3. Right Status: Player Xu
@@ -542,26 +552,6 @@ export class FarmGateScreen extends GameScreen {
       g.drawRect(boxX, boxY, boxW, 22);
       this.font.drawString(g, this.feedbackText, Math.floor(w / 2), boxY + 4, 2);
     }
-  }
-
-  /**
-   * Paint Classic Bottom Softkeys (Menu, Chọn, Về phố)
-   */
-  private paintSoftkeys(g: Graphics, w: number, h: number): void {
-    const barY = h - 24;
-    g.setColor(0x0F172A);
-    g.fillRect(0, barY, w, 24);
-    g.setColor(0x334155);
-    g.drawLine(0, barY, w, barY);
-
-    // Left softkey: Menu
-    this.font.drawString(g, 'Menu', 12, barY + 5, 0);
-
-    // Center softkey: Chọn (Interact)
-    this.font.drawString(g, 'Chọn', Math.floor(w / 2), barY + 5, 2);
-
-    // Right softkey: Về phố
-    this.font.drawString(g, 'Về phố', w - 12, barY + 5, 1);
   }
 
   /**
@@ -779,11 +769,29 @@ export class FarmGateScreen extends GameScreen {
       return;
     }
 
-    // C. Click on / near NPC lai.buon -> Walk and Talk
+    // C. Click on / near Fruit & Vegetable Stall -> Walk and Talk with Lái Buôn
+    if (worldX >= 500 && worldX <= 690 && worldY >= 180 && worldY <= 340) {
+      this.localPlayer.targetX = 600;
+      this.localPlayer.targetY = 320;
+      this.feedbackText = 'Đang đến sạp hàng nông sản...';
+      this.feedbackTimer = 50;
+      return;
+    }
+
+    // D. Click on / near NPC lai.buon -> Walk and Talk
     if (Math.abs(worldX - 140) < 55 && worldY <= 300 && worldY >= 200) {
       this.localPlayer.targetX = 140;
       this.localPlayer.targetY = 270;
       this.feedbackText = 'Đang gặp Lái Buôn...';
+      this.feedbackTimer = 50;
+      return;
+    }
+
+    // E. Click on / near Xe Kem / Fast Food Cart -> Walk to cart
+    if (worldX >= 860 && worldX <= 990 && worldY >= 160 && worldY <= 300) {
+      this.localPlayer.targetX = 930;
+      this.localPlayer.targetY = 280;
+      this.feedbackText = 'Xe kem & đồ ăn nhanh';
       this.feedbackTimer = 50;
       return;
     }
