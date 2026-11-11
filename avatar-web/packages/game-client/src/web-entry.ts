@@ -294,6 +294,13 @@ async function startWebClient() {
     showWorldMap();
   };
 
+  // When exiting World/Park maps via exit doorway or softkey, return to World Map
+  worldScreen.onExitToWorldMap = () => {
+    console.log('[WebClient] Leaving World/Park -> Returning to World Map...');
+    network.sendGetHandler(8);
+    showWorldMap();
+  };
+
 
 
 

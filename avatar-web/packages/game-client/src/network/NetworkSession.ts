@@ -238,6 +238,15 @@ export class NetworkSession {
       return;
     }
 
+    // Command -10: SET_MONEY_ERROR (Server Dialog Modal)
+    if (cmd === Cmd.SET_MONEY_ERROR) {
+      const r = msg.reader();
+      const message = r.readUTF();
+      console.log(`[Network] Server Dialog: "${message}"`);
+      this.emit('server_dialog', message);
+      return;
+    }
+
     // Command -1: GET_HANDLER
     if (cmd === Cmd.GET_HANDLER) {
       const r = msg.reader();

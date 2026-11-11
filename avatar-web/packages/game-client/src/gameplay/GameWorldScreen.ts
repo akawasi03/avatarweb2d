@@ -166,6 +166,80 @@ export class GameWorldScreen extends GameScreen {
 
   }>> = {
 
+    0: [
+      {
+        id: 858,
+        targetId: 2000000858,
+        name: 'Bạch.vô.thường',
+        x: 60,
+        y: 65,
+        wearing: [0, 10, 5925, 5927, 5929, 5930, 6368],
+        chatMessage: '',
+        chatTimer: 0,
+        chatList: ['Trick or Treat cho kẹo hay bị ghẹo ???']
+      },
+      {
+        id: 859,
+        targetId: 2000000859,
+        name: 'Hắc.vô.thường',
+        x: 188,
+        y: 157,
+        wearing: [0, 4, 5926, 5928, 5931, 5932, 2162],
+        chatMessage: '',
+        chatTimer: 0,
+        chatList: ['Đua TOP đợt 2 sẽ kết thúc vào 22h ngày 08 tháng 11 chúc các b may mắn!']
+      }
+    ],
+
+    2: [
+      {
+        id: 165,
+        targetId: 2000000165,
+        name: 'saitama',
+        x: 40,
+        y: 77,
+        wearing: [3625, 3624, 0, 4],
+        chatMessage: '',
+        chatTimer: 0
+      }
+    ],
+
+    3: [
+      {
+        id: 741,
+        targetId: 2000000741,
+        name: 'an.xin',
+        x: 168,
+        y: 157,
+        wearing: [327, 326, 0, 4, 324, 98],
+        chatMessage: '',
+        chatTimer: 0
+      }
+    ],
+
+    6: [
+      {
+        id: 645,
+        targetId: 2000000645,
+        name: 'co.giao.tieng.anh',
+        x: 150,
+        y: 100,
+        wearing: [69, 68, 0, 80, 64, 579],
+        chatMessage: '',
+        chatTimer: 0
+      },
+      {
+        id: 646,
+        targetId: 2000000646,
+        name: 'co.giao.tieng.viet',
+        x: 250,
+        y: 50,
+        wearing: [120, 119, 0, 518, 665, 591, 304],
+        chatMessage: '',
+        chatTimer: 0
+      }
+    ],
+
     9: [
 
       {
@@ -212,6 +286,19 @@ export class GameWorldScreen extends GameScreen {
 
       }
 
+    ],
+
+    10: [
+      {
+        id: 525,
+        targetId: 2000000525,
+        name: 'Chủ Hôn',
+        x: 278,
+        y: 68,
+        wearing: [2480],
+        chatMessage: '',
+        chatTimer: 0
+      }
     ],
 
     11: [
@@ -475,18 +562,28 @@ export class GameWorldScreen extends GameScreen {
 
 
   // Active NPC Dialogue State
-
   public activeDialog: {
-
     userId: number;
-
     menuId: number;
-
     options: string[];
-
     title?: string;
-
   } | null = null;
+  public selectedDialogOptionIndex = 0;
+
+  // Active Server Dialog & Prompt Modals
+  public serverDialogText: string | null = null;
+  public activeTextBox: {
+    userId: number;
+    menuId: number;
+    title: string;
+    type: number;
+    inputText: string;
+  } | null = null;
+
+  // Inter-map Navigation & Doorway Callbacks
+  public onExitToWorldMap?: () => void;
+  public pendingNpcTarget: { id: number; targetId: number; name: string; x: number; y: number } | null = null;
+  private isTransitioningMap = false;
 
 
 
@@ -642,7 +739,10 @@ export class GameWorldScreen extends GameScreen {
 
       AvatarRenderer.preloadWearing(this.localPlayer.wearing);
 
-
+      this.isTransitioningMap = false;
+      this.activeDialog = null;
+      this.activeTextBox = null;
+      this.serverDialogText = null;
 
       this.remotePlayers.clear();
 
@@ -826,6 +926,26 @@ export class GameWorldScreen extends GameScreen {
 
     });
 
+    // Server Modal Dialog (-10)
+    this.networkSession.on('server_dialog', (msg: string) => {
+      console.log(`[World] Server Dialog Modal: "${msg}"`);
+      this.serverDialogText = msg;
+    });
+
+    // Text Box Input Prompt (-60)
+    this.networkSession.on('text_box', (data: { userId: number; menuId: number; title: string; type: number }) => {
+      console.log(`[World] Text Box Prompt: "${data.title}"`);
+      this.activeTextBox = {
+        userId: data.userId,
+        menuId: data.menuId,
+        title: data.title,
+        type: data.type,
+        inputText: ''
+      };
+      this.isMenuOpen = false;
+      this.isEmoteOpen = false;
+    });
+
 
 
     // Personal Chest Inventory (-47)
@@ -956,7 +1076,14 @@ export class GameWorldScreen extends GameScreen {
 
   }
 
-
+  public changeMap(mapId: number, spawnX = 200, spawnY = 150): void {
+    console.log(`[World] Transitioning from Map ${this.currentMapId} to Map ${mapId} at (${spawnX}, ${spawnY})`);
+    this.isTransitioningMap = true;
+    this.targetMoveX = undefined;
+    this.targetMoveY = undefined;
+    this.localPlayer.isMoving = false;
+    this.networkSession.sendJoinPark(mapId, -1, spawnX, spawnY);
+  }
 
   public update(): void {
 
@@ -1028,6 +1155,16 @@ export class GameWorldScreen extends GameScreen {
         this.localPlayer.isMoving = false;
 
         this.networkSession.sendMove(this.localPlayer.x, this.localPlayer.y, this.localPlayer.direct);
+
+        if (this.pendingNpcTarget) {
+          const npc = this.pendingNpcTarget;
+          this.pendingNpcTarget = null;
+          const distToNpc = Math.hypot(this.localPlayer.x - npc.x, this.localPlayer.y - npc.y);
+          if (distToNpc <= 65) {
+            console.log(`[World] Arrived at NPC: ${npc.name}, communicating...`);
+            this.networkSession.sendCommunicate(npc.targetId);
+          }
+        }
 
       } else {
 
@@ -1181,11 +1318,97 @@ export class GameWorldScreen extends GameScreen {
 
     }
 
+    // 6. Check Doorway step-in transitions
+    if (!this.isTransitioningMap) {
+      const dw = this.tilemapRenderer.getDoorwayAt(this.localPlayer.x, this.localPlayer.y);
+      if (dw) {
+        if (dw.targetMapId === -1) {
+          console.log(`[World] Step-in Doorway -> Exit to World Map / City`);
+          this.isTransitioningMap = true;
+          this.targetMoveX = undefined;
+          this.targetMoveY = undefined;
+          this.localPlayer.isMoving = false;
+          if (this.onExitToWorldMap) {
+            this.onExitToWorldMap();
+          }
+        } else if (dw.targetMapId >= 0 && dw.targetMapId !== this.currentMapId) {
+          console.log(`[World] Step-in Doorway -> Transitioning to Map ${dw.targetMapId} (${dw.name})`);
+          this.isTransitioningMap = true;
+          this.targetMoveX = undefined;
+          this.targetMoveY = undefined;
+          this.localPlayer.isMoving = false;
+          this.changeMap(dw.targetMapId, dw.spawnTarget.x, dw.spawnTarget.y);
+        }
+      }
+    }
+
   }
 
 
 
   public keyPressed(keyCode: number): void {
+    // 0a. Handle active server dialog modal
+    if (this.serverDialogText) {
+      if (keyCode === 13 || keyCode === 27 || keyCode === -5) {
+        this.serverDialogText = null;
+      }
+      return;
+    }
+
+    // 0b. Handle active text box prompt
+    if (this.activeTextBox) {
+      if (keyCode === 13 || keyCode === -5) {
+        this.networkSession.sendTextBoxReply(this.activeTextBox.userId, this.activeTextBox.menuId, this.activeTextBox.inputText);
+        this.activeTextBox = null;
+        return;
+      }
+      if (keyCode === 27) {
+        this.activeTextBox = null;
+        return;
+      }
+      if (keyCode === 8) {
+        this.activeTextBox.inputText = this.activeTextBox.inputText.slice(0, -1);
+        return;
+      }
+      if (keyCode >= 32 && keyCode <= 126) {
+        this.activeTextBox.inputText += String.fromCharCode(keyCode);
+        return;
+      }
+      return;
+    }
+
+    // 0c. Handle active NPC dialog options
+    if (this.activeDialog) {
+      const optCount = this.activeDialog.options.length;
+      if (keyCode >= 49 && keyCode <= 57) {
+        const num = keyCode - 49;
+        if (num < optCount) {
+          const sel = this.activeDialog;
+          this.activeDialog = null;
+          this.networkSession.sendMenuSelect(sel.userId, sel.menuId, num);
+          return;
+        }
+      }
+      if (keyCode === 50 || keyCode === -1 || keyCode === 87 || keyCode === 119) {
+        this.selectedDialogOptionIndex = (this.selectedDialogOptionIndex - 1 + optCount) % optCount;
+        return;
+      }
+      if (keyCode === 56 || keyCode === -2 || keyCode === 83 || keyCode === 115) {
+        this.selectedDialogOptionIndex = (this.selectedDialogOptionIndex + 1) % optCount;
+        return;
+      }
+      if (keyCode === 13 || keyCode === -5 || keyCode === 53) {
+        const sel = this.activeDialog;
+        const idx = this.selectedDialogOptionIndex;
+        this.activeDialog = null;
+        this.networkSession.sendMenuSelect(sel.userId, sel.menuId, idx);
+        return;
+      }
+      if (keyCode === 27) {
+        this.activeDialog = null;
+        return;
+      }
+    }
 
     let moved = false;
 
@@ -1333,6 +1556,50 @@ export class GameWorldScreen extends GameScreen {
 
 
 
+    // 0a. Active Server Dialog Modal
+    if (this.serverDialogText) {
+      this.serverDialogText = null;
+      return;
+    }
+
+    // 0b. Active Text Box Prompt Modal
+    if (this.activeTextBox) {
+      const tw = 280;
+      const th = 140;
+      const tx = Math.floor((screenW - tw) / 2);
+      const ty = Math.floor((screenH - th) / 2);
+
+      // Input field click -> browser prompt fallback
+      if (x >= tx + 16 && x <= tx + tw - 16 && y >= ty + 46 && y <= ty + 76) {
+        if (typeof window !== 'undefined') {
+          const val = window.prompt(this.activeTextBox.title || 'Nhập dữ liệu:', this.activeTextBox.inputText);
+          if (val !== null) {
+            this.activeTextBox.inputText = val;
+          }
+        }
+        return;
+      }
+
+      // "Gửi" button click
+      if (x >= tx + 16 && x <= tx + 126 && y >= ty + th - 28 && y <= ty + th - 6) {
+        this.networkSession.sendTextBoxReply(this.activeTextBox.userId, this.activeTextBox.menuId, this.activeTextBox.inputText);
+        this.activeTextBox = null;
+        return;
+      }
+
+      // "Đóng" button click
+      if (x >= tx + tw - 126 && x <= tx + tw - 16 && y >= ty + th - 28 && y <= ty + th - 6) {
+        this.activeTextBox = null;
+        return;
+      }
+
+      // Click outside closes
+      if (x < tx || x > tx + tw || y < ty || y > ty + th) {
+        this.activeTextBox = null;
+      }
+      return;
+    }
+
     // 1. In-game Menu Popup interaction
 
     if (this.isMenuOpen) {
@@ -1366,41 +1633,33 @@ export class GameWorldScreen extends GameScreen {
 
 
     // 1b. Active NPC Dialog Options interaction
-
     if (this.activeDialog) {
-
-      const dw = 240;
-
-      const dh = this.activeDialog.options.length * 24 + 36;
-
+      const dw = 260;
+      const dh = this.activeDialog.options.length * 26 + 68;
       const dx = Math.floor((screenW - dw) / 2);
-
       const dy = Math.floor((screenH - dh) / 2);
 
-
-
-      if (x >= dx && x <= dx + dw && y >= dy && y <= dy + dh) {
-
-        const optIdx = Math.floor((y - (dy + 28)) / 24);
-
-        if (optIdx >= 0 && optIdx < this.activeDialog.options.length) {
-
+      let rowY = dy + 32;
+      for (let i = 0; i < this.activeDialog.options.length; i++) {
+        if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 24) {
           const sel = this.activeDialog;
-
           this.activeDialog = null;
-
-          this.networkSession.sendMenuSelect(sel.userId, sel.menuId, optIdx);
-
+          this.networkSession.sendMenuSelect(sel.userId, sel.menuId, i);
+          return;
         }
-
-      } else {
-
-        this.activeDialog = null;
-
+        rowY += 26;
       }
 
-      return;
+      // Check "Đóng" button
+      if (x >= dx + Math.floor((dw - 90) / 2) && x <= dx + Math.floor((dw + 90) / 2) && y >= dy + dh - 28 && y <= dy + dh - 6) {
+        this.activeDialog = null;
+        return;
+      }
 
+      if (x < dx || x > dx + dw || y < dy || y > dy + dh) {
+        this.activeDialog = null;
+      }
+      return;
     }
 
 
@@ -1651,51 +1910,65 @@ export class GameWorldScreen extends GameScreen {
 
 
 
-    // 5a. Check if clicked on an NPC
+    // 5a. Check if clicked on a Doorway arrow
+    const clickedDw = this.tilemapRenderer.getDoorwayAt(worldTargetX, worldTargetY);
+    if (clickedDw) {
+      console.log(`[World] Clicked Doorway: ${clickedDw.name} at (${clickedDw.x}, ${clickedDw.y})`);
+      this.targetMoveX = clickedDw.x;
+      this.targetMoveY = clickedDw.y;
+      this.clickEffect = { x: clickedDw.x, y: clickedDw.y, tick: 16 };
+      this.isMouseDown = true;
+      return;
+    }
 
+    // 5b. Check if clicked on an NPC
     for (const npc of this.mapNpcs) {
-
       const dx = Math.abs(worldTargetX - npc.x);
-
       const dy = Math.abs(worldTargetY - npc.y);
-
-      if (dx < 26 && dy < 36) {
-
+      if (dx < 32 && dy < 44) {
         console.log(`[World] Clicked NPC: ${npc.name} (ID: ${npc.targetId})`);
-
-        this.networkSession.sendCommunicate(npc.targetId);
-
+        const distToPlayer = Math.hypot(this.localPlayer.x - npc.x, this.localPlayer.y - npc.y);
+        if (distToPlayer <= 55) {
+          this.networkSession.sendCommunicate(npc.targetId);
+        } else {
+          this.pendingNpcTarget = npc;
+          this.targetMoveX = npc.x + (this.localPlayer.x < npc.x ? -24 : 24);
+          this.targetMoveY = npc.y + 10;
+          this.clickEffect = { x: npc.x, y: npc.y, tick: 16 };
+          this.isMouseDown = true;
+        }
         return;
-
       }
-
     }
 
+    // 5c. Check if clicked on a Bench (partId 840..843)
+    for (const obj of this.tilemapRenderer.mapObjects) {
+      if (obj.partId >= 840 && obj.partId <= 843) {
+        const dx = Math.abs(worldTargetX - obj.x);
+        const dy = Math.abs(worldTargetY - obj.y);
+        if (dx < 20 && dy < 16) {
+          console.log(`[World] Clicked Bench at (${obj.x}, ${obj.y})`);
+          this.targetMoveX = obj.x;
+          this.targetMoveY = obj.y;
+          this.clickEffect = { x: obj.x, y: obj.y, tick: 16 };
+          this.isMouseDown = true;
+          return;
+        }
+      }
+    }
 
-
-    // 5b. Check if clicked on a Remote Player
-
+    // 5d. Check if clicked on a Remote Player
     for (const rp of this.remotePlayers.values()) {
-
       const dx = Math.abs(worldTargetX - rp.x);
-
       const dy = Math.abs(worldTargetY - rp.y);
-
       if (dx < 24 && dy < 34) {
-
         console.log(`[World] Clicked Player: ${rp.name} (ID: ${rp.id})`);
-
         this.selectedTargetPlayer = { id: rp.id, name: rp.name };
-
         return;
-
       }
-
     }
 
-
-
-    // 5c. Otherwise: World Mouse Click-to-Move
+    // 5e. Otherwise: World Mouse Click-to-Move
 
     this.targetMoveX = worldTargetX;
 
@@ -1857,6 +2130,9 @@ export class GameWorldScreen extends GameScreen {
     // 2. Render Tilemap & Landscape
 
     this.tilemapRenderer.paint(g, screenW, screenH);
+
+    // 2b. Render pulsating Doorway arrows & indicators
+    this.tilemapRenderer.renderDoorways(g, this.font, this.animTick);
 
 
 
@@ -2483,40 +2759,62 @@ export class GameWorldScreen extends GameScreen {
 
 
 
-    // 11. NPC Dialog Menu Window
-
+    // 11. Authentic NPC Dialog Menu Window
     if (this.activeDialog) {
-
-      const dw = 250;
-
-      const dh = this.activeDialog.options.length * 24 + 36;
-
+      const dw = 260;
+      const dh = this.activeDialog.options.length * 26 + 68;
       const dx = Math.floor((screenW - dw) / 2);
-
       const dy = Math.floor((screenH - dh) / 2);
 
+      this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, this.activeDialog.title || 'HỘI THOẠI');
 
-
-      this.skinPainter.paintWindow(g, dx, dy, dw, dh);
-
-      if (this.font) {
-
-        this.font.drawString(g, '--- HỘI THOẠI NPC ---', Math.floor(screenW / 2), dy + 8, 2);
-
-        for (let i = 0; i < this.activeDialog.options.length; i++) {
-
-          const iy = dy + 28 + i * 24;
-
-          g.setColor(0x005577);
-
-          g.fillRoundRect(dx + 10, iy, dw - 20, 20, 3);
-
-          this.font.drawString(g, `[${i + 1}] ${this.activeDialog.options[i]}`, dx + 16, iy + 3, 0);
-
-        }
-
+      let rowY = dy + 32;
+      for (let i = 0; i < this.activeDialog.options.length; i++) {
+        const isSel = (i === this.selectedDialogOptionIndex);
+        this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 22, `${i + 1}. ${this.activeDialog.options[i]}`, isSel);
+        rowY += 26;
       }
 
+      this.skinPainter.paintAuthenticButton(g, dx + Math.floor((dw - 90) / 2), dy + dh - 26, 90, 20, 'Đóng', 'secondary');
+    }
+
+    // 11b. Authentic Server Dialog Modal (-10)
+    if (this.serverDialogText) {
+      const sw = 280;
+      const sh = 130;
+      const sx = Math.floor((screenW - sw) / 2);
+      const sy = Math.floor((screenH - sh) / 2);
+
+      this.skinPainter.paintAuthenticDialog(g, sx, sy, sw, sh, 'THÔNG BÁO');
+      if (this.font) {
+        this.font.drawString(g, this.serverDialogText, sx + Math.floor(sw / 2), sy + 46, 2);
+      }
+      this.skinPainter.paintAuthenticButton(g, sx + Math.floor((sw - 100) / 2), sy + sh - 28, 100, 22, 'Đóng', 'primary');
+    }
+
+    // 11c. Authentic Text Box Input Prompt (-60)
+    if (this.activeTextBox) {
+      const tw = 280;
+      const th = 140;
+      const tx = Math.floor((screenW - tw) / 2);
+      const ty = Math.floor((screenH - th) / 2);
+
+      this.skinPainter.paintAuthenticDialog(g, tx, ty, tw, th, this.activeTextBox.title || 'NHẬP DỮ LIỆU');
+
+      // Input field background
+      g.setColor(0xFFFFFF);
+      g.fillRect(tx + 16, ty + 46, tw - 32, 26);
+      g.setColor(0x78350F);
+      g.drawRect(tx + 16, ty + 46, tw - 33, 25);
+
+      if (this.font) {
+        const cursor = (this.animTick % 20 < 10) ? '|' : '';
+        const displayText = this.activeTextBox.inputText ? (this.activeTextBox.inputText + cursor) : cursor;
+        this.font.drawString(g, displayText, tx + 22, ty + 50, 0);
+      }
+
+      this.skinPainter.paintAuthenticButton(g, tx + 16, ty + th - 28, 110, 22, 'Gửi', 'primary');
+      this.skinPainter.paintAuthenticButton(g, tx + tw - 126, ty + th - 28, 110, 22, 'Đóng', 'secondary');
     }
 
 

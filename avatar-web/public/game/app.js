@@ -5710,8 +5710,8 @@ void main() {
       key: "park",
       name: "C\xF4ng vi\xEAn",
       mapId: 11,
-      spawnX: 120,
-      spawnY: 72,
+      spawnX: 504,
+      spawnY: 150,
       normPinX: 0.228,
       normPinY: 0.602,
       normTextX: 0.228,
@@ -6829,6 +6829,13 @@ void main() {
         this.emit("server_info", info);
         return;
       }
+      if (cmd === import_protocol.Cmd.SET_MONEY_ERROR) {
+        const r = msg.reader();
+        const message = r.readUTF();
+        console.log(`[Network] Server Dialog: "${message}"`);
+        this.emit("server_dialog", message);
+        return;
+      }
       if (cmd === import_protocol.Cmd.GET_HANDLER) {
         const r = msg.reader();
         const handlerId = r.readByte();
@@ -7448,6 +7455,172 @@ void main() {
 
   // packages/game-client/src/maps/TilemapRenderer.ts
   var import_j2me_compat9 = __toESM(require_dist());
+  function getDoorwayTarget(t, currentMapId, col, row, totalCols, totalRows) {
+    if (t === 139) {
+      return {
+        targetMapId: -1,
+        name: "V\u1EC1 Th\xE0nh Ph\u1ED1",
+        spawnTarget: { x: 120, y: 72 }
+      };
+    }
+    if (t === 153) {
+      let spawnX = 324;
+      let spawnY = 30;
+      if (currentMapId === 10) {
+        spawnX = 684;
+        spawnY = 30;
+      }
+      return {
+        targetMapId: 11,
+        name: "B\u1EBFn Xe C\xF4ng Vi\xEAn",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 204) {
+      if (currentMapId === 11) {
+        return {
+          targetMapId: 10,
+          name: "Khu L\u1EC5 \u0110\u01B0\u1EDDng",
+          spawnTarget: { x: 516, y: 140 }
+        };
+      } else if (currentMapId === 23) {
+        return {
+          targetMapId: 25,
+          name: "N\xF4ng Tr\u1EA1i",
+          spawnTarget: { x: 830, y: 690 }
+        };
+      } else {
+        return {
+          targetMapId: 10,
+          name: "Khu L\u1EC5 \u0110\u01B0\u1EDDng",
+          spawnTarget: { x: 516, y: 140 }
+        };
+      }
+    }
+    if (t === 130) {
+      let spawnX = 300;
+      let spawnY = 140;
+      if (currentMapId === 1) {
+        spawnX = 30;
+        spawnY = 84;
+      } else if (currentMapId === 7) {
+        spawnX = 570;
+        spawnY = 84;
+      }
+      return {
+        targetMapId: 0,
+        name: "Khu M\u1EB7t Tr\u1EDDi",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 131) {
+      let spawnX = 280;
+      let spawnY = 84;
+      if (currentMapId === 2) {
+        spawnX = 156;
+        spawnY = 30;
+      }
+      return {
+        targetMapId: 1,
+        name: "Khu Quay S\u1ED1",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 132) {
+      let spawnX = 156;
+      let spawnY = 140;
+      if (currentMapId === 3) {
+        spawnX = 156;
+        spawnY = 30;
+      }
+      return {
+        targetMapId: 2,
+        name: "H\u1ED3 N\u01B0\u1EDBc C\xF4ng Vi\xEAn",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 133) {
+      let spawnX = 180;
+      let spawnY = 140;
+      if (currentMapId === 4) {
+        spawnX = 400;
+        spawnY = 84;
+      }
+      return {
+        targetMapId: 3,
+        name: "Khu \u0102n Xin Tr\xE1i",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 134) {
+      let spawnX = 30;
+      let spawnY = 84;
+      if (currentMapId === 5) {
+        spawnX = 610;
+        spawnY = 84;
+      }
+      return {
+        targetMapId: 4,
+        name: "Khu C\u01B0\u1EDBi & Clan",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 135) {
+      let spawnX = 30;
+      let spawnY = 84;
+      if (currentMapId === 6) {
+        spawnX = 348;
+        spawnY = 140;
+      }
+      return {
+        targetMapId: 5,
+        name: "Khu \u0102n Xin Ph\u1EA3i",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 136) {
+      let spawnX = 252;
+      let spawnY = 30;
+      if (currentMapId === 7) {
+        spawnX = 252;
+        spawnY = 140;
+      }
+      return {
+        targetMapId: 6,
+        name: "Khu C\xF4 Gi\xE1o",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 137) {
+      let spawnX = 30;
+      let spawnY = 84;
+      if (currentMapId === 6) {
+        spawnX = 204;
+        spawnY = 30;
+      }
+      return {
+        targetMapId: 7,
+        name: "Khu D\u01B0\u1EDBi C\xF4 Gi\xE1o",
+        spawnTarget: { x: spawnX, y: spawnY }
+      };
+    }
+    if (t === 138) {
+      if (currentMapId === 0 || currentMapId === 4 || currentMapId === 6) {
+        return {
+          targetMapId: 2,
+          name: "H\u1ED3 N\u01B0\u1EDBc C\xF4ng Vi\xEAn",
+          spawnTarget: { x: 156, y: 140 }
+        };
+      } else {
+        return {
+          targetMapId: 0,
+          name: "Khu M\u1EB7t Tr\u1EDDi",
+          spawnTarget: { x: 300, y: 30 }
+        };
+      }
+    }
+    return null;
+  }
   var TilemapRenderer = class _TilemapRenderer {
     static TILE_SIZE = 24;
     // i = 24 in ir.java
@@ -7455,6 +7628,7 @@ void main() {
     // 168 px / 24 px = 7 tiles
     mapData;
     mapObjects = [];
+    doorways = [];
     tilesetImage;
     bgImage;
     cloudImage;
@@ -7560,6 +7734,39 @@ void main() {
           const val = bytes[i2];
           tiles[i2] = val === 255 ? -1 : val;
         }
+        const doorways = [];
+        const visitedDoorwayTiles = /* @__PURE__ */ new Set();
+        for (let r = 0; r < heightTiles; r++) {
+          for (let c = 0; c < widthTiles; c++) {
+            const idx = r * widthTiles + c;
+            if (visitedDoorwayTiles.has(idx)) continue;
+            const val = bytes[idx];
+            const target = getDoorwayTarget(val, mapId, c, r, widthTiles, heightTiles);
+            if (target) {
+              let span = 1;
+              visitedDoorwayTiles.add(idx);
+              while (c + span < widthTiles && bytes[r * widthTiles + (c + span)] === val) {
+                visitedDoorwayTiles.add(r * widthTiles + (c + span));
+                span++;
+              }
+              const dwW = span * _TilemapRenderer.TILE_SIZE;
+              const dwX = c * _TilemapRenderer.TILE_SIZE + Math.floor(dwW / 2);
+              const dwY = (r + 1) * _TilemapRenderer.TILE_SIZE;
+              doorways.push({
+                x: dwX,
+                y: dwY,
+                w: dwW,
+                h: _TilemapRenderer.TILE_SIZE,
+                tileCol: c,
+                tileRow: r,
+                targetMapId: target.targetMapId,
+                name: target.name,
+                spawnTarget: target.spawnTarget
+              });
+            }
+          }
+        }
+        this.doorways = doorways;
         const spawnedObjects = [];
         let i = 0;
         while (i < totalTiles) {
@@ -7977,6 +8184,7 @@ void main() {
     }
     isBlocked(worldX, worldY) {
       if (!this.mapData) return false;
+      if (this.isDoorway(worldX, worldY)) return false;
       const { widthTiles, heightTiles, collision } = this.mapData;
       const tx = Math.floor(worldX / _TilemapRenderer.TILE_SIZE);
       const ty = Math.floor(worldY / _TilemapRenderer.TILE_SIZE);
@@ -7985,6 +8193,50 @@ void main() {
       }
       const c = collision[ty * widthTiles + tx];
       return c === 88 || c === 92;
+    }
+    isDoorway(worldX, worldY) {
+      for (const d of this.doorways) {
+        const dx = Math.abs(worldX - d.x);
+        const dy = Math.abs(worldY - d.y);
+        if (dx <= d.w / 2 + 8 && dy <= 18) {
+          return true;
+        }
+      }
+      return false;
+    }
+    getDoorwayAt(worldX, worldY) {
+      for (const d of this.doorways) {
+        const dx = Math.abs(worldX - d.x);
+        const dy = Math.abs(worldY - d.y);
+        if (dx <= d.w / 2 + 14 && dy <= 20) {
+          return d;
+        }
+      }
+      return null;
+    }
+    /**
+     * Render authentic pulsating downward "Vào" arrows and ground shadows
+     */
+    renderDoorways(g, font, animTick = 0) {
+      if (!this.doorways || this.doorways.length === 0) return;
+      for (const d of this.doorways) {
+        const animOffset = Math.sin((animTick + d.x) * 0.18) * 3;
+        const screenX = d.x - this.cameraX;
+        const screenY = d.y - this.cameraY - 10 + animOffset;
+        g.setColor(0);
+        g.fillArc(screenX - 10, d.y - this.cameraY - 4, 20, 6, 0, 360);
+        if (font) {
+          font.drawString(g, "V\xE0o", screenX, screenY - 14, 2);
+        }
+        g.setColor(0);
+        for (let row = 0; row < 7; row++) {
+          g.fillRect(screenX - (6 - row), screenY + row - 1, (6 - row) * 2 + 1, 1);
+        }
+        g.setColor(16436245);
+        for (let row = 0; row < 6; row++) {
+          g.fillRect(screenX - (5 - row), screenY + row, (5 - row) * 2 + 1, 1);
+        }
+      }
     }
   };
 
@@ -8042,6 +8294,76 @@ void main() {
     ];
     // Authentic NPCs definition per Map ID from avatar_2x.npc database
     static ALL_MAP_NPCS = {
+      0: [
+        {
+          id: 858,
+          targetId: 2000000858,
+          name: "B\u1EA1ch.v\xF4.th\u01B0\u1EDDng",
+          x: 60,
+          y: 65,
+          wearing: [0, 10, 5925, 5927, 5929, 5930, 6368],
+          chatMessage: "",
+          chatTimer: 0,
+          chatList: ["Trick or Treat cho k\u1EB9o hay b\u1ECB gh\u1EB9o ???"]
+        },
+        {
+          id: 859,
+          targetId: 2000000859,
+          name: "H\u1EAFc.v\xF4.th\u01B0\u1EDDng",
+          x: 188,
+          y: 157,
+          wearing: [0, 4, 5926, 5928, 5931, 5932, 2162],
+          chatMessage: "",
+          chatTimer: 0,
+          chatList: ["\u0110ua TOP \u0111\u1EE3t 2 s\u1EBD k\u1EBFt th\xFAc v\xE0o 22h ng\xE0y 08 th\xE1ng 11 ch\xFAc c\xE1c b may m\u1EAFn!"]
+        }
+      ],
+      2: [
+        {
+          id: 165,
+          targetId: 2000000165,
+          name: "saitama",
+          x: 40,
+          y: 77,
+          wearing: [3625, 3624, 0, 4],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
+      3: [
+        {
+          id: 741,
+          targetId: 2000000741,
+          name: "an.xin",
+          x: 168,
+          y: 157,
+          wearing: [327, 326, 0, 4, 324, 98],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
+      6: [
+        {
+          id: 645,
+          targetId: 2000000645,
+          name: "co.giao.tieng.anh",
+          x: 150,
+          y: 100,
+          wearing: [69, 68, 0, 80, 64, 579],
+          chatMessage: "",
+          chatTimer: 0
+        },
+        {
+          id: 646,
+          targetId: 2000000646,
+          name: "co.giao.tieng.viet",
+          x: 250,
+          y: 50,
+          wearing: [120, 119, 0, 518, 665, 591, 304],
+          chatMessage: "",
+          chatTimer: 0
+        }
+      ],
       9: [
         {
           id: 185,
@@ -8064,6 +8386,18 @@ void main() {
           chatMessage: "",
           chatTimer: 0,
           chatList: ["Ch\xE0o c\xE1c b\u1EA1n \u0111\xE3 \u0111\u1EBFn v\u1EDBi \u0111\u1EA5u gi\xE1", "Hi\u1EC7n ch\u01B0a c\xF3 th\xF4ng tin phi\xEAn ti\u1EBFp theo"]
+        }
+      ],
+      10: [
+        {
+          id: 525,
+          targetId: 2000000525,
+          name: "Ch\u1EE7 H\xF4n",
+          x: 278,
+          y: 68,
+          wearing: [2480],
+          chatMessage: "",
+          chatTimer: 0
         }
       ],
       11: [
@@ -8186,6 +8520,14 @@ void main() {
     mapNpcs = [];
     // Active NPC Dialogue State
     activeDialog = null;
+    selectedDialogOptionIndex = 0;
+    // Active Server Dialog & Prompt Modals
+    serverDialogText = null;
+    activeTextBox = null;
+    // Inter-map Navigation & Doorway Callbacks
+    onExitToWorldMap;
+    pendingNpcTarget = null;
+    isTransitioningMap = false;
     // Active Chest Inventory State
     isChestOpen = false;
     chestItems = [];
@@ -8242,6 +8584,10 @@ void main() {
           }
         });
         AvatarRenderer.preloadWearing(this.localPlayer.wearing);
+        this.isTransitioningMap = false;
+        this.activeDialog = null;
+        this.activeTextBox = null;
+        this.serverDialogText = null;
         this.remotePlayers.clear();
         if (data.players) {
           for (const p of data.players) {
@@ -8325,6 +8671,22 @@ void main() {
         this.isEmoteOpen = false;
         this.isChestOpen = false;
       });
+      this.networkSession.on("server_dialog", (msg) => {
+        console.log(`[World] Server Dialog Modal: "${msg}"`);
+        this.serverDialogText = msg;
+      });
+      this.networkSession.on("text_box", (data) => {
+        console.log(`[World] Text Box Prompt: "${data.title}"`);
+        this.activeTextBox = {
+          userId: data.userId,
+          menuId: data.menuId,
+          title: data.title,
+          type: data.type,
+          inputText: ""
+        };
+        this.isMenuOpen = false;
+        this.isEmoteOpen = false;
+      });
       this.networkSession.on("view_chest", (items) => {
         console.log(`[World] Chest items received: ${items.length}`);
         this.chestItems = items;
@@ -8379,6 +8741,14 @@ void main() {
         this.tickerX = 500;
       });
     }
+    changeMap(mapId, spawnX = 200, spawnY = 150) {
+      console.log(`[World] Transitioning from Map ${this.currentMapId} to Map ${mapId} at (${spawnX}, ${spawnY})`);
+      this.isTransitioningMap = true;
+      this.targetMoveX = void 0;
+      this.targetMoveY = void 0;
+      this.localPlayer.isMoving = false;
+      this.networkSession.sendJoinPark(mapId, -1, spawnX, spawnY);
+    }
     update() {
       this.localPlayer.prevX = this.localPlayer.x;
       this.localPlayer.prevY = this.localPlayer.y;
@@ -8408,6 +8778,15 @@ void main() {
           this.targetMoveY = void 0;
           this.localPlayer.isMoving = false;
           this.networkSession.sendMove(this.localPlayer.x, this.localPlayer.y, this.localPlayer.direct);
+          if (this.pendingNpcTarget) {
+            const npc = this.pendingNpcTarget;
+            this.pendingNpcTarget = null;
+            const distToNpc = Math.hypot(this.localPlayer.x - npc.x, this.localPlayer.y - npc.y);
+            if (distToNpc <= 65) {
+              console.log(`[World] Arrived at NPC: ${npc.name}, communicating...`);
+              this.networkSession.sendCommunicate(npc.targetId);
+            }
+          }
         } else {
           const angle = Math.atan2(dy, dx);
           const stepX = Math.cos(angle) * speed;
@@ -8472,8 +8851,87 @@ void main() {
           }
         }
       }
+      if (!this.isTransitioningMap) {
+        const dw = this.tilemapRenderer.getDoorwayAt(this.localPlayer.x, this.localPlayer.y);
+        if (dw) {
+          if (dw.targetMapId === -1) {
+            console.log(`[World] Step-in Doorway -> Exit to World Map / City`);
+            this.isTransitioningMap = true;
+            this.targetMoveX = void 0;
+            this.targetMoveY = void 0;
+            this.localPlayer.isMoving = false;
+            if (this.onExitToWorldMap) {
+              this.onExitToWorldMap();
+            }
+          } else if (dw.targetMapId >= 0 && dw.targetMapId !== this.currentMapId) {
+            console.log(`[World] Step-in Doorway -> Transitioning to Map ${dw.targetMapId} (${dw.name})`);
+            this.isTransitioningMap = true;
+            this.targetMoveX = void 0;
+            this.targetMoveY = void 0;
+            this.localPlayer.isMoving = false;
+            this.changeMap(dw.targetMapId, dw.spawnTarget.x, dw.spawnTarget.y);
+          }
+        }
+      }
     }
     keyPressed(keyCode) {
+      if (this.serverDialogText) {
+        if (keyCode === 13 || keyCode === 27 || keyCode === -5) {
+          this.serverDialogText = null;
+        }
+        return;
+      }
+      if (this.activeTextBox) {
+        if (keyCode === 13 || keyCode === -5) {
+          this.networkSession.sendTextBoxReply(this.activeTextBox.userId, this.activeTextBox.menuId, this.activeTextBox.inputText);
+          this.activeTextBox = null;
+          return;
+        }
+        if (keyCode === 27) {
+          this.activeTextBox = null;
+          return;
+        }
+        if (keyCode === 8) {
+          this.activeTextBox.inputText = this.activeTextBox.inputText.slice(0, -1);
+          return;
+        }
+        if (keyCode >= 32 && keyCode <= 126) {
+          this.activeTextBox.inputText += String.fromCharCode(keyCode);
+          return;
+        }
+        return;
+      }
+      if (this.activeDialog) {
+        const optCount = this.activeDialog.options.length;
+        if (keyCode >= 49 && keyCode <= 57) {
+          const num = keyCode - 49;
+          if (num < optCount) {
+            const sel = this.activeDialog;
+            this.activeDialog = null;
+            this.networkSession.sendMenuSelect(sel.userId, sel.menuId, num);
+            return;
+          }
+        }
+        if (keyCode === 50 || keyCode === -1 || keyCode === 87 || keyCode === 119) {
+          this.selectedDialogOptionIndex = (this.selectedDialogOptionIndex - 1 + optCount) % optCount;
+          return;
+        }
+        if (keyCode === 56 || keyCode === -2 || keyCode === 83 || keyCode === 115) {
+          this.selectedDialogOptionIndex = (this.selectedDialogOptionIndex + 1) % optCount;
+          return;
+        }
+        if (keyCode === 13 || keyCode === -5 || keyCode === 53) {
+          const sel = this.activeDialog;
+          const idx = this.selectedDialogOptionIndex;
+          this.activeDialog = null;
+          this.networkSession.sendMenuSelect(sel.userId, sel.menuId, idx);
+          return;
+        }
+        if (keyCode === 27) {
+          this.activeDialog = null;
+          return;
+        }
+      }
       let moved = false;
       let newX = this.localPlayer.x;
       let newY = this.localPlayer.y;
@@ -8528,6 +8986,38 @@ void main() {
     pointerPressed(x, y) {
       const screenW = typeof window !== "undefined" && window.gameMidlet?.canvas?.width || 640;
       const screenH = typeof window !== "undefined" && window.gameMidlet?.canvas?.height || 360;
+      if (this.serverDialogText) {
+        this.serverDialogText = null;
+        return;
+      }
+      if (this.activeTextBox) {
+        const tw = 280;
+        const th = 140;
+        const tx = Math.floor((screenW - tw) / 2);
+        const ty = Math.floor((screenH - th) / 2);
+        if (x >= tx + 16 && x <= tx + tw - 16 && y >= ty + 46 && y <= ty + 76) {
+          if (typeof window !== "undefined") {
+            const val = window.prompt(this.activeTextBox.title || "Nh\u1EADp d\u1EEF li\u1EC7u:", this.activeTextBox.inputText);
+            if (val !== null) {
+              this.activeTextBox.inputText = val;
+            }
+          }
+          return;
+        }
+        if (x >= tx + 16 && x <= tx + 126 && y >= ty + th - 28 && y <= ty + th - 6) {
+          this.networkSession.sendTextBoxReply(this.activeTextBox.userId, this.activeTextBox.menuId, this.activeTextBox.inputText);
+          this.activeTextBox = null;
+          return;
+        }
+        if (x >= tx + tw - 126 && x <= tx + tw - 16 && y >= ty + th - 28 && y <= ty + th - 6) {
+          this.activeTextBox = null;
+          return;
+        }
+        if (x < tx || x > tx + tw || y < ty || y > ty + th) {
+          this.activeTextBox = null;
+        }
+        return;
+      }
       if (this.isMenuOpen) {
         const mw = 170;
         const mh = this.menuOptions.length * 24 + 16;
@@ -8542,18 +9032,25 @@ void main() {
         return;
       }
       if (this.activeDialog) {
-        const dw = 240;
-        const dh = this.activeDialog.options.length * 24 + 36;
+        const dw = 260;
+        const dh = this.activeDialog.options.length * 26 + 68;
         const dx = Math.floor((screenW - dw) / 2);
         const dy = Math.floor((screenH - dh) / 2);
-        if (x >= dx && x <= dx + dw && y >= dy && y <= dy + dh) {
-          const optIdx = Math.floor((y - (dy + 28)) / 24);
-          if (optIdx >= 0 && optIdx < this.activeDialog.options.length) {
+        let rowY = dy + 32;
+        for (let i = 0; i < this.activeDialog.options.length; i++) {
+          if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 24) {
             const sel = this.activeDialog;
             this.activeDialog = null;
-            this.networkSession.sendMenuSelect(sel.userId, sel.menuId, optIdx);
+            this.networkSession.sendMenuSelect(sel.userId, sel.menuId, i);
+            return;
           }
-        } else {
+          rowY += 26;
+        }
+        if (x >= dx + Math.floor((dw - 90) / 2) && x <= dx + Math.floor((dw + 90) / 2) && y >= dy + dh - 28 && y <= dy + dh - 6) {
+          this.activeDialog = null;
+          return;
+        }
+        if (x < dx || x > dx + dw || y < dy || y > dy + dh) {
           this.activeDialog = null;
         }
         return;
@@ -8656,13 +9153,45 @@ void main() {
       }
       const worldTargetX = x + this.tilemapRenderer.cameraX;
       const worldTargetY = y + this.tilemapRenderer.cameraY;
+      const clickedDw = this.tilemapRenderer.getDoorwayAt(worldTargetX, worldTargetY);
+      if (clickedDw) {
+        console.log(`[World] Clicked Doorway: ${clickedDw.name} at (${clickedDw.x}, ${clickedDw.y})`);
+        this.targetMoveX = clickedDw.x;
+        this.targetMoveY = clickedDw.y;
+        this.clickEffect = { x: clickedDw.x, y: clickedDw.y, tick: 16 };
+        this.isMouseDown = true;
+        return;
+      }
       for (const npc of this.mapNpcs) {
         const dx = Math.abs(worldTargetX - npc.x);
         const dy = Math.abs(worldTargetY - npc.y);
-        if (dx < 26 && dy < 36) {
+        if (dx < 32 && dy < 44) {
           console.log(`[World] Clicked NPC: ${npc.name} (ID: ${npc.targetId})`);
-          this.networkSession.sendCommunicate(npc.targetId);
+          const distToPlayer = Math.hypot(this.localPlayer.x - npc.x, this.localPlayer.y - npc.y);
+          if (distToPlayer <= 55) {
+            this.networkSession.sendCommunicate(npc.targetId);
+          } else {
+            this.pendingNpcTarget = npc;
+            this.targetMoveX = npc.x + (this.localPlayer.x < npc.x ? -24 : 24);
+            this.targetMoveY = npc.y + 10;
+            this.clickEffect = { x: npc.x, y: npc.y, tick: 16 };
+            this.isMouseDown = true;
+          }
           return;
+        }
+      }
+      for (const obj of this.tilemapRenderer.mapObjects) {
+        if (obj.partId >= 840 && obj.partId <= 843) {
+          const dx = Math.abs(worldTargetX - obj.x);
+          const dy = Math.abs(worldTargetY - obj.y);
+          if (dx < 20 && dy < 16) {
+            console.log(`[World] Clicked Bench at (${obj.x}, ${obj.y})`);
+            this.targetMoveX = obj.x;
+            this.targetMoveY = obj.y;
+            this.clickEffect = { x: obj.x, y: obj.y, tick: 16 };
+            this.isMouseDown = true;
+            return;
+          }
         }
       }
       for (const rp of this.remotePlayers.values()) {
@@ -8747,6 +9276,7 @@ void main() {
       const camX = this.tilemapRenderer.cameraX;
       const camY = this.tilemapRenderer.cameraY;
       this.tilemapRenderer.paint(g, screenW, screenH);
+      this.tilemapRenderer.renderDoorways(g, this.font, this.animTick);
       if (this.clickEffect && this.clickEffect.tick > 0) {
         const effX = this.clickEffect.x - camX;
         const effY = this.clickEffect.y - camY;
@@ -8990,20 +9520,47 @@ void main() {
         }
       }
       if (this.activeDialog) {
-        const dw = 250;
-        const dh = this.activeDialog.options.length * 24 + 36;
+        const dw = 260;
+        const dh = this.activeDialog.options.length * 26 + 68;
         const dx = Math.floor((screenW - dw) / 2);
         const dy = Math.floor((screenH - dh) / 2);
-        this.skinPainter.paintWindow(g, dx, dy, dw, dh);
-        if (this.font) {
-          this.font.drawString(g, "--- H\u1ED8I THO\u1EA0I NPC ---", Math.floor(screenW / 2), dy + 8, 2);
-          for (let i = 0; i < this.activeDialog.options.length; i++) {
-            const iy = dy + 28 + i * 24;
-            g.setColor(21879);
-            g.fillRoundRect(dx + 10, iy, dw - 20, 20, 3);
-            this.font.drawString(g, `[${i + 1}] ${this.activeDialog.options[i]}`, dx + 16, iy + 3, 0);
-          }
+        this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, this.activeDialog.title || "H\u1ED8I THO\u1EA0I");
+        let rowY = dy + 32;
+        for (let i = 0; i < this.activeDialog.options.length; i++) {
+          const isSel = i === this.selectedDialogOptionIndex;
+          this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 22, `${i + 1}. ${this.activeDialog.options[i]}`, isSel);
+          rowY += 26;
         }
+        this.skinPainter.paintAuthenticButton(g, dx + Math.floor((dw - 90) / 2), dy + dh - 26, 90, 20, "\u0110\xF3ng", "secondary");
+      }
+      if (this.serverDialogText) {
+        const sw = 280;
+        const sh = 130;
+        const sx = Math.floor((screenW - sw) / 2);
+        const sy = Math.floor((screenH - sh) / 2);
+        this.skinPainter.paintAuthenticDialog(g, sx, sy, sw, sh, "TH\xD4NG B\xC1O");
+        if (this.font) {
+          this.font.drawString(g, this.serverDialogText, sx + Math.floor(sw / 2), sy + 46, 2);
+        }
+        this.skinPainter.paintAuthenticButton(g, sx + Math.floor((sw - 100) / 2), sy + sh - 28, 100, 22, "\u0110\xF3ng", "primary");
+      }
+      if (this.activeTextBox) {
+        const tw = 280;
+        const th = 140;
+        const tx = Math.floor((screenW - tw) / 2);
+        const ty = Math.floor((screenH - th) / 2);
+        this.skinPainter.paintAuthenticDialog(g, tx, ty, tw, th, this.activeTextBox.title || "NH\u1EACP D\u1EEE LI\u1EC6U");
+        g.setColor(16777215);
+        g.fillRect(tx + 16, ty + 46, tw - 32, 26);
+        g.setColor(7877903);
+        g.drawRect(tx + 16, ty + 46, tw - 33, 25);
+        if (this.font) {
+          const cursor = this.animTick % 20 < 10 ? "|" : "";
+          const displayText = this.activeTextBox.inputText ? this.activeTextBox.inputText + cursor : cursor;
+          this.font.drawString(g, displayText, tx + 22, ty + 50, 0);
+        }
+        this.skinPainter.paintAuthenticButton(g, tx + 16, ty + th - 28, 110, 22, "G\u1EEDi", "primary");
+        this.skinPainter.paintAuthenticButton(g, tx + tw - 126, ty + th - 28, 110, 22, "\u0110\xF3ng", "secondary");
       }
       if (this.isChestOpen) {
         const cw = 250;
@@ -9149,6 +9706,11 @@ void main() {
     };
     farmGateScreen.onExitToWorldMap = () => {
       console.log("[WebClient] Leaving C\u1ED5ng N\xF4ng Tr\u1EA1i -> Returning to World Map...");
+      showWorldMap();
+    };
+    worldScreen.onExitToWorldMap = () => {
+      console.log("[WebClient] Leaving World/Park -> Returning to World Map...");
+      network.sendGetHandler(8);
       showWorldMap();
     };
     midlet.canvas.setCurrentScreen(midlet.worldMapScreen);

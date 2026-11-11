@@ -1,5 +1,6 @@
 import { Graphics, Image } from '@avatar/j2me-compat';
 import { MapItemType, DynamicMapItem } from '../network/NetworkSession.js';
+import { IFont } from '../renderer/BitmapFont.js';
 
 export interface MapData {
   id: number;
@@ -20,12 +21,226 @@ export interface MapObjectInstance {
   dynamicId?: number;
 }
 
+export interface MapDoorway {
+  x: number;          // Center X in pixels
+  y: number;          // Bottom Y in pixels
+  w: number;          // Hitbox width in pixels
+  h: number;          // Hitbox height in pixels
+  tileCol: number;
+  tileRow: number;
+  targetMapId: number;
+  name: string;
+  spawnTarget: { x: number; y: number };
+}
+
+/**
+ * Authentic Doorway routing mapped 1:1 with Java ME (ir.java lines 440-730 and 1869-1900)
+ */
+export function getDoorwayTarget(
+  t: number,
+  currentMapId: number,
+  col: number,
+  row: number,
+  totalCols: number,
+  totalRows: number
+): { targetMapId: number; name: string; spawnTarget: { x: number; y: number } } | null {
+  // Tile 139: City bus exit back to World Map
+  if (t === 139) {
+    return {
+      targetMapId: -1,
+      name: 'Về Thành Phố',
+      spawnTarget: { x: 120, y: 72 }
+    };
+  }
+
+  // Tile 153: Leads to Map 11 (Bến xe công viên)
+  if (t === 153) {
+    let spawnX = 324;
+    let spawnY = 30;
+    if (currentMapId === 10) {
+      spawnX = 684;
+      spawnY = 30;
+    }
+    return {
+      targetMapId: 11,
+      name: 'Bến Xe Công Viên',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 204:
+  if (t === 204) {
+    if (currentMapId === 11) {
+      return {
+        targetMapId: 10,
+        name: 'Khu Lễ Đường',
+        spawnTarget: { x: 516, y: 140 }
+      };
+    } else if (currentMapId === 23) {
+      return {
+        targetMapId: 25,
+        name: 'Nông Trại',
+        spawnTarget: { x: 830, y: 690 }
+      };
+    } else {
+      return {
+        targetMapId: 10,
+        name: 'Khu Lễ Đường',
+        spawnTarget: { x: 516, y: 140 }
+      };
+    }
+  }
+
+  // Tile 130: Leads to Map 0 (Khu Mặt Trời)
+  if (t === 130) {
+    let spawnX = 300;
+    let spawnY = 140;
+    if (currentMapId === 1) {
+      spawnX = 30;
+      spawnY = 84;
+    } else if (currentMapId === 7) {
+      spawnX = 570;
+      spawnY = 84;
+    }
+    return {
+      targetMapId: 0,
+      name: 'Khu Mặt Trời',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 131: Leads to Map 1 (Khu Quay Số Cũ)
+  if (t === 131) {
+    let spawnX = 280;
+    let spawnY = 84;
+    if (currentMapId === 2) {
+      spawnX = 156;
+      spawnY = 30;
+    }
+    return {
+      targetMapId: 1,
+      name: 'Khu Quay Số',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 132: Leads to Map 2 (Hồ Nước Công Viên)
+  if (t === 132) {
+    let spawnX = 156;
+    let spawnY = 140;
+    if (currentMapId === 3) {
+      spawnX = 156;
+      spawnY = 30;
+    }
+    return {
+      targetMapId: 2,
+      name: 'Hồ Nước Công Viên',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 133: Leads to Map 3 (Khu Ăn Xin Trái)
+  if (t === 133) {
+    let spawnX = 180;
+    let spawnY = 140;
+    if (currentMapId === 4) {
+      spawnX = 400;
+      spawnY = 84;
+    }
+    return {
+      targetMapId: 3,
+      name: 'Khu Ăn Xin Trái',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 134: Leads to Map 4 (Khu Cưới, Clan)
+  if (t === 134) {
+    let spawnX = 30;
+    let spawnY = 84;
+    if (currentMapId === 5) {
+      spawnX = 610;
+      spawnY = 84;
+    }
+    return {
+      targetMapId: 4,
+      name: 'Khu Cưới & Clan',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 135: Leads to Map 5 (Khu Ăn Xin Phải)
+  if (t === 135) {
+    let spawnX = 30;
+    let spawnY = 84;
+    if (currentMapId === 6) {
+      spawnX = 348;
+      spawnY = 140;
+    }
+    return {
+      targetMapId: 5,
+      name: 'Khu Ăn Xin Phải',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 136: Leads to Map 6 (Khu Cô Giáo)
+  if (t === 136) {
+    let spawnX = 252;
+    let spawnY = 30;
+    if (currentMapId === 7) {
+      spawnX = 252;
+      spawnY = 140;
+    }
+    return {
+      targetMapId: 6,
+      name: 'Khu Cô Giáo',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 137: Leads to Map 7 (Khu Dưới Cô Giáo)
+  if (t === 137) {
+    let spawnX = 30;
+    let spawnY = 84;
+    if (currentMapId === 6) {
+      spawnX = 204;
+      spawnY = 30;
+    }
+    return {
+      targetMapId: 7,
+      name: 'Khu Dưới Cô Giáo',
+      spawnTarget: { x: spawnX, y: spawnY }
+    };
+  }
+
+  // Tile 138:
+  if (t === 138) {
+    if (currentMapId === 0 || currentMapId === 4 || currentMapId === 6) {
+      return {
+        targetMapId: 2,
+        name: 'Hồ Nước Công Viên',
+        spawnTarget: { x: 156, y: 140 }
+      };
+    } else {
+      return {
+        targetMapId: 0,
+        name: 'Khu Mặt Trời',
+        spawnTarget: { x: 300, y: 30 }
+      };
+    }
+  }
+
+  return null;
+}
+
 export class TilemapRenderer {
   public static readonly TILE_SIZE = 24; // i = 24 in ir.java
   public static readonly TILES_PER_ROW = 7; // 168 px / 24 px = 7 tiles
 
   public mapData?: MapData;
   public mapObjects: MapObjectInstance[] = [];
+  public doorways: MapDoorway[] = [];
   public tilesetImage?: Image;
   public bgImage?: Image;
   public cloudImage?: Image;
@@ -113,6 +328,42 @@ export class TilemapRenderer {
         const val = bytes[i];
         tiles[i] = val === 255 ? -1 : val;
       }
+
+      // Scan authentic doorways from raw binary markers
+      const doorways: MapDoorway[] = [];
+      const visitedDoorwayTiles = new Set<number>();
+
+      for (let r = 0; r < heightTiles; r++) {
+        for (let c = 0; c < widthTiles; c++) {
+          const idx = r * widthTiles + c;
+          if (visitedDoorwayTiles.has(idx)) continue;
+          const val = bytes[idx];
+          const target = getDoorwayTarget(val, mapId, c, r, widthTiles, heightTiles);
+          if (target) {
+            let span = 1;
+            visitedDoorwayTiles.add(idx);
+            while (c + span < widthTiles && bytes[r * widthTiles + (c + span)] === val) {
+              visitedDoorwayTiles.add(r * widthTiles + (c + span));
+              span++;
+            }
+            const dwW = span * TilemapRenderer.TILE_SIZE;
+            const dwX = c * TilemapRenderer.TILE_SIZE + Math.floor(dwW / 2);
+            const dwY = (r + 1) * TilemapRenderer.TILE_SIZE;
+            doorways.push({
+              x: dwX,
+              y: dwY,
+              w: dwW,
+              h: TilemapRenderer.TILE_SIZE,
+              tileCol: c,
+              tileRow: r,
+              targetMapId: target.targetMapId,
+              name: target.name,
+              spawnTarget: target.spawnTarget
+            });
+          }
+        }
+      }
+      this.doorways = doorways;
 
       // Authentic special tile marker decoding & MapObject spawning from ir.java lines 1308-1600
       const spawnedObjects: MapObjectInstance[] = [];
@@ -614,6 +865,9 @@ export class TilemapRenderer {
 
   public isBlocked(worldX: number, worldY: number): boolean {
     if (!this.mapData) return false;
+    // Doorway zones are always walkable to allow entering
+    if (this.isDoorway(worldX, worldY)) return false;
+
     const { widthTiles, heightTiles, collision } = this.mapData;
 
     const tx = Math.floor(worldX / TilemapRenderer.TILE_SIZE);
@@ -625,5 +879,59 @@ export class TilemapRenderer {
 
     const c = collision[ty * widthTiles + tx];
     return c === 88 || c === 92;
+  }
+
+  public isDoorway(worldX: number, worldY: number): boolean {
+    for (const d of this.doorways) {
+      const dx = Math.abs(worldX - d.x);
+      const dy = Math.abs(worldY - d.y);
+      if (dx <= d.w / 2 + 8 && dy <= 18) {
+        return true;
+      }
+    }
+    return false;
+  }
+
+  public getDoorwayAt(worldX: number, worldY: number): MapDoorway | null {
+    for (const d of this.doorways) {
+      const dx = Math.abs(worldX - d.x);
+      const dy = Math.abs(worldY - d.y);
+      if (dx <= d.w / 2 + 14 && dy <= 20) {
+        return d;
+      }
+    }
+    return null;
+  }
+
+  /**
+   * Render authentic pulsating downward "Vào" arrows and ground shadows
+   */
+  public renderDoorways(g: Graphics, font?: IFont, animTick = 0): void {
+    if (!this.doorways || this.doorways.length === 0) return;
+
+    for (const d of this.doorways) {
+      const animOffset = Math.sin((animTick + d.x) * 0.18) * 3;
+      const screenX = d.x - this.cameraX;
+      const screenY = d.y - this.cameraY - 10 + animOffset;
+
+      // 1. Ground shadow ellipse
+      g.setColor(0x000000);
+      g.fillArc(screenX - 10, d.y - this.cameraY - 4, 20, 6, 0, 360);
+
+      // 2. Yellow text "Vào"
+      if (font) {
+        font.drawString(g, 'Vào', screenX, screenY - 14, 2);
+      }
+
+      // 3. Downward pointing yellow triangle with crisp black border
+      g.setColor(0x000000);
+      for (let row = 0; row < 7; row++) {
+        g.fillRect(screenX - (6 - row), screenY + row - 1, (6 - row) * 2 + 1, 1);
+      }
+      g.setColor(0xFACC15);
+      for (let row = 0; row < 6; row++) {
+        g.fillRect(screenX - (5 - row), screenY + row, (5 - row) * 2 + 1, 1);
+      }
+    }
   }
 }
