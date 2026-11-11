@@ -167,6 +167,36 @@ export class FarmNetworkHandler {
     }, 400);
   }
 
+  public buyAnimal(animalType: number, quantity: number = 1): void {
+    this.network.sendBuyAnimal(animalType, quantity);
+    setTimeout(() => {
+      this.network.sendGetFarmInventory();
+    }, 400);
+  }
+
+  public cookDish(recipeId: number): void {
+    this.network.sendCooking(recipeId);
+    if (this.onNotification) {
+      this.onNotification('Đang gửi yêu cầu nấu ăn đến máy chủ...');
+    }
+  }
+
+  public doCattleAction(action: number): void {
+    this.network.sendCattleAction(this.model.userId, action);
+  }
+
+  public doFishAction(action: number): void {
+    this.network.sendFishAction(this.model.userId, action);
+  }
+
+  public harvestStarfruit(): void {
+    this.network.sendHarvestStarfruit(this.model.userId);
+  }
+
+  public upgradeStarfruit(): void {
+    this.network.sendUpgradeStarfruit(this.model.userId);
+  }
+
   public requestInventory(): void {
     this.network.sendGetFarmInventory();
   }

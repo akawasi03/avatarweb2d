@@ -1,10 +1,3 @@
-/**
- * FarmScreen.ts
- * Authentic WebGL2-rendered Farm System Screen (Map 25) for Avatar Teamobi 2.5.8.
- * Faithful visual fidelity matching original Java ME client (ir.java & go.java).
- * Integrates TilemapRenderer, original map objects, authentic cracked soil, and server authority.
- */
-
 import { Graphics, Image } from '@avatar/j2me-compat';
 import { GameScreen } from '../ui/GameScreen.js';
 import { UISkinPainter } from '../ui/UISkinPainter.js';
@@ -64,6 +57,23 @@ export class FarmScreen extends GameScreen {
   // Active Menu / Dialogs
   public isMenuOpen = false;
   public isConfirmOpenLand = false;
+  public isKitchenOpen = false;
+  public isBarnOpen = false;
+  public isStarfruitOpen = false;
+  public isPondOpen = false;
+  public isCropActionOpen = false;
+  public selectedPlotIndex = 0;
+
+  // Dialog selection states
+  public selectedMenuIndex = 0;
+  public selectedKitchenRecipe = 0;
+  public selectedBarnAction = 0;
+  public selectedStarfruitAction = 0;
+  public selectedPondAction = 0;
+  public selectedCropAction = 0;
+  public selectedShopTab: 'seeds' | 'animals' | 'fertilizer' = 'seeds';
+  public selectedShopIndex = 0;
+  public shopQuantity = 1;
 
   // Callbacks
   public onExitToWorldMap?: () => void;
@@ -108,45 +118,44 @@ export class FarmScreen extends GameScreen {
 
     // Load authentic Map 25 binary and authentic HD assets
     this.loadMap25().catch((err) => {
-      console.error('[FarmScreen] Failed to load Map 25 assets:', err);
+      console.error('[FarmScreen] Failed to load Map 25 binary:', err);
+    });
+
+    this.loadAssets().catch((err) => {
+      console.error('[FarmScreen] Failed to load farm assets:', err);
     });
   }
 
-  private async loadMap25(): Promise<void> {
-    // 1. Preload authentic HD graphics from Avatar-Sv-master-master (both Day & Night)
+  private async loadAssets(): Promise<void> {
     await Promise.all([
-      this.preloadSprite('tileset_day', '/assets/tileset/tileset_hd_day.png'),
-      this.preloadSprite('tileset_night', '/assets/tileset/tileset_hd_night.png'),
       this.preloadSprite('clouds_day', '/assets/bg/clouds_farm_day.png'),
       this.preloadSprite('clouds_night', '/assets/bg/clouds_farm_night.png'),
       this.preloadSprite('horizon_day', '/assets/bg/horizon_farm_day.png'),
       this.preloadSprite('horizon_night', '/assets/bg/horizon_farm_night.png'),
-      this.preloadSprite('house1029', '/assets/home/1029.png'),
-      this.preloadSprite('barn834', '/assets/home/834.png'),
-      this.preloadSprite('tree243', '/assets/home/243.png'),
-      this.preloadSprite('tree244', '/assets/home/244.png'),
+      this.preloadSprite('tiles_farm', '/assets/tileset/tileset0.png'),
+      this.preloadSprite('soil_cracked', '/assets/farm_ui/soil_cracked.png'),
       this.preloadSprite('gate847', '/assets/home/847.png'),
-      this.preloadSprite('sign848', '/assets/home/848.png'),
-      this.preloadSprite('lilypad849', '/assets/home/849.png'),
-      this.preloadSprite('starfruitTree', '/assets/farm/43.png'),
-      this.preloadSprite('starfruitFruit', '/assets/farm/46.png'),
-      this.preloadSprite('cell0', '/assets/farm_ui/cell0.png'),
-      this.preloadSprite('buyLand', '/assets/farm_ui/buyLand.png'),
-      this.preloadSprite('w', '/assets/farm_ui/w.png'),
-      this.preloadSprite('g', '/assets/farm_ui/g.png'),
-      this.preloadSprite('cut', '/assets/farm_ui/cut.png'),
-      this.preloadSprite('focus', '/assets/farm_ui/focus.png'),
+      this.preloadSprite('mua848', '/assets/home/848.png'),
+      this.preloadSprite('tree244', '/assets/home/244.png'),
+      this.preloadSprite('pond840', '/assets/home/840.png'),
+      this.preloadSprite('tree834', '/assets/home/834.png'),
+      this.preloadSprite('nha_bep', '/assets/home/829.png'),
+      this.preloadSprite('chuong_lon', '/assets/home/828.png'),
+      this.preloadSprite('fence838', '/assets/home/838.png'),
+      this.preloadSprite('fence839', '/assets/home/839.png'),
       this.preloadSprite('coin', '/assets/farm_ui/coin.png')
     ]);
+  }
 
-    // 2. Load 336-byte Map 25 binary extracted from Avatar258.jar
+  private async loadMap25(): Promise<void> {
     try {
       const res = await fetch('/assets/maps/25');
       if (res.ok) {
-        const buffer = await res.arrayBuffer();
-        const raw = new Uint8Array(buffer);
-        for (let i = 0; i < 336; i++) {
-          const val = raw[i];
+        const buf = await res.arrayBuffer();
+        const u8 = new Uint8Array(buf);
+        const count = Math.min(336, u8.length);
+        for (let i = 0; i < count; i++) {
+          const val = u8[i];
           // Authentic special marker decoding from ir.java lines 1280-1745
           if (val === 149 || val === 190 || val === 189 || val === 142 || val === 187 || val === 188 || val === 28) {
             this.mapTiles[i] = 4;
@@ -230,9 +239,9 @@ export class FarmScreen extends GameScreen {
       const nextX = this.localPlayer.x + (dx / dist) * speed;
       const nextY = this.localPlayer.y + (dy / dist) * speed;
 
-      // Authentic Farm Map 25 boundaries: width 2016px, walkable ground height 460..715px
+      // Authentic Farm Map 25 boundaries: width 2016px, walkable ground height 420..715px
       this.localPlayer.x = Math.max(50, Math.min(1960, nextX));
-      this.localPlayer.y = Math.max(460, Math.min(715, nextY));
+      this.localPlayer.y = Math.max(420, Math.min(715, nextY));
       this.localPlayer.state = 'walk';
 
       if (Math.abs(dx) > Math.abs(dy)) {
@@ -241,11 +250,15 @@ export class FarmScreen extends GameScreen {
         this.localPlayer.dir = dy > 0 ? 0 : 1; // 0: Down, 1: Up
       }
       this.localPlayer.frame = 1 + (Math.floor(this.animTick / 3) % 4);
+
+      // Mid-walk trigger check
+      this.checkMidWalkTriggers();
     } else {
       this.localPlayer.x = this.localPlayer.targetX;
       this.localPlayer.y = this.localPlayer.targetY;
       this.localPlayer.state = 'idle';
       this.localPlayer.frame = 0;
+      this.checkTriggerZones();
     }
 
     // Camera smoothly follows player across Map 25 panorama (2016x772)
@@ -290,6 +303,59 @@ export class FarmScreen extends GameScreen {
     }
   }
 
+  /**
+   * Fast trigger check while walking through doorways or exit
+   */
+  private checkMidWalkTriggers(): void {
+    const px = this.localPlayer.x;
+    const py = this.localPlayer.y;
+
+    // Exit threshold
+    if (Math.abs(px - 888) <= 45 && py >= 660) {
+      if (this.onExitToWorldMap) this.onExitToWorldMap();
+    }
+  }
+
+  /**
+   * Check interactive zones when player stops walking
+   */
+  private checkTriggerZones(): void {
+    const px = this.localPlayer.x;
+    const py = this.localPlayer.y;
+
+    // 1. Exit Path & Wooden Sign back to Cổng Nông Trại
+    if (Math.abs(px - 888) <= 55 && py >= 640) {
+      if (this.onExitToWorldMap) {
+        this.onExitToWorldMap();
+      }
+      return;
+    }
+
+    // 2. Doorway into Nhà Bếp
+    if (Math.abs(px - 502) <= 45 && Math.abs(py - 430) <= 30) {
+      this.isKitchenOpen = true;
+      return;
+    }
+
+    // 3. Doorway into Chuồng Rơm
+    if (Math.abs(px - 691) <= 45 && Math.abs(py - 430) <= 30) {
+      this.isBarnOpen = true;
+      return;
+    }
+
+    // 4. Beside Cây Khế
+    if (Math.abs(px - 810) <= 50 && Math.abs(py - 460) <= 35) {
+      this.isStarfruitOpen = true;
+      return;
+    }
+
+    // 5. Beside Ao Cá
+    if (px >= 1450 && px <= 1750 && py >= 480 && py <= 600) {
+      this.isPondOpen = true;
+      return;
+    }
+  }
+
   // --- Rendering Pipeline (WebGL2 Native Procedural Map 25 Engine) ---
 
   public paint(g: Graphics): void {
@@ -299,382 +365,222 @@ export class FarmScreen extends GameScreen {
     const isForcedDay = typeof window !== 'undefined' && (new URLSearchParams(window.location.search).has('day') || (window as any).__FORCE_DAY);
     const hour = new Date().getHours();
     this.isNight = isForcedDay ? false : (hour >= 18 || hour < 6);
-    const suffix = this.isNight ? 'night' : 'day';
 
-    // 1. Paint authentic sky blue background (#5DBEF7 Day or #000015 Night)
-    const skyColor = this.isNight ? 0x000015 : 0x5DBEF7;
-    g.setColor(skyColor);
+    // 1. Clear Screen with Vivid Day / Night Sky Color
+    if (this.isNight) {
+      g.setColor(0x000015);
+    } else {
+      g.setColor(0x5DBEF7);
+    }
     g.fillRect(0, 0, w, h);
 
-    // 2. Paint Authentic Parallax Clouds (clouds_farm_day.png / may20.png)
-    const cloudImg = this.spriteCache.get(`clouds_${suffix}`);
-    if (cloudImg) {
-      const cW = cloudImg.getWidth();
-      const parallaxCloud = -Math.floor(this.cameraX * 0.15) % cW;
-      const cloudY = Math.max(-20, -Math.floor(this.cameraY * 0.05));
-      for (let x = parallaxCloud - cW; x < w + cW; x += cW) {
-        g.drawImage(cloudImg, x, cloudY, 0);
+    // 2. Parallax Sky Clouds
+    const cloudSuffix = this.isNight ? 'night' : 'day';
+    const cloudsImg = this.spriteCache.get(`clouds_${cloudSuffix}`);
+    if (cloudsImg) {
+      const cw = cloudsImg.getWidth();
+      const paraX = -Math.floor(this.cameraX * 0.15) % cw;
+      const startX = paraX > 0 ? paraX - cw : paraX;
+      for (let cx = startX; cx < w; cx += cw) {
+        g.drawImage(cloudsImg, cx, Math.max(0, 100 - this.cameraY), 0);
       }
     }
 
-    // 3. Paint Authentic Parallax Horizon Landscape (horizon_farm_day.png / 20.png)
-    const horizonImg = this.spriteCache.get(`horizon_${suffix}`);
+    // 3. Parallax Green Horizon
+    const horSuffix = this.isNight ? 'night' : 'day';
+    const horizonImg = this.spriteCache.get(`horizon_${horSuffix}`);
     if (horizonImg) {
-      const hW = horizonImg.getWidth();
-      const hH = horizonImg.getHeight();
-      const parallaxX = -Math.floor(this.cameraX * 0.35) % hW;
-      // Horizon sits right behind ground top fence (y = 388 - hH + 40)
-      const horizonY = 388 - hH + 40 - this.cameraY;
-      for (let x = parallaxX - hW; x < w + hW; x += hW) {
-        g.drawImage(horizonImg, x, horizonY, 0);
+      const hw = horizonImg.getWidth();
+      const paraX = -Math.floor(this.cameraX * 0.35) % hw;
+      const startX = paraX > 0 ? paraX - hw : paraX;
+      const horY = Math.max(0, 360 - this.cameraY);
+      for (let hx = startX; hx < w; hx += hw) {
+        g.drawImage(horizonImg, hx, horY, 0);
       }
     }
 
-    // 4. Paint Authentic Ground Tilemap (42 cols x 8 rows, HD 48px tile size, Column-Major Indexing)
-    const tilesetImg = this.spriteCache.get(`tileset_${suffix}`);
-    if (tilesetImg && this.isMapLoaded) {
-      const tileSize = 48;
-      const groundY = 388;
-      const numRowsInTileset = 18; // 864px / 48px = 18 rows per column (ht.java & ir.java)
-
-      const startCol = Math.max(0, Math.floor(this.cameraX / tileSize));
-      const endCol = Math.min(42, Math.ceil((this.cameraX + w) / tileSize));
-      const startRow = Math.max(0, Math.floor((this.cameraY - groundY) / tileSize));
-      const endRow = Math.min(8, Math.ceil((this.cameraY + h - groundY) / tileSize));
-
-      for (let r = startRow; r < endRow; r++) {
-        const destY = groundY + r * tileSize - this.cameraY;
-        for (let c = startCol; c < endCol; c++) {
-          const tileId = this.mapTiles[r * 42 + c];
-          if (tileId < 0) continue;
-
-          // In ir.java lines 873-874:
-          // col = tileId / numRows, row = tileId % numRows (column-major)
-          const tc = Math.floor(tileId / numRowsInTileset);
-          const tr = tileId % numRowsInTileset;
-          const destX = c * tileSize - this.cameraX;
-
-          g.drawRegion(
-            tilesetImg,
-            tc * tileSize,
-            tr * tileSize,
-            tileSize,
-            tileSize,
-            0,
-            destX,
-            destY,
-            0
-          );
-        }
-      }
-    }
-
-    // Apply Camera Translation for Dynamic World Entities
+    // Apply Camera Translation for World-Space Elements
     g.translate(-this.cameraX, -this.cameraY);
 
-    // 5. Paint Authentic Map Objects (Nhà Bếp, Chuồng Rơm, Cây Khế, Cây to, Cổng vào, Signpost, Biển MUA)
+    // 4. Paint Tilemap Base
+    this.paintTilemap(g);
+
+    // 5. Paint Scenery Objects (Buildings, Trees, Pond, Fence, Signs)
     this.paintSceneryObjects(g);
 
-    // 6. Paint Land Plots with Authentic Soil (cell0.png), Crops & "MUA" sign
+    // 6. Paint Land Plots & Crops
     this.paintLandPlots(g);
 
-    // 7. Paint Animals (Chickens moving inside coop)
+    // 7. Paint Animals
     this.paintAnimals(g);
 
-    // 8. Paint Local Player Avatar (10-layer rendering)
+    // 8. Paint Player Avatar
     this.paintPlayer(g);
 
-    // 9. Paint Dynamic Farm Guide Elements (Yellow "Vào" arrows)
+    // 9. Paint Overlays (Guide arrows, wooden nameplates)
     this.paintFarmOverlays(g);
 
-    // Restore Camera Translation
+    // Restore Camera Translation for Screen-Space HUD & Modals
     g.translate(this.cameraX, this.cameraY);
 
-    // 10. Paint Top Status Bar & HUD (Xu, Lượng, Menu button, Mail notification)
+    // 10. Paint HUD
     this.paintHUD(g, w, h);
 
-    // 11. Paint Notification Toast (if active)
-    this.paintNotificationToast(g, w, h);
+    // 11. Paint Floating Feedback Toast
+    if (this.feedbackTimer > 0) {
+      this.paintNotificationToast(g, w, h);
+    }
 
-    // 12. Paint Modals / Menus / Dialogs
+    // 12. Paint Active Modals
     this.paintModals(g, w, h);
   }
 
-  /**
-   * Paint authentic scenery objects matching Avatar 2.5.8 Java ME (ir.java & go.java)
-   */
-  private paintSceneryObjects(g: Graphics): void {
-    const groundY = 388;
-    const tileSize = 48;
+  private paintTilemap(g: Graphics): void {
+    const tileSheet = this.spriteCache.get('tiles_farm');
+    if (!tileSheet || !this.isMapLoaded) return;
 
-    // 1. Big trees behind top wooden fence
-    const tree243 = this.spriteCache.get('tree243');
-    const tree244 = this.spriteCache.get('tree244');
+    const TILE_SIZE = 42;
+    const COLS = 48;
+    const ROWS = 7;
+    const MAP_BASE_Y = 478;
 
-    if (tree244) {
-      const tW4 = tree244.getWidth();
-      const tH4 = tree244.getHeight();
-      const ty4 = groundY + tileSize - tH4 + 10;
+    const startCol = Math.max(0, Math.floor(this.cameraX / TILE_SIZE));
+    const endCol = Math.min(COLS - 1, Math.ceil((this.cameraX + this.screenW) / TILE_SIZE));
 
-      // 2 góc trái phải ở hàng rào gỗ trên cùng có cái cây to đùng (Sprite 244)
-      // Top-left corner (Góc trái hàng rào gỗ trên cùng)
-      g.drawImage(tree244, -30, ty4, 0);
-
-      // Col 34 (Above pond path)
-      g.drawImage(tree244, Math.floor((34 + 0.5) * tileSize - tW4 / 2), ty4, 0);
-
-      // Top-right corner (Góc phải hàng rào gỗ trên cùng)
-      g.drawImage(tree244, 1860, ty4, 0);
-    }
-
-    if (tree243) {
-      const tW3 = tree243.getWidth();
-      const tH3 = tree243.getHeight();
-      const ty3 = groundY + tileSize - tH3 + 10;
-
-      // Col 8 (Behind animal pen fence)
-      g.drawImage(tree243, Math.floor((8 + 0.5) * tileSize - tW3 / 2), ty3, 0);
-
-      // Col 28 (Above crops)
-      g.drawImage(tree243, Math.floor((28 + 0.5) * tileSize - tW3 / 2), ty3, 0);
-    }
-
-    // 2. Nhà Bếp (Kitchen building with chef hat) at col 9..11
-    const houseImg = this.spriteCache.get('house1029');
-    if (houseImg) {
-      const hx = Math.floor((9 + 1.6) * tileSize - houseImg.getWidth() / 2);
-      const hy = groundY + 2 * tileSize - houseImg.getHeight() - 8;
-      g.drawImage(houseImg, hx, hy, 0);
-    }
-
-    // 3. Chuồng Rơm (Hay barn) at col 13..15
-    const barnImg = this.spriteCache.get('barn834');
-    if (barnImg) {
-      const bx = Math.floor((13 + 1.6) * tileSize - barnImg.getWidth() / 2);
-      const by = groundY + 2 * tileSize - barnImg.getHeight() - 8;
-      g.drawImage(barnImg, bx, by, 0);
-    }
-
-    // 4. Cây Khế (Starfruit Tree) at col 19
-    const starfruitTreeImg = this.spriteCache.get('starfruitTree');
-    if (starfruitTreeImg) {
-      const sx = Math.floor((19 + 0.5) * tileSize - starfruitTreeImg.getWidth() / 2);
-      const sy = groundY + 2 * tileSize - starfruitTreeImg.getHeight() - 8;
-      g.drawImage(starfruitTreeImg, sx, sy, 0);
-
-      // Starfruit fruits hanging on branches
-      const fruitImg = this.spriteCache.get('starfruitFruit');
-      if (fruitImg) {
-        const fruitOffsets: [number, number][] = [[-25, -50], [-10, -70], [15, -45], [25, -65], [0, -40]];
-        const centerX = sx + Math.floor(starfruitTreeImg.getWidth() / 2);
-        const centerY = sy + starfruitTreeImg.getHeight();
-        for (const [fx, fy] of fruitOffsets) {
-          g.drawImage(fruitImg, centerX + fx, centerY + fy, 0);
+    for (let r = 0; r < ROWS; r++) {
+      const destY = MAP_BASE_Y + r * TILE_SIZE;
+      for (let c = startCol; c <= endCol; c++) {
+        const tileIdx = this.mapTiles[r * COLS + c];
+        if (tileIdx >= 0) {
+          const destX = c * TILE_SIZE;
+          const srcX = (tileIdx % 10) * 24;
+          const srcY = Math.floor(tileIdx / 10) * 24;
+          g.drawRegion(tileSheet, srcX, srcY, 24, 24, 0, destX, destY, 0);
         }
       }
-
-      // "Lv1" gold level badge
-      g.setColor(0xFACC15);
-      this.font.drawString(g, 'Lv1', sx + starfruitTreeImg.getWidth() - 10, sy + 15, 0);
-    }
-
-    // 5. Exit Gateway / Entrance Sign 847 at col 17, row 7 (ir.java case 110)
-    // Raised up onto grass road so it stands clearly above hedge bushes (not sunken down)
-    const gateImg = this.spriteCache.get('gate847');
-    if (gateImg) {
-      const gx = 762;
-      const gy = groundY + 6 * tileSize - gateImg.getHeight() + 20; // y = 388 + 288 - 44 + 20 = 652
-      g.drawImage(gateImg, gx, gy, 0);
-
-      // Owner name badge centered inside the wooden board face
-      const ownerName = this.model.userId === this.handler.network.myUserId
-        ? (this.localPlayer.name || 'akawasi999')
-        : `User ${this.model.userId}`;
-      this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy + 14, 2);
-    }
-
-    // 7. "MUA" signpost at Chicken coop (col 6, row 3) and Fish pond (col 35, row 6)
-    const buyLandImg = this.spriteCache.get('buyLand');
-    if (buyLandImg) {
-      const cx = Math.floor((6 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
-      const cy = groundY + 4 * tileSize - buyLandImg.getHeight() - 8;
-      g.drawImage(buyLandImg, cx, cy, 0);
-
-      const px = Math.floor((35 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
-      const py = groundY + 7 * tileSize - buyLandImg.getHeight() - 8;
-      g.drawImage(buyLandImg, px, py, 0);
-    }
-
-    // 8. Lily pads in Fish Pond (Ao Cá at cols 36..40, rows 2..6)
-    const lilypadImg = this.spriteCache.get('lilypad849');
-    if (lilypadImg) {
-      // Top lilypad (col 38, row 3.2)
-      g.drawImage(lilypadImg, Math.floor(38 * tileSize + 8), Math.floor(groundY + 3.2 * tileSize), 0);
-      // Left lilypad (col 37.2, row 4.5)
-      g.drawImage(lilypadImg, Math.floor(37.2 * tileSize + 4), Math.floor(groundY + 4.5 * tileSize), 0);
-      // Bottom-right lilypad (col 39.2, row 5.2)
-      g.drawImage(lilypadImg, Math.floor(39.2 * tileSize), Math.floor(groundY + 5.2 * tileSize), 0);
     }
   }
 
-  /**
-   * Paint authentic farm overlays (animated yellow arrows, owner badge)
-   */
+  private paintSceneryObjects(g: Graphics): void {
+    const fenceImg = this.spriteCache.get('fence838');
+    if (fenceImg) {
+      for (let fx = 0; fx < 2016; fx += fenceImg.getWidth()) {
+        g.drawImage(fenceImg, fx, 492, 0);
+      }
+    }
+
+    const tree244 = this.spriteCache.get('tree244');
+    if (tree244) {
+      g.drawImage(tree244, -30, 320, 0);
+      g.drawImage(tree244, 1860, 320, 0);
+      g.drawImage(tree244, 34 * 42 - 10, 320, 0);
+    }
+
+    const nhaBep = this.spriteCache.get('nha_bep');
+    if (nhaBep) {
+      g.drawImage(nhaBep, 418, 428, 0);
+    }
+
+    const chuongLon = this.spriteCache.get('chuong_lon');
+    if (chuongLon) {
+      g.drawImage(chuongLon, 602, 432, 0);
+    }
+
+    const treeImg = this.spriteCache.get('tree834');
+    if (treeImg) {
+      g.drawImage(treeImg, 842, 440, 0);
+      this.font.drawString(g, 'Lv1', 948, 388, 2);
+    }
+
+    const pondImg = this.spriteCache.get('pond840');
+    if (pondImg) {
+      g.drawImage(pondImg, 1618, 590, 0);
+    }
+
+    const gateImg = this.spriteCache.get('gate847');
+    if (gateImg) {
+      g.drawImage(gateImg, 888, 652, 0);
+    }
+  }
+
   private paintFarmOverlays(g: Graphics): void {
     const arrowBounce = Math.floor((this.animTick % 12) / 4);
 
-    // 1. Animated Yellow "Vào" arrow on Nhà Bếp doorway (x = 502, y = 422)
+    // 1. "Vào" Arrow above Nhà Bếp
     this.paintYellowArrow(g, 502, 422 + arrowBounce, 'Vào');
 
-    // 2. Animated Yellow "Vào" arrow on Chuồng Rơm / Hay Barn doorway (x = 691, y = 420)
+    // 2. "Vào" Arrow above Chuồng Rơm
     this.paintYellowArrow(g, 691, 420 + arrowBounce, 'Vào');
 
-    // 3. Exit animated yellow "Vào" arrow in the dirt exit path (col 18, row 7)
+    // 3. "Vào" Arrow above Exit Sign
     this.paintYellowArrow(g, 888, 666 + arrowBounce, 'Vào');
+
+    // Nameplate above Exit Sign
+    const name = this.localPlayer.name || 'akawasi..';
+    const plateText = name.length > 7 ? name.substring(0, 6) + '..' : name;
+    this.font.drawString(g, plateText, 888, 674, 2);
   }
 
-  /**
-   * Paint yellow guide arrow with text (matching original Avatar "Vào" arrow)
-   */
   private paintYellowArrow(g: Graphics, x: number, y: number, text: string): void {
     this.font.drawString(g, text, x, y - 10, 2);
-    // Downward yellow triangle
     g.setColor(0xFACC15);
-    for (let row = 0; row < 5; row++) {
-      g.fillRect(x - (4 - row), y + row, (4 - row) * 2 + 1, 1);
+    for (let row = 0; row < 6; row++) {
+      g.fillRect(x - (5 - row), y + row, (5 - row) * 2 + 1, 1);
     }
   }
 
-  /**
-   * Paint Land Plots with Authentic Soil (cell0.png), Crops & "MUA" sign
-   */
   private paintLandPlots(g: Graphics): void {
-    const cell0Img = this.spriteCache.get('cell0');
-    const soilWaterImg = this.spriteCache.get('w');
-    const buyLandImg = this.spriteCache.get('buyLand');
-    const focusImg = this.spriteCache.get('focus');
-    const cutImg = this.spriteCache.get('cut');
+    const soilImg = this.spriteCache.get('soil_cracked');
+    const muaImg = this.spriteCache.get('mua848');
 
     for (let i = 0; i < this.model.lands.length; i++) {
-      const cell = this.model.lands[i];
-      const px = cell.posX;
-      const py = cell.posY;
-      const cw = FarmModel.CELL_WIDTH;
-      const ch = FarmModel.CELL_HEIGHT;
+      const plot = this.model.lands[i];
+      const px = plot.posX;
+      const py = plot.posY;
 
-      // 1. Locked plot
-      if (cell.type === -2) {
-        if (i === this.model.landSize) {
-          // Highlight next unlockable plot with authentic "MUA" signpost
-          if (buyLandImg) {
-            g.drawImage(buyLandImg, px + 3, py - 6, 0);
-          } else {
-            g.setColor(0xFACC15);
-            this.font.drawString(g, 'MUA', px + Math.floor(cw / 2), py + 14, 2);
+      if (plot.type !== -2 && soilImg) {
+        g.drawImage(soilImg, px, py, 0);
+      }
+
+      if (plot.type === -2 && i === this.model.landSize && muaImg) {
+        g.drawImage(muaImg, px + 10, py + 12, 0);
+      }
+
+      if (plot.type >= 0) {
+        const meta = CROP_DEFINITIONS[plot.type];
+        if (meta) {
+          const stage = this.model.getGrowthStage(plot);
+          const spriteId = meta.stageImgs[stage] ?? meta.stageImgs[0];
+          const cropImg = this.getCropSprite(spriteId);
+          if (cropImg) {
+            const cx = px + Math.floor((FarmModel.CELL_WIDTH - cropImg.getWidth()) / 2);
+            const cy = py + FarmModel.CELL_HEIGHT - cropImg.getHeight() - 4;
+            g.drawImage(cropImg, cx, cy, 0);
           }
-        }
-        continue;
-      }
-
-      // 2. Unlocked Soil Plot: render authentic cracked soil texture (cell0.png)
-      if (cell0Img) {
-        // cell0 is 52x56, center on 48x48 plot
-        g.drawImage(cell0Img, px - 2, py - 4, 0);
-      } else {
-        g.setColor(0x8D6E50);
-        g.fillRect(px + 2, py + 2, cw - 4, ch - 4);
-      }
-
-      // Watered soil indicator
-      if (cell.isWatered) {
-        if (soilWaterImg) {
-          g.drawImage(soilWaterImg, px + 28, py + 24, 0);
-        } else {
-          g.setColor(0x4A2F1B);
-          g.fillRect(px + 4, py + 4, cw - 8, ch - 8);
-        }
-      }
-
-      // 3. Plant / Crop Sprite
-      if (cell.type >= 0) {
-        const spriteId = this.model.getCropSpriteId(cell);
-        const cropImg = this.getCropSprite(spriteId);
-
-        if (cropImg) {
-          const imgW = cropImg.getWidth();
-          const imgH = cropImg.getHeight();
-          const drawX = px + Math.floor((cw - imgW) / 2);
-          const drawY = py + ch - imgH - 4;
-          g.drawImage(cropImg, drawX, drawY, 0);
-        } else {
-          // Lightweight placeholder while crop sprite loads
-          const stage = this.model.getGrowthStage(cell);
-          g.setColor(stage >= 7 ? 0xFACC15 : 0x4ADE80);
-          g.fillRect(px + 14, py + 14, 20, 24);
-        }
-
-        // Ripe sickle indicator
-        const stage = this.model.getGrowthStage(cell);
-        if (cell.isHarvestable || stage === 7) {
-          if (cutImg) {
-            g.drawImage(cutImg, px + cw - 18, py + 2, 0);
-          } else {
-            g.setColor(0xFACC15);
-            g.fillRect(px + cw - 12, py + 4, 8, 8);
-          }
-        }
-      }
-
-      // 4. Cursor Focus Selection Box
-      if (i === this.controller.focusedCellIndex) {
-        if (focusImg) {
-          g.drawImage(focusImg, px + 10, py + 10, 0);
-        } else {
-          g.setColor(0xFACC15);
-          g.drawRect(px + 2, py + 2, cw - 4, ch - 4);
         }
       }
     }
   }
 
-  /**
-   * Paint idle chickens/animals in chicken coop
-   */
   private paintAnimals(g: Graphics): void {
     for (const a of this.model.animals) {
-      const ax = Math.floor(a.x);
-      const ay = Math.floor(a.y);
-
-      // Authentic white hen with red comb and yellow beak
-      g.setColor(0xFFFFFF);
-      g.fillRect(ax, ay + 2, 10, 8);
-      g.setColor(0xE2E8F0);
-      g.fillRect(ax + 2, ay + 4, 6, 5);
-      // Red comb
-      g.setColor(0xEF4444);
-      g.fillRect(ax + 6, ay - 1, 3, 3);
-      // Yellow beak
-      g.setColor(0xF59E0B);
-      g.fillRect(ax + 9, ay + 3, 3, 2);
-      // Feet
-      g.setColor(0xF59E0B);
-      g.fillRect(ax + 2, ay + 10, 2, 2);
-      g.fillRect(ax + 6, ay + 10, 2, 2);
+      const animalSprite = this.loadSprite(`animal_${a.id}`, `/assets/farm/${a.id}.png`);
+      if (animalSprite) {
+        g.drawImage(animalSprite, Math.round(a.x), Math.round(a.y), 0);
+      } else {
+        g.setColor(0xFACC15);
+        g.fillArc(Math.round(a.x), Math.round(a.y), 16, 12, 0, 360);
+      }
     }
   }
 
-  /**
-   * Paint Local Player Avatar
-   */
   private paintPlayer(g: Graphics): void {
-    const px = Math.floor(this.localPlayer.x);
-    const py = Math.floor(this.localPlayer.y);
+    const px = Math.round(this.localPlayer.x);
+    const py = Math.round(this.localPlayer.y);
 
-    // Foot shadow
     g.setColor(0x111827);
     g.fillArc(px - 9, py - 2, 18, 6, 0, 360);
 
-    // Render 10-layer avatar
     AvatarRenderer.paintAvatar(
       g,
       px,
@@ -688,13 +594,10 @@ export class FarmScreen extends GameScreen {
     );
   }
 
-  /**
-   * Paint authentic Avatar 2.5.8 HUD (Top status bar with Menu, Mail, and Xu counter)
-   */
   private paintHUD(g: Graphics, w: number, h: number): void {
     const coinImg = this.spriteCache.get('coin');
 
-    // 1. Top Left Menu button [ = ]
+    // Menu button [ = ]
     g.setColor(0x1E293B);
     g.fillRect(6, 6, 26, 22);
     g.setColor(0x64748B);
@@ -704,65 +607,60 @@ export class FarmScreen extends GameScreen {
     g.fillRect(10, 16, 18, 2);
     g.fillRect(10, 21, 18, 2);
 
-    // 2. Top Left Mail Notification button [ ✉ ! ]
+    // Mail icon [ ✉ ]
     g.setColor(0x1E293B);
-    g.fillRect(36, 6, 26, 22);
+    g.fillRect(38, 6, 26, 22);
     g.setColor(0x64748B);
-    g.drawRect(36, 6, 26, 22);
+    g.drawRect(38, 6, 26, 22);
     g.setColor(0xFFFFFF);
-    g.drawRect(40, 11, 18, 12);
-    g.drawLine(40, 11, 49, 18);
-    g.drawLine(49, 18, 58, 11);
-    // Red notification circle (!)
-    g.setColor(0xEF4444);
-    g.fillArc(56, 4, 8, 8, 0, 360);
-    g.setColor(0xFFFFFF);
-    g.fillRect(59, 6, 2, 3);
-    g.fillRect(59, 10, 2, 1);
+    this.font.drawString(g, '✉', 51, 10, 2);
 
-    // 3. Top Right Xu & Lượng Counter
-    const xuVal = Number(this.model.userXu || 0).toLocaleString('vi-VN');
-    const xuStr = `${xuVal} Xu`;
-    const xuStrW = this.font.stringWidth(xuStr);
-    const startXuX = w - xuStrW - 24;
+    // Top Center Title
+    const title = this.model.ownerName ? `Nông trại của ${this.model.ownerName}` : 'Nông trại của bạn (Cấp 1)';
+    this.font.drawString(g, title, Math.floor(w / 2), 10, 2);
+
+    // Top Right Xu Balance
+    const xuVal = Number(this.model.userXu || 0);
+    const xuStr = `${xuVal.toLocaleString('vi-VN')} Xu`;
+    const textW = xuStr.length * 7;
+    const startX = w - textW - 32;
 
     if (coinImg) {
-      g.drawImage(coinImg, startXuX, 10, 0);
+      g.drawImage(coinImg, startX, 8, 0);
     }
-    this.font.drawString(g, xuStr, startXuX + 14, 10, 0);
-
-    // Farm Owner Label
-    const ownerTitle = this.model.userId === this.handler.network.myUserId
-      ? `Nông trại của bạn (Cấp ${this.model.farmLevel || 1})`
-      : `Nông trại: User #${this.model.userId}`;
-    this.font.drawString(g, ownerTitle, 68, 10, 0);
+    this.font.drawString(g, xuStr, startX + 22, 10, 0);
   }
 
-  /**
-   * Paint floating toast notification
-   */
   private paintNotificationToast(g: Graphics, w: number, h: number): void {
-    if (this.feedbackTimer <= 0) return;
-
-    const toastW = Math.min(420, w - 40);
-    const toastH = 24;
+    const toastW = Math.min(w - 40, this.feedbackText.length * 8 + 24);
     const tx = Math.floor((w - toastW) / 2);
     const ty = 34;
 
     g.setColor(0x0F172A);
-    g.fillRect(tx, ty, toastW, toastH);
+    g.fillRect(tx, ty, toastW, 22);
     g.setColor(0xFACC15);
-    g.drawRect(tx, ty, toastW, toastH);
+    g.drawRect(tx, ty, toastW, 22);
 
-    this.font.drawString(g, this.feedbackText, Math.floor(w / 2), ty + 6, 2);
+    this.font.drawString(g, this.feedbackText, Math.floor(w / 2), ty + 5, 2);
   }
 
-  /**
-   * Paint active modal windows (Menu, Seed Picker, Shop, Warehouse, Confirm Land)
-   */
+  // =========================================================================
+  // Authentic 1:1 J2ME Dialogs & Modals
+  // =========================================================================
+
   private paintModals(g: Graphics, w: number, h: number): void {
     if (this.isMenuOpen) {
       this.paintMenuModal(g, w, h);
+    } else if (this.isKitchenOpen) {
+      this.paintKitchenModal(g, w, h);
+    } else if (this.isBarnOpen) {
+      this.paintBarnModal(g, w, h);
+    } else if (this.isStarfruitOpen) {
+      this.paintStarfruitModal(g, w, h);
+    } else if (this.isPondOpen) {
+      this.paintPondModal(g, w, h);
+    } else if (this.isCropActionOpen) {
+      this.paintCropActionModal(g, w, h);
     } else if (this.controller.isSeedPickerOpen) {
       this.paintSeedPickerModal(g, w, h);
     } else if (this.controller.isShopOpen) {
@@ -775,210 +673,378 @@ export class FarmScreen extends GameScreen {
   }
 
   /**
-   * Authentic Avatar Menu Popup
+   * 1. Authentic Quick Menu
    */
   private paintMenuModal(g: Graphics, w: number, h: number): void {
-    const items = [
-      { id: 'plant', label: 'Gieo hạt' },
-      { id: 'harvest', label: 'Thu hoạch cây chín' },
-      { id: 'open_land', label: 'Mở thêm ô đất' },
-      { id: 'shop', label: 'Cửa hàng hạt giống' },
-      { id: 'warehouse', label: 'Nhà kho nông sản' },
-      { id: 'exit', label: 'Rời nông trại' }
-    ];
-
-    const mw = 180;
-    const mh = items.length * 28 + 32;
-    const mx = 10;
-    const my = h - mh - 28;
-
-    g.setColor(0x0F172A);
-    g.fillRect(mx, my, mw, mh);
-    g.setColor(0x38BDF8);
-    g.drawRect(mx, my, mw, mh);
-
-    // Title
-    g.setColor(0x1E293B);
-    g.fillRect(mx, my, mw, 22);
-    this.font.drawString(g, 'NÔNG TRẠI', mx + Math.floor(mw / 2), my + 5, 2);
-
-    for (let i = 0; i < items.length; i++) {
-      const iy = my + 24 + i * 28;
-      g.setColor(i % 2 === 0 ? 0x1E293B : 0x0F172A);
-      g.fillRect(mx + 2, iy, mw - 4, 26);
-      g.setColor(0xFFFFFF);
-      this.font.drawString(g, items[i].label, mx + 10, iy + 6, 0);
-    }
-  }
-
-  private paintSeedPickerModal(g: Graphics, w: number, h: number): void {
-    const mw = Math.min(320, w - 20);
-    const mh = Math.min(260, h - 60);
+    const mw = 220;
+    const mh = 260;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    g.setColor(0x0F172A);
-    g.fillRect(mx, my, mw, mh);
-    g.setColor(0x38BDF8);
-    g.drawRect(mx, my, mw, mh);
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'NÔNG TRẠI');
 
-    g.setColor(0x1E293B);
-    g.fillRect(mx, my, mw, 26);
-    this.font.drawString(g, '🌾 CHỌN HẠT GIỐNG ĐỂ GIEO', mx + Math.floor(mw / 2), my + 6, 2);
+    const items = [
+      '1. Gieo hạt giống',
+      '2. Thu hoạch tất cả cây chín',
+      '3. Mở thêm ô đất trồng',
+      '4. Cửa Hàng Hạt Giống',
+      '5. Nhà Kho Nông Sản',
+      '6. Nấu ăn (Nhà Bếp)',
+      '7. Chuồng Nuôi Gia Súc',
+      '8. Trở về Cổng Nông Trại'
+    ];
 
-    // Close button [X]
-    g.setColor(0xEF4444);
-    g.fillRect(mx + mw - 22, my + 4, 18, 18);
-    this.font.drawString(g, 'X', mx + mw - 13, my + 6, 2);
+    let rowY = my + 32;
+    for (let i = 0; i < items.length; i++) {
+      const isSel = i === this.selectedMenuIndex;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 22, items[i], isSel);
+      rowY += 24;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, mx + 12, my + mh - 26, 90, 20, 'Chọn', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 102, my + mh - 26, 90, 20, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 2. Authentic Nhà Bếp (Cooking Recipes) Dialog
+   */
+  private paintKitchenModal(g: Graphics, w: number, h: number): void {
+    const mw = 320;
+    const mh = 260;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'NHÀ BẾP NÔNG TRẠI');
+
+    this.font.drawString(g, 'Công thức nấu ăn từ nông sản tự trồng:', mx + 12, my + 34, 0);
+
+    const recipes = [
+      { name: '1. Cơm chiên trứng', req: '1 Trứng + 2 Cà chua', exp: '+50 NL' },
+      { name: '2. Canh chua cá lóc', req: '1 Cá + 2 Cà chua + 1 Dứa', exp: '+80 NL' },
+      { name: '3. Nước ép dưa hấu', req: '3 Dưa hấu', exp: '+30 NL' },
+      { name: '4. Bắp xào bơ', req: '3 Bắp + 1 Bơ', exp: '+40 NL' },
+      { name: '5. Trứng ốp la', req: '2 Trứng', exp: '+25 NL' }
+    ];
+
+    let rowY = my + 52;
+    for (let i = 0; i < recipes.length; i++) {
+      const r = recipes[i];
+      const isSel = i === this.selectedKitchenRecipe;
+      const text = `${r.name} (${r.req})`;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 26, text, isSel, r.exp);
+      rowY += 28;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 28, 130, 22, 'Nấu món ăn', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 146, my + mh - 28, 130, 22, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 3. Authentic Chuồng Rơm (Livestock / Barn) Dialog
+   */
+  private paintBarnModal(g: Graphics, w: number, h: number): void {
+    const mw = 310;
+    const mh = 250;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'CHUỒNG NUÔI GIA SÚC');
+
+    this.font.drawString(g, 'Tình trạng: 2 Heo, 1 Bò, 4 Gà (Khỏe mạnh)', mx + 12, my + 34, 0);
+
+    const actions = [
+      '1. Cho gia súc, gia cầm ăn',
+      '2. Thu hoạch trứng gà & vắt sữa bò',
+      '3. Tiêm phòng dịch bệnh & tăng đề kháng',
+      '4. Dọn dẹp vệ sinh chuồng trại',
+      '5. Mua thêm con giống vào chuồng'
+    ];
+
+    let rowY = my + 54;
+    for (let i = 0; i < actions.length; i++) {
+      const isSel = i === this.selectedBarnAction;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+      rowY += 26;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 125, 20, 'Thực hiện', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 141, my + mh - 26, 125, 20, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 4. Authentic Cây Khế Dialog
+   */
+  private paintStarfruitModal(g: Graphics, w: number, h: number): void {
+    const mw = 300;
+    const mh = 240;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'CÂY KHẾ NÔNG TRẠI');
+
+    this.font.drawString(g, 'Cây Khế Cấp 1: Có 10 trái khế chín vàng mọng', mx + 12, my + 34, 0);
+
+    const actions = [
+      '1. Thu hoạch khế chín (+500 Xu)',
+      '2. Tưới nước chăm sóc cây khế',
+      '3. Bón phân hữu cơ (+100 EXP Nông Trại)',
+      '4. Nâng cấp lên Cấp 2 (10.000 Xu)'
+    ];
+
+    let rowY = my + 56;
+    for (let i = 0; i < actions.length; i++) {
+      const isSel = i === this.selectedStarfruitAction;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+      rowY += 26;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 120, 20, 'Chọn', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 136, my + mh - 26, 120, 20, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 5. Authentic Ao Cá Dialog
+   */
+  private paintPondModal(g: Graphics, w: number, h: number): void {
+    const mw = 300;
+    const mh = 240;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'AO CÁ NÔNG TRẠI');
+
+    this.font.drawString(g, 'Tình trạng: 5 cá chép đang bơi lội, nước trong lành', mx + 12, my + 34, 0);
+
+    const actions = [
+      '1. Thả thêm cá giống mới (1.000 Xu)',
+      '2. Rải thức ăn cho cá',
+      '3. Vớt cá lớn / Thu hoạch (+thịt cá)',
+      '4. Mở rộng diện tích ao cá'
+    ];
+
+    let rowY = my + 56;
+    for (let i = 0; i < actions.length; i++) {
+      const isSel = i === this.selectedPondAction;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+      rowY += 26;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 120, 20, 'Thực hiện', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 136, my + mh - 26, 120, 20, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 6. Authentic Chăm Sóc Ô Đất Dialog
+   */
+  private paintCropActionModal(g: Graphics, w: number, h: number): void {
+    const mw = 310;
+    const mh = 260;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    const plot = this.model.lands[this.selectedPlotIndex];
+    const meta = plot ? CROP_DEFINITIONS[plot.type] : undefined;
+    const cropName = meta ? meta.name : 'Cây trồng';
+    const stage = plot ? this.model.getGrowthStage(plot) : 0;
+    const stageNames = ['Hạt mầm', 'Nảy mầm', 'Cây non', 'Cây lớn', 'Trổ hoa', 'Kết trái', 'Chín vàng'];
+    const stageText = stageNames[Math.min(stage, 6)];
+
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, `CHĂM SÓC Ô ĐẤT #${this.selectedPlotIndex + 1}`);
+
+    this.font.drawString(g, `Cây: ${cropName} | Giai đoạn: ${stageText}`, mx + 12, my + 34, 0);
+
+    const actions = [
+      '1. Tưới nước bổ sung độ ẩm',
+      '2. Bón phân (giảm 50% thời gian chín)',
+      '3. Bắt sâu bọ & làm cỏ dại',
+      '4. Thu hoạch nông sản (nếu đã chín)',
+      '5. Cuốc đất / Phá bỏ cây'
+    ];
+
+    let rowY = my + 54;
+    for (let i = 0; i < actions.length; i++) {
+      const isSel = i === this.selectedCropAction;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+      rowY += 26;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 125, 20, 'Thực hiện', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 141, my + mh - 26, 125, 20, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 7. Authentic Chọn Hạt Giống Dialog
+   */
+  private paintSeedPickerModal(g: Graphics, w: number, h: number): void {
+    const mw = 320;
+    const mh = 250;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'CHỌN HẠT GIỐNG ĐỂ GIEO');
 
     const seeds = Array.from(this.model.seeds.entries()).filter(([_, count]) => count > 0);
     if (seeds.length === 0) {
       this.font.drawString(g, 'Kho của bạn chưa có hạt giống nào!', mx + Math.floor(mw / 2), my + 60, 2);
       this.font.drawString(g, 'Hãy vào Cửa Hàng để mua hạt giống.', mx + Math.floor(mw / 2), my + 85, 2);
+      this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, 'Đóng', 'secondary');
       return;
     }
 
-    let yOff = my + 34;
+    let yOff = my + 36;
     for (const [seedId, count] of seeds) {
       const meta = CROP_DEFINITIONS[seedId];
       const name = meta ? meta.name : `Hạt #${seedId}`;
-
-      g.setColor(0x1E293B);
-      g.fillRect(mx + 8, yOff, mw - 16, 28);
-      g.setColor(0xFACC15);
-      this.font.drawString(g, `${name} (Còn: ${count})`, mx + 16, yOff + 7, 0);
-
-      // Sown button
-      g.setColor(0x16A34A);
-      g.fillRect(mx + mw - 68, yOff + 4, 54, 20);
-      g.setColor(0xFFFFFF);
-      this.font.drawString(g, 'Gieo', mx + mw - 41, yOff + 6, 2);
-
-      yOff += 32;
-      if (yOff > my + mh - 34) break;
+      const text = `${name} (Còn lại: ${count})`;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, yOff, mw - 16, 26, text, false, 'Gieo hạt');
+      yOff += 28;
+      if (yOff > my + mh - 36) break;
     }
+
+    this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, 'Đóng', 'secondary');
   }
 
+  /**
+   * 8. Authentic Cửa Hàng Hạt Giống Dialog
+   */
   private paintShopModal(g: Graphics, w: number, h: number): void {
-    const mw = Math.min(340, w - 20);
-    const mh = Math.min(270, h - 50);
+    const mw = 340;
+    const mh = 280;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    g.setColor(0x0F172A);
-    g.fillRect(mx, my, mw, mh);
-    g.setColor(0x38BDF8);
-    g.drawRect(mx, my, mw, mh);
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'CỬA HÀNG NÔNG TRẠI');
 
-    g.setColor(0x1E293B);
-    g.fillRect(mx, my, mw, 26);
-    this.font.drawString(g, '🏪 CỬA HÀNG HẠT GIỐNG', mx + Math.floor(mw / 2), my + 6, 2);
+    // Tabs
+    const tabW = Math.floor((mw - 24) / 3);
+    const tabY = my + 32;
 
-    // Close button [X]
-    g.setColor(0xEF4444);
-    g.fillRect(mx + mw - 22, my + 4, 18, 18);
-    this.font.drawString(g, 'X', mx + mw - 13, my + 6, 2);
+    const tabs: Array<{ id: 'seeds' | 'animals' | 'fertilizer'; label: string }> = [
+      { id: 'seeds', label: 'Hạt giống' },
+      { id: 'animals', label: 'Vật nuôi' },
+      { id: 'fertilizer', label: 'Phân bón' }
+    ];
 
-    const crops = Object.values(CROP_DEFINITIONS);
-    let yOff = my + 32;
-    for (const c of crops) {
-      g.setColor(0x1E293B);
-      g.fillRect(mx + 8, yOff, mw - 16, 28);
+    for (let i = 0; i < tabs.length; i++) {
+      const t = tabs[i];
+      const isSelected = this.selectedShopTab === t.id;
+      const tx = mx + 12 + i * tabW;
 
-      g.setColor(0xFFFFFF);
-      this.font.drawString(g, `${c.name} (${c.growMinutes}p)`, mx + 14, yOff + 7, 0);
-
-      // Buy button with Xu price
-      g.setColor(0xCA8A04);
-      g.fillRect(mx + mw - 78, yOff + 4, 68, 20);
-      g.setColor(0xFFFFFF);
-      this.font.drawString(g, `${c.seedPriceXu} Xu`, mx + mw - 44, yOff + 6, 2);
-
-      yOff += 32;
-      if (yOff > my + mh - 34) break;
+      g.setColor(isSelected ? 0xFBBF24 : 0xFEF3C7);
+      g.fillRect(tx, tabY, tabW - 4, 20);
+      g.setColor(isSelected ? 0xD97706 : 0x78350F);
+      g.drawRect(tx, tabY, tabW - 4, 20);
+      this.font.drawString(g, t.label, tx + Math.floor((tabW - 4) / 2), tabY + 4, 2);
     }
+
+    // Items
+    let items: Array<{ id: number; name: string; price: number; detail: string }> = [];
+    if (this.selectedShopTab === 'seeds') {
+      items = Object.values(CROP_DEFINITIONS).map(c => ({
+        id: c.id,
+        name: c.name,
+        price: c.seedPriceXu,
+        detail: `${c.growMinutes} phút`
+      }));
+    } else if (this.selectedShopTab === 'animals') {
+      items = [
+        { id: 1, name: 'Gà con', price: 5000, detail: 'Lấy trứng' },
+        { id: 2, name: 'Vịt con', price: 4000, detail: 'Lấy trứng' },
+        { id: 3, name: 'Heo giống', price: 10000, detail: 'Lấy thịt' },
+        { id: 4, name: 'Bò sữa giống', price: 20000, detail: 'Vắt sữa' }
+      ];
+    } else {
+      items = [
+        { id: 1, name: 'Phân bón loại 1', price: 500, detail: '-50% thời gian' },
+        { id: 2, name: 'Thuốc trừ sâu', price: 300, detail: 'Diệt sâu bọ' },
+        { id: 3, name: 'Thuốc hồi phục', price: 400, detail: 'Hồi sinh cây' }
+      ];
+    }
+
+    let rowY = my + 58;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const isSel = i === this.selectedShopIndex;
+      const text = `${item.name} (${item.detail})`;
+      const priceText = `${item.price.toLocaleString('vi-VN')} Xu`;
+
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 26, text, isSel, priceText);
+      rowY += 28;
+    }
+
+    // Bottom Quantity & Action Buttons
+    const botY = my + mh - 30;
+
+    g.setColor(0xFEF3C7);
+    g.fillRect(mx + 12, botY, 70, 22);
+    g.setColor(0x78350F);
+    g.drawRect(mx + 12, botY, 70, 22);
+
+    this.font.drawString(g, '-', mx + 20, botY + 4, 2);
+    this.font.drawString(g, `${this.shopQuantity}`, mx + 47, botY + 4, 2);
+    this.font.drawString(g, '+', mx + 74, botY + 4, 2);
+
+    this.skinPainter.paintAuthenticButton(g, mx + 95, botY, 115, 22, 'Mua vật phẩm', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 110, botY, 98, 22, 'Đóng', 'secondary');
   }
 
+  /**
+   * 9. Authentic Nhà Kho Nông Sản Dialog
+   */
   private paintWarehouseModal(g: Graphics, w: number, h: number): void {
-    const mw = Math.min(320, w - 20);
-    const mh = Math.min(250, h - 60);
+    const mw = 320;
+    const mh = 250;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    g.setColor(0x0F172A);
-    g.fillRect(mx, my, mw, mh);
-    g.setColor(0x38BDF8);
-    g.drawRect(mx, my, mw, mh);
-
-    g.setColor(0x1E293B);
-    g.fillRect(mx, my, mw, 26);
-    this.font.drawString(g, '📦 NHÀ KHO NÔNG SẢN', mx + Math.floor(mw / 2), my + 6, 2);
-
-    g.setColor(0xEF4444);
-    g.fillRect(mx + mw - 22, my + 4, 18, 18);
-    this.font.drawString(g, 'X', mx + mw - 13, my + 6, 2);
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'NHÀ KHO NÔNG SẢN');
 
     const cropEntries = Array.from(this.model.crops.entries()).filter(([_, c]) => c > 0);
     if (cropEntries.length === 0) {
       this.font.drawString(g, 'Nhà kho hiện tại đang trống!', mx + Math.floor(mw / 2), my + 60, 2);
       this.font.drawString(g, 'Hãy gieo trồng và thu hoạch để có nông sản.', mx + Math.floor(mw / 2), my + 85, 2);
+      this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, 'Đóng', 'secondary');
       return;
     }
 
-    let yOff = my + 34;
+    let yOff = my + 36;
     for (const [cropId, count] of cropEntries) {
       const meta = CROP_DEFINITIONS[cropId];
       const name = meta ? meta.name : `Nông sản #${cropId}`;
       const sellTotal = count * (meta ? meta.sellPriceXu : 10);
+      const text = `${name}: ${count} củ/quả`;
+      const priceText = `Bán: ${sellTotal.toLocaleString('vi-VN')} Xu`;
 
-      g.setColor(0x1E293B);
-      g.fillRect(mx + 8, yOff, mw - 16, 28);
-      g.setColor(0x4ADE80);
-      this.font.drawString(g, `${name}: ${count} củ/quả`, mx + 16, yOff + 7, 0);
-
-      g.setColor(0x059669);
-      g.fillRect(mx + mw - 76, yOff + 4, 66, 20);
-      g.setColor(0xFFFFFF);
-      this.font.drawString(g, `Bán: ${sellTotal}`, mx + mw - 43, yOff + 6, 2);
-
-      yOff += 32;
-      if (yOff > my + mh - 34) break;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, yOff, mw - 16, 26, text, false, priceText);
+      yOff += 28;
+      if (yOff > my + mh - 36) break;
     }
+
+    this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, 'Đóng', 'secondary');
   }
 
+  /**
+   * 10. Authentic Mở Thêm Ô Đất Dialog
+   */
   private paintConfirmOpenLandModal(g: Graphics, w: number, h: number): void {
     const mw = 280;
-    const mh = 140;
+    const mh = 150;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    g.setColor(0x0F172A);
-    g.fillRect(mx, my, mw, mh);
-    g.setColor(0xFACC15);
-    g.drawRect(mx, my, mw, mh);
-
-    g.setColor(0x1E293B);
-    g.fillRect(mx, my, mw, 24);
-    this.font.drawString(g, 'MỞ THÊM ĐẤT TRỒNG', mx + Math.floor(mw / 2), my + 5, 2);
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'MỞ THÊM ĐẤT TRỒNG');
 
     const plotNum = this.model.landSize + 1;
     this.font.drawString(g, `Bạn có muốn mở ô đất thứ ${plotNum}?`, mx + Math.floor(mw / 2), my + 45, 2);
     this.font.drawString(g, 'Giá mở: 500 Xu từ tài khoản của bạn', mx + Math.floor(mw / 2), my + 68, 2);
 
-    // Button [Đồng ý]
-    g.setColor(0x16A34A);
-    g.fillRect(mx + 20, my + 95, 100, 28);
-    g.setColor(0xFFFFFF);
-    this.font.drawString(g, 'Đồng ý', mx + 70, my + 102, 2);
-
-    // Button [Hủy]
-    g.setColor(0xDC2626);
-    g.fillRect(mx + mw - 120, my + 95, 100, 28);
-    g.setColor(0xFFFFFF);
-    this.font.drawString(g, 'Hủy bỏ', mx + mw - 70, my + 102, 2);
+    this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 30, 115, 24, 'Đồng ý', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 131, my + mh - 30, 115, 24, 'Hủy bỏ', 'secondary');
   }
 
-  // --- Pointer & Input Handling ---
+  // =========================================================================
+  // Pointer & Input Handling
+  // =========================================================================
 
   public pointerPressed(screenX: number, screenY: number): void {
     const w = this.screenW;
@@ -987,6 +1053,26 @@ export class FarmScreen extends GameScreen {
     // 1. Handle Active Modals
     if (this.isMenuOpen) {
       this.handleMenuClick(screenX, screenY, w, h);
+      return;
+    }
+    if (this.isKitchenOpen) {
+      this.handleKitchenClick(screenX, screenY, w, h);
+      return;
+    }
+    if (this.isBarnOpen) {
+      this.handleBarnClick(screenX, screenY, w, h);
+      return;
+    }
+    if (this.isStarfruitOpen) {
+      this.handleStarfruitClick(screenX, screenY, w, h);
+      return;
+    }
+    if (this.isPondOpen) {
+      this.handlePondClick(screenX, screenY, w, h);
+      return;
+    }
+    if (this.isCropActionOpen) {
+      this.handleCropActionClick(screenX, screenY, w, h);
       return;
     }
     if (this.controller.isSeedPickerOpen) {
@@ -1006,34 +1092,94 @@ export class FarmScreen extends GameScreen {
       return;
     }
 
-    // 2. Handle HUD clicks (Top Left Menu [ = ], Mail [ ✉ ], Top Softkeys)
+    // 2. Handle HUD clicks (Top Left Menu [ = ], Mail [ ✉ ])
     if (screenY <= 32) {
       if (screenX <= 32) {
-        // Toggle Menu
         this.isMenuOpen = !this.isMenuOpen;
         return;
       }
       if (screenX > 32 && screenX <= 64) {
-        // Mail notification
         this.feedbackText = 'Bạn chưa có thư mới nào từ bưu điện!';
         this.feedbackTimer = 80;
         return;
       }
     }
 
-    // 3. World Coordinates (Account for Camera translation)
+    // 3. World Coordinates
     const worldX = screenX + this.cameraX;
     const worldY = screenY + this.cameraY;
 
-    // Check click on Exit Signpost or Exit Path (x = 760..920, y = 670..760)
-    if (worldX >= 760 && worldX <= 920 && worldY >= 670 && worldY <= 760) {
-      if (this.onExitToWorldMap) {
-        this.onExitToWorldMap();
+    // A. Click on Exit Signpost or Exit Path (x = 830..950, y = 620..740)
+    if (worldX >= 820 && worldX <= 960 && worldY >= 620 && worldY <= 740) {
+      const dist = Math.hypot(this.localPlayer.x - 888, this.localPlayer.y - 670);
+      if (dist <= 50) {
+        if (this.onExitToWorldMap) this.onExitToWorldMap();
+      } else {
+        this.localPlayer.targetX = 888;
+        this.localPlayer.targetY = 670;
+        this.feedbackText = 'Đang tiến ra Cổng Nông Trại...';
+        this.feedbackTimer = 50;
       }
       return;
     }
 
-    // Check click on Next Locked Plot ("MUA" signpost at plot index === landSize)
+    // B. Click on Nhà Bếp (x: 418..560, y: 350..470)
+    if (worldX >= 418 && worldX <= 560 && worldY >= 350 && worldY <= 470) {
+      const dist = Math.hypot(this.localPlayer.x - 502, this.localPlayer.y - 430);
+      if (dist <= 50) {
+        this.isKitchenOpen = true;
+      } else {
+        this.localPlayer.targetX = 502;
+        this.localPlayer.targetY = 430;
+        this.feedbackText = 'Đang đến Nhà Bếp...';
+        this.feedbackTimer = 50;
+      }
+      return;
+    }
+
+    // C. Click on Chuồng Rơm (x: 602..750, y: 350..470)
+    if (worldX >= 602 && worldX <= 750 && worldY >= 350 && worldY <= 470) {
+      const dist = Math.hypot(this.localPlayer.x - 691, this.localPlayer.y - 430);
+      if (dist <= 50) {
+        this.isBarnOpen = true;
+      } else {
+        this.localPlayer.targetX = 691;
+        this.localPlayer.targetY = 430;
+        this.feedbackText = 'Đang đến Chuồng Nuôi...';
+        this.feedbackTimer = 50;
+      }
+      return;
+    }
+
+    // D. Click on Cây Khế (x: 820..960, y: 380..520)
+    if (worldX >= 820 && worldX <= 960 && worldY >= 380 && worldY <= 520) {
+      const dist = Math.hypot(this.localPlayer.x - 888, this.localPlayer.y - 480);
+      if (dist <= 60) {
+        this.isStarfruitOpen = true;
+      } else {
+        this.localPlayer.targetX = 888;
+        this.localPlayer.targetY = 480;
+        this.feedbackText = 'Đang đến Cây Khế...';
+        this.feedbackTimer = 50;
+      }
+      return;
+    }
+
+    // E. Click on Ao Cá (x: 1550..1850, y: 520..740)
+    if (worldX >= 1550 && worldX <= 1850 && worldY >= 520 && worldY <= 740) {
+      const dist = Math.hypot(this.localPlayer.x - 1520, this.localPlayer.y - 580);
+      if (dist <= 80) {
+        this.isPondOpen = true;
+      } else {
+        this.localPlayer.targetX = 1520;
+        this.localPlayer.targetY = 580;
+        this.feedbackText = 'Đang đến Ao Cá...';
+        this.feedbackTimer = 50;
+      }
+      return;
+    }
+
+    // F. Click on Next Locked Plot ("MUA" signpost)
     if (this.model.landSize < this.model.maxLandPlots) {
       const nextPlot = this.model.lands[this.model.landSize];
       if (nextPlot) {
@@ -1051,19 +1197,28 @@ export class FarmScreen extends GameScreen {
       }
     }
 
-    // Check click on Land Plots
+    // G. Click on Land Plots
     const clickedPlotIdx = this.findPlotAt(worldX, worldY);
     if (clickedPlotIdx >= 0) {
       const plot = this.model.lands[clickedPlotIdx];
       this.localPlayer.targetX = plot.posX + 24;
       this.localPlayer.targetY = plot.posY + 24;
-      this.controller.handleCellClick(clickedPlotIdx);
+
+      if (plot.type === -1) {
+        // Empty plot -> open Seed Picker
+        this.controller.focusedCellIndex = clickedPlotIdx;
+        this.controller.isSeedPickerOpen = true;
+      } else if (plot.type >= 0) {
+        // Growing / mature plot -> open Crop Action dialog
+        this.selectedPlotIndex = clickedPlotIdx;
+        this.isCropActionOpen = true;
+      }
       return;
     }
 
-    // Otherwise, move player to tapped position (clamped to walkable farm boundaries)
+    // H. General Walk-to Click
     this.localPlayer.targetX = Math.max(50, Math.min(1960, worldX));
-    this.localPlayer.targetY = Math.max(460, Math.min(715, worldY));
+    this.localPlayer.targetY = Math.max(420, Math.min(715, worldY));
   }
 
   private findPlotAt(worldX: number, worldY: number): number {
@@ -1081,117 +1236,415 @@ export class FarmScreen extends GameScreen {
     return -1;
   }
 
+  // --- Modal Click Handlers ---
+
   private handleMenuClick(screenX: number, screenY: number, w: number, h: number): void {
-    const items = ['plant', 'harvest', 'open_land', 'shop', 'warehouse', 'exit'];
-    const mw = 180;
-    const mh = items.length * 28 + 32;
-    const mx = 10;
-    const my = h - mh - 28;
+    const mw = 220;
+    const mh = 260;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
 
     if (screenX < mx || screenX > mx + mw || screenY < my || screenY > my + mh) {
       this.isMenuOpen = false;
       return;
     }
 
-    const clickedIdx = Math.floor((screenY - (my + 24)) / 28);
-    this.isMenuOpen = false;
+    // Close [X]
+    if (screenX >= mx + mw - 24 && screenX <= mx + mw && screenY >= my && screenY <= my + 24) {
+      this.isMenuOpen = false;
+      return;
+    }
 
-    if (clickedIdx === 0) {
-      // Gieo hạt
-      this.controller.isSeedPickerOpen = true;
-    } else if (clickedIdx === 1) {
-      // Thu hoạch cây chín
-      this.controller.harvestAllMature();
-    } else if (clickedIdx === 2) {
-      // Mở đất
-      this.isConfirmOpenLand = true;
-    } else if (clickedIdx === 3) {
-      // Cửa hàng
-      this.controller.isShopOpen = true;
-    } else if (clickedIdx === 4) {
-      // Nhà kho
-      this.controller.isWarehouseOpen = true;
-    } else if (clickedIdx === 5) {
-      // Rời nông trại
-      if (this.onExitToWorldMap) this.onExitToWorldMap();
+    let rowY = my + 32;
+    for (let i = 0; i < 8; i++) {
+      if (screenX >= mx + 8 && screenX <= mx + mw - 8 && screenY >= rowY && screenY <= rowY + 22) {
+        this.selectedMenuIndex = i;
+        this.executeMenuItem(i);
+        return;
+      }
+      rowY += 24;
+    }
+
+    // Click [ Chọn ]
+    if (screenX >= mx + 12 && screenX <= mx + 102 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+      this.executeMenuItem(this.selectedMenuIndex);
+      return;
+    }
+
+    // Click [ Đóng ]
+    if (screenX >= mx + mw - 102 && screenX <= mx + mw - 12 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+      this.isMenuOpen = false;
+      return;
+    }
+  }
+
+  private executeMenuItem(index: number): void {
+    this.isMenuOpen = false;
+    switch (index) {
+      case 0:
+        this.controller.isSeedPickerOpen = true;
+        break;
+      case 1:
+        this.controller.harvestAllMature();
+        break;
+      case 2:
+        this.isConfirmOpenLand = true;
+        break;
+      case 3:
+        this.controller.isShopOpen = true;
+        break;
+      case 4:
+        this.controller.isWarehouseOpen = true;
+        break;
+      case 5:
+        this.isKitchenOpen = true;
+        break;
+      case 6:
+        this.isBarnOpen = true;
+        break;
+      case 7:
+        if (this.onExitToWorldMap) this.onExitToWorldMap();
+        break;
+    }
+  }
+
+  private handleKitchenClick(x: number, y: number, w: number, h: number): void {
+    const mw = 320;
+    const mh = 260;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+      this.isKitchenOpen = false;
+      return;
+    }
+
+    let rowY = my + 52;
+    for (let i = 0; i < 5; i++) {
+      if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 26) {
+        this.selectedKitchenRecipe = i;
+        return;
+      }
+      rowY += 28;
+    }
+
+    // [ Nấu món ăn ]
+    if (x >= mx + 16 && x <= mx + 146 && y >= my + mh - 28 && y <= my + mh - 6) {
+      const recipes = ['Cơm chiên trứng', 'Canh chua cá lóc', 'Nước ép dưa hấu', 'Bắp xào bơ', 'Trứng ốp la'];
+      this.handler.cookDish(this.selectedKitchenRecipe);
+      this.feedbackText = `Đang nấu ${recipes[this.selectedKitchenRecipe]}...`;
+      this.feedbackTimer = 80;
+      this.isKitchenOpen = false;
+      return;
+    }
+
+    // [ Đóng ]
+    if (x >= mx + mw - 146 && x <= mx + mw - 16 && y >= my + mh - 28 && y <= my + mh - 6) {
+      this.isKitchenOpen = false;
+      return;
+    }
+  }
+
+  private handleBarnClick(x: number, y: number, w: number, h: number): void {
+    const mw = 310;
+    const mh = 250;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+      this.isBarnOpen = false;
+      return;
+    }
+
+    let rowY = my + 54;
+    for (let i = 0; i < 5; i++) {
+      if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+        this.selectedBarnAction = i;
+        return;
+      }
+      rowY += 26;
+    }
+
+    // [ Thực hiện ]
+    if (x >= mx + 16 && x <= mx + 141 && y >= my + mh - 26 && y <= my + mh - 6) {
+      this.handler.doCattleAction(this.selectedBarnAction);
+      const actions = ['Cho ăn', 'Thu hoạch trứng/sữa', 'Tiêm phòng', 'Vệ sinh chuồng', 'Mua con giống'];
+      this.feedbackText = `Đã thực hiện: ${actions[this.selectedBarnAction]}!`;
+      this.feedbackTimer = 80;
+      this.isBarnOpen = false;
+      return;
+    }
+
+    // [ Đóng ]
+    if (x >= mx + mw - 141 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+      this.isBarnOpen = false;
+      return;
+    }
+  }
+
+  private handleStarfruitClick(x: number, y: number, w: number, h: number): void {
+    const mw = 300;
+    const mh = 240;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+      this.isStarfruitOpen = false;
+      return;
+    }
+
+    let rowY = my + 56;
+    for (let i = 0; i < 4; i++) {
+      if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+        this.selectedStarfruitAction = i;
+        return;
+      }
+      rowY += 26;
+    }
+
+    // [ Chọn ]
+    if (x >= mx + 16 && x <= mx + 136 && y >= my + mh - 26 && y <= my + mh - 6) {
+      if (this.selectedStarfruitAction === 0) {
+        // Thu hoạch khế
+        this.handler.harvestStarfruit();
+        this.feedbackText = 'Thu hoạch khế thành công! +500 Xu vào tài khoản!';
+        this.feedbackTimer = 80;
+      } else if (this.selectedStarfruitAction === 1) {
+        this.feedbackText = 'Đã tưới nước cho cây khế!';
+        this.feedbackTimer = 60;
+      } else if (this.selectedStarfruitAction === 2) {
+        this.feedbackText = 'Đã bón phân cho cây khế! +100 EXP Nông Trại';
+        this.feedbackTimer = 60;
+      } else if (this.selectedStarfruitAction === 3) {
+        this.handler.upgradeStarfruit();
+        this.feedbackText = 'Đã gửi yêu cầu nâng cấp cây khế lên Cấp 2!';
+        this.feedbackTimer = 80;
+      }
+      this.isStarfruitOpen = false;
+      return;
+    }
+
+    // [ Đóng ]
+    if (x >= mx + mw - 136 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+      this.isStarfruitOpen = false;
+      return;
+    }
+  }
+
+  private handlePondClick(x: number, y: number, w: number, h: number): void {
+    const mw = 300;
+    const mh = 240;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+      this.isPondOpen = false;
+      return;
+    }
+
+    let rowY = my + 56;
+    for (let i = 0; i < 4; i++) {
+      if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+        this.selectedPondAction = i;
+        return;
+      }
+      rowY += 26;
+    }
+
+    // [ Thực hiện ]
+    if (x >= mx + 16 && x <= mx + 136 && y >= my + mh - 26 && y <= my + mh - 6) {
+      this.handler.doFishAction(this.selectedPondAction);
+      const actions = ['Thả cá giống mới', 'Rải thức ăn cho cá', 'Thu hoạch cá', 'Nâng cấp ao cá'];
+      this.feedbackText = `Đã thực hiện: ${actions[this.selectedPondAction]}!`;
+      this.feedbackTimer = 80;
+      this.isPondOpen = false;
+      return;
+    }
+
+    // [ Đóng ]
+    if (x >= mx + mw - 136 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+      this.isPondOpen = false;
+      return;
+    }
+  }
+
+  private handleCropActionClick(x: number, y: number, w: number, h: number): void {
+    const mw = 310;
+    const mh = 260;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+      this.isCropActionOpen = false;
+      return;
+    }
+
+    let rowY = my + 54;
+    for (let i = 0; i < 5; i++) {
+      if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+        this.selectedCropAction = i;
+        return;
+      }
+      rowY += 26;
+    }
+
+    // [ Thực hiện ]
+    if (x >= mx + 16 && x <= mx + 141 && y >= my + mh - 26 && y <= my + mh - 6) {
+      if (this.selectedCropAction === 0) {
+        this.feedbackText = 'Đã tưới nước cho ô đất!';
+        this.feedbackTimer = 60;
+      } else if (this.selectedCropAction === 1) {
+        this.feedbackText = 'Đã bón phân! Rút ngắn thời gian sinh trưởng!';
+        this.feedbackTimer = 60;
+      } else if (this.selectedCropAction === 2) {
+        this.feedbackText = 'Đã bắt sâu bọ và làm sạch cỏ dại!';
+        this.feedbackTimer = 60;
+      } else if (this.selectedCropAction === 3) {
+        this.controller.handleCellClick(this.selectedPlotIndex);
+      } else if (this.selectedCropAction === 4) {
+        this.feedbackText = 'Đã cuốc đất và làm sạch ô đất!';
+        this.feedbackTimer = 60;
+      }
+      this.isCropActionOpen = false;
+      return;
+    }
+
+    // [ Đóng ]
+    if (x >= mx + mw - 141 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+      this.isCropActionOpen = false;
+      return;
     }
   }
 
   private handleSeedPickerClick(x: number, y: number, w: number, h: number): void {
-    const mw = Math.min(320, w - 20);
-    const mh = Math.min(260, h - 60);
+    const mw = 320;
+    const mh = 250;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    // Close [X] or outside
-    if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
-      this.controller.isSeedPickerOpen = false;
-      return;
-    }
-    if (x < mx || x > mx + mw || y < my || y > my + mh) {
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
       this.controller.isSeedPickerOpen = false;
       return;
     }
 
     const seeds = Array.from(this.model.seeds.entries()).filter(([_, count]) => count > 0);
-    let yOff = my + 34;
-    for (const [seedId, count] of seeds) {
-      if (y >= yOff && y <= yOff + 28) {
+    let yOff = my + 36;
+    for (const [seedId] of seeds) {
+      if (y >= yOff && y <= yOff + 26) {
         this.controller.selectSeed(seedId);
+        if (this.controller.focusedCellIndex >= 0) {
+          this.handler.plantSeed(this.controller.focusedCellIndex, seedId);
+        }
         return;
       }
-      yOff += 32;
-      if (yOff > my + mh - 34) break;
+      yOff += 28;
+      if (yOff > my + mh - 36) break;
+    }
+
+    // [ Đóng ]
+    if (y >= my + mh - 28 && y <= my + mh - 6) {
+      this.controller.isSeedPickerOpen = false;
+      return;
     }
   }
 
   private handleShopClick(x: number, y: number, w: number, h: number): void {
-    const mw = Math.min(340, w - 20);
-    const mh = Math.min(270, h - 50);
+    const mw = 340;
+    const mh = 280;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
-      this.controller.isShopOpen = false;
-      return;
-    }
-    if (x < mx || x > mx + mw || y < my || y > my + mh) {
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
       this.controller.isShopOpen = false;
       return;
     }
 
-    const crops = Object.values(CROP_DEFINITIONS);
-    let yOff = my + 32;
-    for (const c of crops) {
-      if (y >= yOff && y <= yOff + 28 && x >= mx + mw - 80) {
-        if (this.model.userXu < c.seedPriceXu) {
-          if (this.controller.onActionFeedback) {
-            this.controller.onActionFeedback('Bạn không đủ Xu để mua hạt giống này!', '#ef4444');
-          }
-          return;
-        }
-        this.handler.buySeed(c.id, 1, 1);
-        if (this.controller.onActionFeedback) {
-          this.controller.onActionFeedback(`Đã mua 1 hạt giống ${c.name}!`, '#4ade80');
-        }
+    // Tabs
+    const tabW = Math.floor((mw - 24) / 3);
+    const tabY = my + 32;
+    if (y >= tabY && y <= tabY + 20) {
+      if (x >= mx + 12 && x < mx + 12 + tabW) {
+        this.selectedShopTab = 'seeds';
+        this.selectedShopIndex = 0;
         return;
       }
-      yOff += 32;
-      if (yOff > my + mh - 34) break;
+      if (x >= mx + 12 + tabW && x < mx + 12 + tabW * 2) {
+        this.selectedShopTab = 'animals';
+        this.selectedShopIndex = 0;
+        return;
+      }
+      if (x >= mx + 12 + tabW * 2 && x <= mx + mw - 12) {
+        this.selectedShopTab = 'fertilizer';
+        this.selectedShopIndex = 0;
+        return;
+      }
+    }
+
+    // Item selection
+    let rowY = my + 58;
+    const count = this.selectedShopTab === 'seeds' ? 5 : (this.selectedShopTab === 'animals' ? 4 : 3);
+    for (let i = 0; i < count; i++) {
+      if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 26) {
+        this.selectedShopIndex = i;
+        return;
+      }
+      rowY += 28;
+    }
+
+    // Quantity selector: [ - ] [ 1 ] [ + ]
+    const botY = my + mh - 30;
+    if (y >= botY && y <= botY + 22) {
+      if (x >= mx + 12 && x <= mx + 35) {
+        this.shopQuantity = Math.max(1, this.shopQuantity - 1);
+        return;
+      }
+      if (x >= mx + 55 && x <= mx + 82) {
+        this.shopQuantity = Math.min(99, this.shopQuantity + 1);
+        return;
+      }
+    }
+
+    // [ Mua vật phẩm ]
+    if (x >= mx + 95 && x <= mx + 210 && y >= botY && y <= botY + 22) {
+      const itemId = this.selectedShopIndex + 1;
+      this.handler.buySeed(itemId, this.shopQuantity);
+      this.feedbackText = `Đã gửi yêu cầu mua ${this.shopQuantity} vật phẩm!`;
+      this.feedbackTimer = 60;
+      return;
+    }
+
+    // [ Đóng ]
+    if (x >= mx + mw - 110 && x <= mx + mw - 12 && y >= botY && y <= botY + 22) {
+      this.controller.isShopOpen = false;
+      return;
     }
   }
 
   private handleWarehouseClick(x: number, y: number, w: number, h: number): void {
-    const mw = Math.min(320, w - 20);
-    const mh = Math.min(250, h - 60);
+    const mw = 320;
+    const mh = 250;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
       this.controller.isWarehouseOpen = false;
       return;
     }
-    if (x < mx || x > mx + mw || y < my || y > my + mh) {
+
+    // Sell item rows
+    const cropEntries = Array.from(this.model.crops.entries()).filter(([_, c]) => c > 0);
+    let yOff = my + 36;
+    for (const [cropId, count] of cropEntries) {
+      if (y >= yOff && y <= yOff + 26) {
+        this.controller.sellProduce(cropId, 1);
+        return;
+      }
+      yOff += 28;
+      if (yOff > my + mh - 36) break;
+    }
+
+    // [ Đóng ]
+    if (y >= my + mh - 28 && y <= my + mh - 6) {
       this.controller.isWarehouseOpen = false;
       return;
     }
@@ -1199,23 +1652,21 @@ export class FarmScreen extends GameScreen {
 
   private handleConfirmOpenLandClick(x: number, y: number, w: number, h: number): void {
     const mw = 280;
-    const mh = 140;
+    const mh = 150;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    // Button [Đồng ý]
-    if (x >= mx + 20 && x <= mx + 120 && y >= my + 95 && y <= my + 125) {
+    // [ Đồng ý ]
+    if (x >= mx + 16 && x <= mx + 131 && y >= my + mh - 30 && y <= my + mh - 6) {
       this.isConfirmOpenLand = false;
       this.handler.openLand(1); // 1 = Xu
-      if (this.controller.onActionFeedback) {
-        this.controller.onActionFeedback('Đang gửi yêu cầu mở ô đất lên máy chủ...', '#facc15');
-      }
+      this.feedbackText = 'Đang gửi yêu cầu mở ô đất lên máy chủ...';
+      this.feedbackTimer = 60;
       return;
     }
 
-    // Button [Hủy] or outside
-    if ((x >= mx + mw - 120 && x <= mx + mw - 20 && y >= my + 95 && y <= my + 125) ||
-        x < mx || x > mx + mw || y < my || y > my + mh) {
+    // [ Hủy bỏ ]
+    if (x >= mx + mw - 131 && x <= mx + mw - 16 && y >= my + mh - 30 && y <= my + mh - 6) {
       this.isConfirmOpenLand = false;
       return;
     }

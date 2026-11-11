@@ -106,4 +106,154 @@ export class UISkinPainter {
       }
     }
   }
+
+  // =========================================================================
+  // Authentic Avatar 2.5.8 J2ME Dialog & Menu Renderer (1:1 Fidelity)
+  // =========================================================================
+
+  /**
+   * Paints an authentic J2ME warm-cream parchment window with double border,
+   * dark wood header pill, and optional [X] close button.
+   */
+  public paintAuthenticDialog(
+    g: Graphics,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    title: string
+  ): void {
+    // 1. Semi-transparent backdrop shadow
+    g.setColor(0x000000);
+    g.fillRect(x + 4, y + 4, w, h);
+
+    // 2. Warm cream parchment background (#FEF3C7)
+    g.setColor(0xFEF3C7);
+    g.fillRect(x, y, w, h);
+
+    // 3. Inner lighter parchment content pane (#FFFBEB)
+    g.setColor(0xFFFBEB);
+    g.fillRect(x + 4, y + 28, w - 8, h - 32);
+
+    // 4. Double borders: outer dark chocolate wood (#451A03), inner amber gold (#D97706)
+    g.setColor(0x451A03);
+    g.drawRect(x, y, w - 1, h - 1);
+    g.drawRect(x + 1, y + 1, w - 3, h - 3);
+
+    g.setColor(0xD97706);
+    g.drawRect(x + 3, y + 3, w - 7, h - 7);
+
+    // 5. Header dark wood banner capsule (#78350F)
+    const headerH = 24;
+    g.setColor(0x78350F);
+    g.fillRect(x + 4, y + 4, w - 8, headerH);
+    g.setColor(0xF59E0B); // Gold banner border
+    g.drawRect(x + 4, y + 4, w - 9, headerH);
+
+    // 6. Header Title in bold white
+    if (this.font) {
+      this.font.drawString(g, title.toUpperCase(), x + Math.floor(w / 2), y + 7, 2);
+    }
+
+    // 7. Close button [X]
+    g.setColor(0xDC2626);
+    g.fillRect(x + w - 22, y + 6, 16, 16);
+    g.setColor(0xFEF2F2);
+    g.drawRect(x + w - 22, y + 6, 15, 15);
+    if (this.font) {
+      this.font.drawString(g, 'X', x + w - 14, y + 8, 2);
+    }
+  }
+
+  /**
+   * Paints a menu option item row.
+   * Highlighted rows use golden amber background with red bullet indicator.
+   */
+  public paintAuthenticOption(
+    g: Graphics,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    text: string,
+    isSelected = false,
+    extraInfo?: string
+  ): void {
+    if (isSelected) {
+      // Golden Amber highlight capsule (#FBBF24)
+      g.setColor(0xFBBF24);
+      g.fillRect(x, y, w, h);
+      g.setColor(0xD97706);
+      g.drawRect(x, y, w - 1, h - 1);
+
+      // Red/orange selection triangle pointer
+      g.setColor(0xDC2626);
+      const midY = y + Math.floor(h / 2);
+      g.fillArc(x + 6, midY - 3, 6, 6, 0, 360);
+
+      // Dark chocolate text (#451A03)
+      if (this.font) {
+        this.font.drawString(g, text, x + 16, y + Math.floor((h - 12) / 2), 0);
+        if (extraInfo) {
+          this.font.drawString(g, extraInfo, x + w - 10, y + Math.floor((h - 12) / 2), 1);
+        }
+      }
+    } else {
+      // Unselected row: subtle cream background
+      g.setColor(0xFDE68A);
+      g.drawLine(x + 4, y + h - 1, x + w - 4, y + h - 1);
+
+      // Dark amber text (#78350F)
+      if (this.font) {
+        this.font.drawString(g, text, x + 10, y + Math.floor((h - 12) / 2), 0);
+        if (extraInfo) {
+          this.font.drawString(g, extraInfo, x + w - 10, y + Math.floor((h - 12) / 2), 1);
+        }
+      }
+    }
+  }
+
+  /**
+   * Paints an authentic button with J2ME tactile styling.
+   */
+  public paintAuthenticButton(
+    g: Graphics,
+    x: number,
+    y: number,
+    w: number,
+    h: number,
+    text: string,
+    variant: 'primary' | 'secondary' | 'danger' = 'primary',
+    isFocused = false
+  ): void {
+    let bg = 0xD97706; // Amber
+    let border = 0x92400E;
+    let textCol = 0xFFFFFF;
+
+    if (variant === 'secondary') {
+      bg = 0x78350F; // Dark wood
+      border = 0x451A03;
+    } else if (variant === 'danger') {
+      bg = 0xDC2626; // Crimson
+      border = 0x991B1B;
+    }
+
+    if (isFocused) {
+      bg = 0xF59E0B;
+      border = 0xFEF3C7;
+    }
+
+    g.setColor(bg);
+    g.fillRect(x, y, w, h);
+    g.setColor(border);
+    g.drawRect(x, y, w - 1, h - 1);
+
+    // Bevel highlight
+    g.setColor(0xFEF3C7);
+    g.drawLine(x + 1, y + 1, x + w - 2, y + 1);
+
+    if (this.font) {
+      this.font.drawString(g, text, x + Math.floor(w / 2), y + Math.floor((h - 12) / 2), 2);
+    }
+  }
 }

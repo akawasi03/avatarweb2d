@@ -2334,6 +2334,30 @@ void main() {
         this.network.sendGetFarmInventory();
       }, 400);
     }
+    buyAnimal(animalType, quantity = 1) {
+      this.network.sendBuyAnimal(animalType, quantity);
+      setTimeout(() => {
+        this.network.sendGetFarmInventory();
+      }, 400);
+    }
+    cookDish(recipeId) {
+      this.network.sendCooking(recipeId);
+      if (this.onNotification) {
+        this.onNotification("\u0110ang g\u1EEDi y\xEAu c\u1EA7u n\u1EA5u \u0103n \u0111\u1EBFn m\xE1y ch\u1EE7...");
+      }
+    }
+    doCattleAction(action) {
+      this.network.sendCattleAction(this.model.userId, action);
+    }
+    doFishAction(action) {
+      this.network.sendFishAction(this.model.userId, action);
+    }
+    harvestStarfruit() {
+      this.network.sendHarvestStarfruit(this.model.userId);
+    }
+    upgradeStarfruit() {
+      this.network.sendUpgradeStarfruit(this.model.userId);
+    }
     requestInventory() {
       this.network.sendGetFarmInventory();
     }
@@ -2895,6 +2919,47 @@ void main() {
         this.onActionFeedback(`\u0110\xE3 g\u1EEDi y\xEAu c\u1EA7u mua h\u1EA1t gi\u1ED1ng #${seedId}`, "#facc15");
       }
     }
+    sellProduce(cropId, count = 1) {
+      const curCrops = this.model.crops.get(cropId) || 0;
+      if (curCrops <= 0) {
+        if (this.onActionFeedback) {
+          this.onActionFeedback("B\u1EA1n kh\xF4ng c\xF3 lo\u1EA1i n\xF4ng s\u1EA3n n\xE0y trong kho \u0111\u1EC3 b\xE1n!", "#ef4444");
+        }
+        return;
+      }
+      const sellCount = Math.min(count, curCrops);
+      const meta = CROP_DEFINITIONS[cropId];
+      const unitPrice = meta ? meta.sellPriceXu : 20;
+      const totalXu = sellCount * unitPrice;
+      this.model.crops.set(cropId, curCrops - sellCount);
+      this.model.userXu += totalXu;
+      if (this.onActionFeedback) {
+        this.onActionFeedback(`\u0110\xE3 b\xE1n ${sellCount} n\xF4ng s\u1EA3n, nh\u1EADn \u0111\u01B0\u1EE3c ${totalXu.toLocaleString("vi-VN")} Xu!`, "#4ade80");
+      }
+    }
+    sellAllHarvested() {
+      let totalXu = 0;
+      let totalItems = 0;
+      for (const [cropId, count] of this.model.crops.entries()) {
+        if (count > 0) {
+          const meta = CROP_DEFINITIONS[cropId];
+          const unitPrice = meta ? meta.sellPriceXu : 20;
+          totalXu += count * unitPrice;
+          totalItems += count;
+          this.model.crops.set(cropId, 0);
+        }
+      }
+      if (totalItems > 0) {
+        this.model.userXu += totalXu;
+        if (this.onActionFeedback) {
+          this.onActionFeedback(`\u0110\xE3 b\xE1n to\xE0n b\u1ED9 ${totalItems} n\xF4ng s\u1EA3n, thu v\u1EC1 ${totalXu.toLocaleString("vi-VN")} Xu!`, "#4ade80");
+        }
+      } else {
+        if (this.onActionFeedback) {
+          this.onActionFeedback("Kho n\xF4ng s\u1EA3n \u0111ang tr\u1ED1ng, kh\xF4ng c\xF3 g\xEC \u0111\u1EC3 b\xE1n!", "#94a3b8");
+        }
+      }
+    }
   };
 
   // packages/game-client/src/farm/FarmScreen.ts
@@ -2927,6 +2992,22 @@ void main() {
     // Active Menu / Dialogs
     isMenuOpen = false;
     isConfirmOpenLand = false;
+    isKitchenOpen = false;
+    isBarnOpen = false;
+    isStarfruitOpen = false;
+    isPondOpen = false;
+    isCropActionOpen = false;
+    selectedPlotIndex = 0;
+    // Dialog selection states
+    selectedMenuIndex = 0;
+    selectedKitchenRecipe = 0;
+    selectedBarnAction = 0;
+    selectedStarfruitAction = 0;
+    selectedPondAction = 0;
+    selectedCropAction = 0;
+    selectedShopTab = "seeds";
+    selectedShopIndex = 0;
+    shopQuantity = 1;
     // Callbacks
     onExitToWorldMap;
     constructor(handler, skinPainter, font) {
@@ -2960,41 +3041,41 @@ void main() {
         this.feedbackTimer = 100;
       };
       this.loadMap25().catch((err) => {
-        console.error("[FarmScreen] Failed to load Map 25 assets:", err);
+        console.error("[FarmScreen] Failed to load Map 25 binary:", err);
+      });
+      this.loadAssets().catch((err) => {
+        console.error("[FarmScreen] Failed to load farm assets:", err);
       });
     }
-    async loadMap25() {
+    async loadAssets() {
       await Promise.all([
-        this.preloadSprite("tileset_day", "/assets/tileset/tileset_hd_day.png"),
-        this.preloadSprite("tileset_night", "/assets/tileset/tileset_hd_night.png"),
         this.preloadSprite("clouds_day", "/assets/bg/clouds_farm_day.png"),
         this.preloadSprite("clouds_night", "/assets/bg/clouds_farm_night.png"),
         this.preloadSprite("horizon_day", "/assets/bg/horizon_farm_day.png"),
         this.preloadSprite("horizon_night", "/assets/bg/horizon_farm_night.png"),
-        this.preloadSprite("house1029", "/assets/home/1029.png"),
-        this.preloadSprite("barn834", "/assets/home/834.png"),
-        this.preloadSprite("tree243", "/assets/home/243.png"),
-        this.preloadSprite("tree244", "/assets/home/244.png"),
+        this.preloadSprite("tiles_farm", "/assets/tileset/tileset0.png"),
+        this.preloadSprite("soil_cracked", "/assets/farm_ui/soil_cracked.png"),
         this.preloadSprite("gate847", "/assets/home/847.png"),
-        this.preloadSprite("sign848", "/assets/home/848.png"),
-        this.preloadSprite("lilypad849", "/assets/home/849.png"),
-        this.preloadSprite("starfruitTree", "/assets/farm/43.png"),
-        this.preloadSprite("starfruitFruit", "/assets/farm/46.png"),
-        this.preloadSprite("cell0", "/assets/farm_ui/cell0.png"),
-        this.preloadSprite("buyLand", "/assets/farm_ui/buyLand.png"),
-        this.preloadSprite("w", "/assets/farm_ui/w.png"),
-        this.preloadSprite("g", "/assets/farm_ui/g.png"),
-        this.preloadSprite("cut", "/assets/farm_ui/cut.png"),
-        this.preloadSprite("focus", "/assets/farm_ui/focus.png"),
+        this.preloadSprite("mua848", "/assets/home/848.png"),
+        this.preloadSprite("tree244", "/assets/home/244.png"),
+        this.preloadSprite("pond840", "/assets/home/840.png"),
+        this.preloadSprite("tree834", "/assets/home/834.png"),
+        this.preloadSprite("nha_bep", "/assets/home/829.png"),
+        this.preloadSprite("chuong_lon", "/assets/home/828.png"),
+        this.preloadSprite("fence838", "/assets/home/838.png"),
+        this.preloadSprite("fence839", "/assets/home/839.png"),
         this.preloadSprite("coin", "/assets/farm_ui/coin.png")
       ]);
+    }
+    async loadMap25() {
       try {
         const res = await fetch("/assets/maps/25");
         if (res.ok) {
-          const buffer = await res.arrayBuffer();
-          const raw = new Uint8Array(buffer);
-          for (let i = 0; i < 336; i++) {
-            const val = raw[i];
+          const buf = await res.arrayBuffer();
+          const u8 = new Uint8Array(buf);
+          const count = Math.min(336, u8.length);
+          for (let i = 0; i < count; i++) {
+            const val = u8[i];
             if (val === 149 || val === 190 || val === 189 || val === 142 || val === 187 || val === 188 || val === 28) {
               this.mapTiles[i] = 4;
             } else if (val === 140 || val === 155 || val === 152) {
@@ -3066,7 +3147,7 @@ void main() {
         const nextX = this.localPlayer.x + dx / dist * speed;
         const nextY = this.localPlayer.y + dy / dist * speed;
         this.localPlayer.x = Math.max(50, Math.min(1960, nextX));
-        this.localPlayer.y = Math.max(460, Math.min(715, nextY));
+        this.localPlayer.y = Math.max(420, Math.min(715, nextY));
         this.localPlayer.state = "walk";
         if (Math.abs(dx) > Math.abs(dy)) {
           this.localPlayer.dir = dx > 0 ? 3 : 2;
@@ -3074,11 +3155,13 @@ void main() {
           this.localPlayer.dir = dy > 0 ? 0 : 1;
         }
         this.localPlayer.frame = 1 + Math.floor(this.animTick / 3) % 4;
+        this.checkMidWalkTriggers();
       } else {
         this.localPlayer.x = this.localPlayer.targetX;
         this.localPlayer.y = this.localPlayer.targetY;
         this.localPlayer.state = "idle";
         this.localPlayer.frame = 0;
+        this.checkTriggerZones();
       }
       const MAP_WIDTH = 2016;
       const MAP_HEIGHT = 772;
@@ -3115,6 +3198,45 @@ void main() {
         a.y += (a.targetY - a.y) * 0.04;
       }
     }
+    /**
+     * Fast trigger check while walking through doorways or exit
+     */
+    checkMidWalkTriggers() {
+      const px = this.localPlayer.x;
+      const py = this.localPlayer.y;
+      if (Math.abs(px - 888) <= 45 && py >= 660) {
+        if (this.onExitToWorldMap) this.onExitToWorldMap();
+      }
+    }
+    /**
+     * Check interactive zones when player stops walking
+     */
+    checkTriggerZones() {
+      const px = this.localPlayer.x;
+      const py = this.localPlayer.y;
+      if (Math.abs(px - 888) <= 55 && py >= 640) {
+        if (this.onExitToWorldMap) {
+          this.onExitToWorldMap();
+        }
+        return;
+      }
+      if (Math.abs(px - 502) <= 45 && Math.abs(py - 430) <= 30) {
+        this.isKitchenOpen = true;
+        return;
+      }
+      if (Math.abs(px - 691) <= 45 && Math.abs(py - 430) <= 30) {
+        this.isBarnOpen = true;
+        return;
+      }
+      if (Math.abs(px - 810) <= 50 && Math.abs(py - 460) <= 35) {
+        this.isStarfruitOpen = true;
+        return;
+      }
+      if (px >= 1450 && px <= 1750 && py >= 480 && py <= 600) {
+        this.isPondOpen = true;
+        return;
+      }
+    }
     // --- Rendering Pipeline (WebGL2 Native Procedural Map 25 Engine) ---
     paint(g) {
       const w = this.screenW;
@@ -3122,61 +3244,35 @@ void main() {
       const isForcedDay = typeof window !== "undefined" && (new URLSearchParams(window.location.search).has("day") || window.__FORCE_DAY);
       const hour = (/* @__PURE__ */ new Date()).getHours();
       this.isNight = isForcedDay ? false : hour >= 18 || hour < 6;
-      const suffix = this.isNight ? "night" : "day";
-      const skyColor = this.isNight ? 21 : 6143735;
-      g.setColor(skyColor);
+      if (this.isNight) {
+        g.setColor(21);
+      } else {
+        g.setColor(6143735);
+      }
       g.fillRect(0, 0, w, h);
-      const cloudImg = this.spriteCache.get(`clouds_${suffix}`);
-      if (cloudImg) {
-        const cW = cloudImg.getWidth();
-        const parallaxCloud = -Math.floor(this.cameraX * 0.15) % cW;
-        const cloudY = Math.max(-20, -Math.floor(this.cameraY * 0.05));
-        for (let x = parallaxCloud - cW; x < w + cW; x += cW) {
-          g.drawImage(cloudImg, x, cloudY, 0);
+      const cloudSuffix = this.isNight ? "night" : "day";
+      const cloudsImg = this.spriteCache.get(`clouds_${cloudSuffix}`);
+      if (cloudsImg) {
+        const cw = cloudsImg.getWidth();
+        const paraX = -Math.floor(this.cameraX * 0.15) % cw;
+        const startX = paraX > 0 ? paraX - cw : paraX;
+        for (let cx = startX; cx < w; cx += cw) {
+          g.drawImage(cloudsImg, cx, Math.max(0, 100 - this.cameraY), 0);
         }
       }
-      const horizonImg = this.spriteCache.get(`horizon_${suffix}`);
+      const horSuffix = this.isNight ? "night" : "day";
+      const horizonImg = this.spriteCache.get(`horizon_${horSuffix}`);
       if (horizonImg) {
-        const hW = horizonImg.getWidth();
-        const hH = horizonImg.getHeight();
-        const parallaxX = -Math.floor(this.cameraX * 0.35) % hW;
-        const horizonY = 388 - hH + 40 - this.cameraY;
-        for (let x = parallaxX - hW; x < w + hW; x += hW) {
-          g.drawImage(horizonImg, x, horizonY, 0);
-        }
-      }
-      const tilesetImg = this.spriteCache.get(`tileset_${suffix}`);
-      if (tilesetImg && this.isMapLoaded) {
-        const tileSize = 48;
-        const groundY = 388;
-        const numRowsInTileset = 18;
-        const startCol = Math.max(0, Math.floor(this.cameraX / tileSize));
-        const endCol = Math.min(42, Math.ceil((this.cameraX + w) / tileSize));
-        const startRow = Math.max(0, Math.floor((this.cameraY - groundY) / tileSize));
-        const endRow = Math.min(8, Math.ceil((this.cameraY + h - groundY) / tileSize));
-        for (let r = startRow; r < endRow; r++) {
-          const destY = groundY + r * tileSize - this.cameraY;
-          for (let c = startCol; c < endCol; c++) {
-            const tileId = this.mapTiles[r * 42 + c];
-            if (tileId < 0) continue;
-            const tc = Math.floor(tileId / numRowsInTileset);
-            const tr = tileId % numRowsInTileset;
-            const destX = c * tileSize - this.cameraX;
-            g.drawRegion(
-              tilesetImg,
-              tc * tileSize,
-              tr * tileSize,
-              tileSize,
-              tileSize,
-              0,
-              destX,
-              destY,
-              0
-            );
-          }
+        const hw = horizonImg.getWidth();
+        const paraX = -Math.floor(this.cameraX * 0.35) % hw;
+        const startX = paraX > 0 ? paraX - hw : paraX;
+        const horY = Math.max(0, 360 - this.cameraY);
+        for (let hx = startX; hx < w; hx += hw) {
+          g.drawImage(horizonImg, hx, horY, 0);
         }
       }
       g.translate(-this.cameraX, -this.cameraY);
+      this.paintTilemap(g);
       this.paintSceneryObjects(g);
       this.paintLandPlots(g);
       this.paintAnimals(g);
@@ -3184,204 +3280,126 @@ void main() {
       this.paintFarmOverlays(g);
       g.translate(this.cameraX, this.cameraY);
       this.paintHUD(g, w, h);
-      this.paintNotificationToast(g, w, h);
+      if (this.feedbackTimer > 0) {
+        this.paintNotificationToast(g, w, h);
+      }
       this.paintModals(g, w, h);
     }
-    /**
-     * Paint authentic scenery objects matching Avatar 2.5.8 Java ME (ir.java & go.java)
-     */
-    paintSceneryObjects(g) {
-      const groundY = 388;
-      const tileSize = 48;
-      const tree243 = this.spriteCache.get("tree243");
-      const tree244 = this.spriteCache.get("tree244");
-      if (tree244) {
-        const tW4 = tree244.getWidth();
-        const tH4 = tree244.getHeight();
-        const ty4 = groundY + tileSize - tH4 + 10;
-        g.drawImage(tree244, -30, ty4, 0);
-        g.drawImage(tree244, Math.floor((34 + 0.5) * tileSize - tW4 / 2), ty4, 0);
-        g.drawImage(tree244, 1860, ty4, 0);
-      }
-      if (tree243) {
-        const tW3 = tree243.getWidth();
-        const tH3 = tree243.getHeight();
-        const ty3 = groundY + tileSize - tH3 + 10;
-        g.drawImage(tree243, Math.floor((8 + 0.5) * tileSize - tW3 / 2), ty3, 0);
-        g.drawImage(tree243, Math.floor((28 + 0.5) * tileSize - tW3 / 2), ty3, 0);
-      }
-      const houseImg = this.spriteCache.get("house1029");
-      if (houseImg) {
-        const hx = Math.floor((9 + 1.6) * tileSize - houseImg.getWidth() / 2);
-        const hy = groundY + 2 * tileSize - houseImg.getHeight() - 8;
-        g.drawImage(houseImg, hx, hy, 0);
-      }
-      const barnImg = this.spriteCache.get("barn834");
-      if (barnImg) {
-        const bx = Math.floor((13 + 1.6) * tileSize - barnImg.getWidth() / 2);
-        const by = groundY + 2 * tileSize - barnImg.getHeight() - 8;
-        g.drawImage(barnImg, bx, by, 0);
-      }
-      const starfruitTreeImg = this.spriteCache.get("starfruitTree");
-      if (starfruitTreeImg) {
-        const sx = Math.floor((19 + 0.5) * tileSize - starfruitTreeImg.getWidth() / 2);
-        const sy = groundY + 2 * tileSize - starfruitTreeImg.getHeight() - 8;
-        g.drawImage(starfruitTreeImg, sx, sy, 0);
-        const fruitImg = this.spriteCache.get("starfruitFruit");
-        if (fruitImg) {
-          const fruitOffsets = [[-25, -50], [-10, -70], [15, -45], [25, -65], [0, -40]];
-          const centerX = sx + Math.floor(starfruitTreeImg.getWidth() / 2);
-          const centerY = sy + starfruitTreeImg.getHeight();
-          for (const [fx, fy] of fruitOffsets) {
-            g.drawImage(fruitImg, centerX + fx, centerY + fy, 0);
+    paintTilemap(g) {
+      const tileSheet = this.spriteCache.get("tiles_farm");
+      if (!tileSheet || !this.isMapLoaded) return;
+      const TILE_SIZE = 42;
+      const COLS = 48;
+      const ROWS = 7;
+      const MAP_BASE_Y = 478;
+      const startCol = Math.max(0, Math.floor(this.cameraX / TILE_SIZE));
+      const endCol = Math.min(COLS - 1, Math.ceil((this.cameraX + this.screenW) / TILE_SIZE));
+      for (let r = 0; r < ROWS; r++) {
+        const destY = MAP_BASE_Y + r * TILE_SIZE;
+        for (let c = startCol; c <= endCol; c++) {
+          const tileIdx = this.mapTiles[r * COLS + c];
+          if (tileIdx >= 0) {
+            const destX = c * TILE_SIZE;
+            const srcX = tileIdx % 10 * 24;
+            const srcY = Math.floor(tileIdx / 10) * 24;
+            g.drawRegion(tileSheet, srcX, srcY, 24, 24, 0, destX, destY, 0);
           }
         }
-        g.setColor(16436245);
-        this.font.drawString(g, "Lv1", sx + starfruitTreeImg.getWidth() - 10, sy + 15, 0);
+      }
+    }
+    paintSceneryObjects(g) {
+      const fenceImg = this.spriteCache.get("fence838");
+      if (fenceImg) {
+        for (let fx = 0; fx < 2016; fx += fenceImg.getWidth()) {
+          g.drawImage(fenceImg, fx, 492, 0);
+        }
+      }
+      const tree244 = this.spriteCache.get("tree244");
+      if (tree244) {
+        g.drawImage(tree244, -30, 320, 0);
+        g.drawImage(tree244, 1860, 320, 0);
+        g.drawImage(tree244, 34 * 42 - 10, 320, 0);
+      }
+      const nhaBep = this.spriteCache.get("nha_bep");
+      if (nhaBep) {
+        g.drawImage(nhaBep, 418, 428, 0);
+      }
+      const chuongLon = this.spriteCache.get("chuong_lon");
+      if (chuongLon) {
+        g.drawImage(chuongLon, 602, 432, 0);
+      }
+      const treeImg = this.spriteCache.get("tree834");
+      if (treeImg) {
+        g.drawImage(treeImg, 842, 440, 0);
+        this.font.drawString(g, "Lv1", 948, 388, 2);
+      }
+      const pondImg = this.spriteCache.get("pond840");
+      if (pondImg) {
+        g.drawImage(pondImg, 1618, 590, 0);
       }
       const gateImg = this.spriteCache.get("gate847");
       if (gateImg) {
-        const gx = 762;
-        const gy = groundY + 6 * tileSize - gateImg.getHeight() + 20;
-        g.drawImage(gateImg, gx, gy, 0);
-        const ownerName = this.model.userId === this.handler.network.myUserId ? this.localPlayer.name || "akawasi999" : `User ${this.model.userId}`;
-        this.font.drawString(g, ownerName, gx + Math.floor(gateImg.getWidth() / 2), gy + 14, 2);
-      }
-      const buyLandImg = this.spriteCache.get("buyLand");
-      if (buyLandImg) {
-        const cx = Math.floor((6 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
-        const cy = groundY + 4 * tileSize - buyLandImg.getHeight() - 8;
-        g.drawImage(buyLandImg, cx, cy, 0);
-        const px = Math.floor((35 + 0.5) * tileSize - buyLandImg.getWidth() / 2);
-        const py = groundY + 7 * tileSize - buyLandImg.getHeight() - 8;
-        g.drawImage(buyLandImg, px, py, 0);
-      }
-      const lilypadImg = this.spriteCache.get("lilypad849");
-      if (lilypadImg) {
-        g.drawImage(lilypadImg, Math.floor(38 * tileSize + 8), Math.floor(groundY + 3.2 * tileSize), 0);
-        g.drawImage(lilypadImg, Math.floor(37.2 * tileSize + 4), Math.floor(groundY + 4.5 * tileSize), 0);
-        g.drawImage(lilypadImg, Math.floor(39.2 * tileSize), Math.floor(groundY + 5.2 * tileSize), 0);
+        g.drawImage(gateImg, 888, 652, 0);
       }
     }
-    /**
-     * Paint authentic farm overlays (animated yellow arrows, owner badge)
-     */
     paintFarmOverlays(g) {
       const arrowBounce = Math.floor(this.animTick % 12 / 4);
       this.paintYellowArrow(g, 502, 422 + arrowBounce, "V\xE0o");
       this.paintYellowArrow(g, 691, 420 + arrowBounce, "V\xE0o");
       this.paintYellowArrow(g, 888, 666 + arrowBounce, "V\xE0o");
+      const name = this.localPlayer.name || "akawasi..";
+      const plateText = name.length > 7 ? name.substring(0, 6) + ".." : name;
+      this.font.drawString(g, plateText, 888, 674, 2);
     }
-    /**
-     * Paint yellow guide arrow with text (matching original Avatar "Vào" arrow)
-     */
     paintYellowArrow(g, x, y, text) {
       this.font.drawString(g, text, x, y - 10, 2);
       g.setColor(16436245);
-      for (let row = 0; row < 5; row++) {
-        g.fillRect(x - (4 - row), y + row, (4 - row) * 2 + 1, 1);
+      for (let row = 0; row < 6; row++) {
+        g.fillRect(x - (5 - row), y + row, (5 - row) * 2 + 1, 1);
       }
     }
-    /**
-     * Paint Land Plots with Authentic Soil (cell0.png), Crops & "MUA" sign
-     */
     paintLandPlots(g) {
-      const cell0Img = this.spriteCache.get("cell0");
-      const soilWaterImg = this.spriteCache.get("w");
-      const buyLandImg = this.spriteCache.get("buyLand");
-      const focusImg = this.spriteCache.get("focus");
-      const cutImg = this.spriteCache.get("cut");
+      const soilImg = this.spriteCache.get("soil_cracked");
+      const muaImg = this.spriteCache.get("mua848");
       for (let i = 0; i < this.model.lands.length; i++) {
-        const cell = this.model.lands[i];
-        const px = cell.posX;
-        const py = cell.posY;
-        const cw = FarmModel.CELL_WIDTH;
-        const ch = FarmModel.CELL_HEIGHT;
-        if (cell.type === -2) {
-          if (i === this.model.landSize) {
-            if (buyLandImg) {
-              g.drawImage(buyLandImg, px + 3, py - 6, 0);
-            } else {
-              g.setColor(16436245);
-              this.font.drawString(g, "MUA", px + Math.floor(cw / 2), py + 14, 2);
+        const plot = this.model.lands[i];
+        const px = plot.posX;
+        const py = plot.posY;
+        if (plot.type !== -2 && soilImg) {
+          g.drawImage(soilImg, px, py, 0);
+        }
+        if (plot.type === -2 && i === this.model.landSize && muaImg) {
+          g.drawImage(muaImg, px + 10, py + 12, 0);
+        }
+        if (plot.type >= 0) {
+          const meta = CROP_DEFINITIONS[plot.type];
+          if (meta) {
+            const stage = this.model.getGrowthStage(plot);
+            const spriteId = meta.stageImgs[stage] ?? meta.stageImgs[0];
+            const cropImg = this.getCropSprite(spriteId);
+            if (cropImg) {
+              const cx = px + Math.floor((FarmModel.CELL_WIDTH - cropImg.getWidth()) / 2);
+              const cy = py + FarmModel.CELL_HEIGHT - cropImg.getHeight() - 4;
+              g.drawImage(cropImg, cx, cy, 0);
             }
-          }
-          continue;
-        }
-        if (cell0Img) {
-          g.drawImage(cell0Img, px - 2, py - 4, 0);
-        } else {
-          g.setColor(9268816);
-          g.fillRect(px + 2, py + 2, cw - 4, ch - 4);
-        }
-        if (cell.isWatered) {
-          if (soilWaterImg) {
-            g.drawImage(soilWaterImg, px + 28, py + 24, 0);
-          } else {
-            g.setColor(4861723);
-            g.fillRect(px + 4, py + 4, cw - 8, ch - 8);
-          }
-        }
-        if (cell.type >= 0) {
-          const spriteId = this.model.getCropSpriteId(cell);
-          const cropImg = this.getCropSprite(spriteId);
-          if (cropImg) {
-            const imgW = cropImg.getWidth();
-            const imgH = cropImg.getHeight();
-            const drawX = px + Math.floor((cw - imgW) / 2);
-            const drawY = py + ch - imgH - 4;
-            g.drawImage(cropImg, drawX, drawY, 0);
-          } else {
-            const stage2 = this.model.getGrowthStage(cell);
-            g.setColor(stage2 >= 7 ? 16436245 : 4906624);
-            g.fillRect(px + 14, py + 14, 20, 24);
-          }
-          const stage = this.model.getGrowthStage(cell);
-          if (cell.isHarvestable || stage === 7) {
-            if (cutImg) {
-              g.drawImage(cutImg, px + cw - 18, py + 2, 0);
-            } else {
-              g.setColor(16436245);
-              g.fillRect(px + cw - 12, py + 4, 8, 8);
-            }
-          }
-        }
-        if (i === this.controller.focusedCellIndex) {
-          if (focusImg) {
-            g.drawImage(focusImg, px + 10, py + 10, 0);
-          } else {
-            g.setColor(16436245);
-            g.drawRect(px + 2, py + 2, cw - 4, ch - 4);
           }
         }
       }
     }
-    /**
-     * Paint idle chickens/animals in chicken coop
-     */
     paintAnimals(g) {
       for (const a of this.model.animals) {
-        const ax = Math.floor(a.x);
-        const ay = Math.floor(a.y);
-        g.setColor(16777215);
-        g.fillRect(ax, ay + 2, 10, 8);
-        g.setColor(14870768);
-        g.fillRect(ax + 2, ay + 4, 6, 5);
-        g.setColor(15680580);
-        g.fillRect(ax + 6, ay - 1, 3, 3);
-        g.setColor(16096779);
-        g.fillRect(ax + 9, ay + 3, 3, 2);
-        g.setColor(16096779);
-        g.fillRect(ax + 2, ay + 10, 2, 2);
-        g.fillRect(ax + 6, ay + 10, 2, 2);
+        const animalSprite = this.loadSprite(`animal_${a.id}`, `/assets/farm/${a.id}.png`);
+        if (animalSprite) {
+          g.drawImage(animalSprite, Math.round(a.x), Math.round(a.y), 0);
+        } else {
+          g.setColor(16436245);
+          g.fillArc(Math.round(a.x), Math.round(a.y), 16, 12, 0, 360);
+        }
       }
     }
-    /**
-     * Paint Local Player Avatar
-     */
     paintPlayer(g) {
-      const px = Math.floor(this.localPlayer.x);
-      const py = Math.floor(this.localPlayer.y);
+      const px = Math.round(this.localPlayer.x);
+      const py = Math.round(this.localPlayer.y);
       g.setColor(1120295);
       g.fillArc(px - 9, py - 2, 18, 6, 0, 360);
       AvatarRenderer.paintAvatar(
@@ -3396,9 +3414,6 @@ void main() {
         this.font
       );
     }
-    /**
-     * Paint authentic Avatar 2.5.8 HUD (Top status bar with Menu, Mail, and Xu counter)
-     */
     paintHUD(g, w, h) {
       const coinImg = this.spriteCache.get("coin");
       g.setColor(1976635);
@@ -3410,50 +3425,48 @@ void main() {
       g.fillRect(10, 16, 18, 2);
       g.fillRect(10, 21, 18, 2);
       g.setColor(1976635);
-      g.fillRect(36, 6, 26, 22);
+      g.fillRect(38, 6, 26, 22);
       g.setColor(6583435);
-      g.drawRect(36, 6, 26, 22);
+      g.drawRect(38, 6, 26, 22);
       g.setColor(16777215);
-      g.drawRect(40, 11, 18, 12);
-      g.drawLine(40, 11, 49, 18);
-      g.drawLine(49, 18, 58, 11);
-      g.setColor(15680580);
-      g.fillArc(56, 4, 8, 8, 0, 360);
-      g.setColor(16777215);
-      g.fillRect(59, 6, 2, 3);
-      g.fillRect(59, 10, 2, 1);
-      const xuVal = Number(this.model.userXu || 0).toLocaleString("vi-VN");
-      const xuStr = `${xuVal} Xu`;
-      const xuStrW = this.font.stringWidth(xuStr);
-      const startXuX = w - xuStrW - 24;
+      this.font.drawString(g, "\u2709", 51, 10, 2);
+      const title = this.model.ownerName ? `N\xF4ng tr\u1EA1i c\u1EE7a ${this.model.ownerName}` : "N\xF4ng tr\u1EA1i c\u1EE7a b\u1EA1n (C\u1EA5p 1)";
+      this.font.drawString(g, title, Math.floor(w / 2), 10, 2);
+      const xuVal = Number(this.model.userXu || 0);
+      const xuStr = `${xuVal.toLocaleString("vi-VN")} Xu`;
+      const textW = xuStr.length * 7;
+      const startX = w - textW - 32;
       if (coinImg) {
-        g.drawImage(coinImg, startXuX, 10, 0);
+        g.drawImage(coinImg, startX, 8, 0);
       }
-      this.font.drawString(g, xuStr, startXuX + 14, 10, 0);
-      const ownerTitle = this.model.userId === this.handler.network.myUserId ? `N\xF4ng tr\u1EA1i c\u1EE7a b\u1EA1n (C\u1EA5p ${this.model.farmLevel || 1})` : `N\xF4ng tr\u1EA1i: User #${this.model.userId}`;
-      this.font.drawString(g, ownerTitle, 68, 10, 0);
+      this.font.drawString(g, xuStr, startX + 22, 10, 0);
     }
-    /**
-     * Paint floating toast notification
-     */
     paintNotificationToast(g, w, h) {
-      if (this.feedbackTimer <= 0) return;
-      const toastW = Math.min(420, w - 40);
-      const toastH = 24;
+      const toastW = Math.min(w - 40, this.feedbackText.length * 8 + 24);
       const tx = Math.floor((w - toastW) / 2);
       const ty = 34;
       g.setColor(988970);
-      g.fillRect(tx, ty, toastW, toastH);
+      g.fillRect(tx, ty, toastW, 22);
       g.setColor(16436245);
-      g.drawRect(tx, ty, toastW, toastH);
-      this.font.drawString(g, this.feedbackText, Math.floor(w / 2), ty + 6, 2);
+      g.drawRect(tx, ty, toastW, 22);
+      this.font.drawString(g, this.feedbackText, Math.floor(w / 2), ty + 5, 2);
     }
-    /**
-     * Paint active modal windows (Menu, Seed Picker, Shop, Warehouse, Confirm Land)
-     */
+    // =========================================================================
+    // Authentic 1:1 J2ME Dialogs & Modals
+    // =========================================================================
     paintModals(g, w, h) {
       if (this.isMenuOpen) {
         this.paintMenuModal(g, w, h);
+      } else if (this.isKitchenOpen) {
+        this.paintKitchenModal(g, w, h);
+      } else if (this.isBarnOpen) {
+        this.paintBarnModal(g, w, h);
+      } else if (this.isStarfruitOpen) {
+        this.paintStarfruitModal(g, w, h);
+      } else if (this.isPondOpen) {
+        this.paintPondModal(g, w, h);
+      } else if (this.isCropActionOpen) {
+        this.paintCropActionModal(g, w, h);
       } else if (this.controller.isSeedPickerOpen) {
         this.paintSeedPickerModal(g, w, h);
       } else if (this.controller.isShopOpen) {
@@ -3465,171 +3478,336 @@ void main() {
       }
     }
     /**
-     * Authentic Avatar Menu Popup
+     * 1. Authentic Quick Menu
      */
     paintMenuModal(g, w, h) {
-      const items = [
-        { id: "plant", label: "Gieo h\u1EA1t" },
-        { id: "harvest", label: "Thu ho\u1EA1ch c\xE2y ch\xEDn" },
-        { id: "open_land", label: "M\u1EDF th\xEAm \xF4 \u0111\u1EA5t" },
-        { id: "shop", label: "C\u1EEDa h\xE0ng h\u1EA1t gi\u1ED1ng" },
-        { id: "warehouse", label: "Nh\xE0 kho n\xF4ng s\u1EA3n" },
-        { id: "exit", label: "R\u1EDDi n\xF4ng tr\u1EA1i" }
-      ];
-      const mw = 180;
-      const mh = items.length * 28 + 32;
-      const mx = 10;
-      const my = h - mh - 28;
-      g.setColor(988970);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(3718648);
-      g.drawRect(mx, my, mw, mh);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, 22);
-      this.font.drawString(g, "N\xD4NG TR\u1EA0I", mx + Math.floor(mw / 2), my + 5, 2);
-      for (let i = 0; i < items.length; i++) {
-        const iy = my + 24 + i * 28;
-        g.setColor(i % 2 === 0 ? 1976635 : 988970);
-        g.fillRect(mx + 2, iy, mw - 4, 26);
-        g.setColor(16777215);
-        this.font.drawString(g, items[i].label, mx + 10, iy + 6, 0);
-      }
-    }
-    paintSeedPickerModal(g, w, h) {
-      const mw = Math.min(320, w - 20);
-      const mh = Math.min(260, h - 60);
+      const mw = 220;
+      const mh = 260;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(988970);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(3718648);
-      g.drawRect(mx, my, mw, mh);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, 26);
-      this.font.drawString(g, "\u{1F33E} CH\u1ECCN H\u1EA0T GI\u1ED0NG \u0110\u1EC2 GIEO", mx + Math.floor(mw / 2), my + 6, 2);
-      g.setColor(15680580);
-      g.fillRect(mx + mw - 22, my + 4, 18, 18);
-      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "N\xD4NG TR\u1EA0I");
+      const items = [
+        "1. Gieo h\u1EA1t gi\u1ED1ng",
+        "2. Thu ho\u1EA1ch t\u1EA5t c\u1EA3 c\xE2y ch\xEDn",
+        "3. M\u1EDF th\xEAm \xF4 \u0111\u1EA5t tr\u1ED3ng",
+        "4. C\u1EEDa H\xE0ng H\u1EA1t Gi\u1ED1ng",
+        "5. Nh\xE0 Kho N\xF4ng S\u1EA3n",
+        "6. N\u1EA5u \u0103n (Nh\xE0 B\u1EBFp)",
+        "7. Chu\u1ED3ng Nu\xF4i Gia S\xFAc",
+        "8. Tr\u1EDF v\u1EC1 C\u1ED5ng N\xF4ng Tr\u1EA1i"
+      ];
+      let rowY = my + 32;
+      for (let i = 0; i < items.length; i++) {
+        const isSel = i === this.selectedMenuIndex;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 22, items[i], isSel);
+        rowY += 24;
+      }
+      this.skinPainter.paintAuthenticButton(g, mx + 12, my + mh - 26, 90, 20, "Ch\u1ECDn", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 102, my + mh - 26, 90, 20, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 2. Authentic Nhà Bếp (Cooking Recipes) Dialog
+     */
+    paintKitchenModal(g, w, h) {
+      const mw = 320;
+      const mh = 260;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "NH\xC0 B\u1EBEP N\xD4NG TR\u1EA0I");
+      this.font.drawString(g, "C\xF4ng th\u1EE9c n\u1EA5u \u0103n t\u1EEB n\xF4ng s\u1EA3n t\u1EF1 tr\u1ED3ng:", mx + 12, my + 34, 0);
+      const recipes = [
+        { name: "1. C\u01A1m chi\xEAn tr\u1EE9ng", req: "1 Tr\u1EE9ng + 2 C\xE0 chua", exp: "+50 NL" },
+        { name: "2. Canh chua c\xE1 l\xF3c", req: "1 C\xE1 + 2 C\xE0 chua + 1 D\u1EE9a", exp: "+80 NL" },
+        { name: "3. N\u01B0\u1EDBc \xE9p d\u01B0a h\u1EA5u", req: "3 D\u01B0a h\u1EA5u", exp: "+30 NL" },
+        { name: "4. B\u1EAFp x\xE0o b\u01A1", req: "3 B\u1EAFp + 1 B\u01A1", exp: "+40 NL" },
+        { name: "5. Tr\u1EE9ng \u1ED1p la", req: "2 Tr\u1EE9ng", exp: "+25 NL" }
+      ];
+      let rowY = my + 52;
+      for (let i = 0; i < recipes.length; i++) {
+        const r = recipes[i];
+        const isSel = i === this.selectedKitchenRecipe;
+        const text = `${r.name} (${r.req})`;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 26, text, isSel, r.exp);
+        rowY += 28;
+      }
+      this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 28, 130, 22, "N\u1EA5u m\xF3n \u0103n", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 146, my + mh - 28, 130, 22, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 3. Authentic Chuồng Rơm (Livestock / Barn) Dialog
+     */
+    paintBarnModal(g, w, h) {
+      const mw = 310;
+      const mh = 250;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "CHU\u1ED2NG NU\xD4I GIA S\xDAC");
+      this.font.drawString(g, "T\xECnh tr\u1EA1ng: 2 Heo, 1 B\xF2, 4 G\xE0 (Kh\u1ECFe m\u1EA1nh)", mx + 12, my + 34, 0);
+      const actions = [
+        "1. Cho gia s\xFAc, gia c\u1EA7m \u0103n",
+        "2. Thu ho\u1EA1ch tr\u1EE9ng g\xE0 & v\u1EAFt s\u1EEFa b\xF2",
+        "3. Ti\xEAm ph\xF2ng d\u1ECBch b\u1EC7nh & t\u0103ng \u0111\u1EC1 kh\xE1ng",
+        "4. D\u1ECDn d\u1EB9p v\u1EC7 sinh chu\u1ED3ng tr\u1EA1i",
+        "5. Mua th\xEAm con gi\u1ED1ng v\xE0o chu\u1ED3ng"
+      ];
+      let rowY = my + 54;
+      for (let i = 0; i < actions.length; i++) {
+        const isSel = i === this.selectedBarnAction;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+        rowY += 26;
+      }
+      this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 125, 20, "Th\u1EF1c hi\u1EC7n", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 141, my + mh - 26, 125, 20, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 4. Authentic Cây Khế Dialog
+     */
+    paintStarfruitModal(g, w, h) {
+      const mw = 300;
+      const mh = 240;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "C\xC2Y KH\u1EBE N\xD4NG TR\u1EA0I");
+      this.font.drawString(g, "C\xE2y Kh\u1EBF C\u1EA5p 1: C\xF3 10 tr\xE1i kh\u1EBF ch\xEDn v\xE0ng m\u1ECDng", mx + 12, my + 34, 0);
+      const actions = [
+        "1. Thu ho\u1EA1ch kh\u1EBF ch\xEDn (+500 Xu)",
+        "2. T\u01B0\u1EDBi n\u01B0\u1EDBc ch\u0103m s\xF3c c\xE2y kh\u1EBF",
+        "3. B\xF3n ph\xE2n h\u1EEFu c\u01A1 (+100 EXP N\xF4ng Tr\u1EA1i)",
+        "4. N\xE2ng c\u1EA5p l\xEAn C\u1EA5p 2 (10.000 Xu)"
+      ];
+      let rowY = my + 56;
+      for (let i = 0; i < actions.length; i++) {
+        const isSel = i === this.selectedStarfruitAction;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+        rowY += 26;
+      }
+      this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 120, 20, "Ch\u1ECDn", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 136, my + mh - 26, 120, 20, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 5. Authentic Ao Cá Dialog
+     */
+    paintPondModal(g, w, h) {
+      const mw = 300;
+      const mh = 240;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "AO C\xC1 N\xD4NG TR\u1EA0I");
+      this.font.drawString(g, "T\xECnh tr\u1EA1ng: 5 c\xE1 ch\xE9p \u0111ang b\u01A1i l\u1ED9i, n\u01B0\u1EDBc trong l\xE0nh", mx + 12, my + 34, 0);
+      const actions = [
+        "1. Th\u1EA3 th\xEAm c\xE1 gi\u1ED1ng m\u1EDBi (1.000 Xu)",
+        "2. R\u1EA3i th\u1EE9c \u0103n cho c\xE1",
+        "3. V\u1EDBt c\xE1 l\u1EDBn / Thu ho\u1EA1ch (+th\u1ECBt c\xE1)",
+        "4. M\u1EDF r\u1ED9ng di\u1EC7n t\xEDch ao c\xE1"
+      ];
+      let rowY = my + 56;
+      for (let i = 0; i < actions.length; i++) {
+        const isSel = i === this.selectedPondAction;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+        rowY += 26;
+      }
+      this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 120, 20, "Th\u1EF1c hi\u1EC7n", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 136, my + mh - 26, 120, 20, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 6. Authentic Chăm Sóc Ô Đất Dialog
+     */
+    paintCropActionModal(g, w, h) {
+      const mw = 310;
+      const mh = 260;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      const plot = this.model.lands[this.selectedPlotIndex];
+      const meta = plot ? CROP_DEFINITIONS[plot.type] : void 0;
+      const cropName = meta ? meta.name : "C\xE2y tr\u1ED3ng";
+      const stage = plot ? this.model.getGrowthStage(plot) : 0;
+      const stageNames = ["H\u1EA1t m\u1EA7m", "N\u1EA3y m\u1EA7m", "C\xE2y non", "C\xE2y l\u1EDBn", "Tr\u1ED5 hoa", "K\u1EBFt tr\xE1i", "Ch\xEDn v\xE0ng"];
+      const stageText = stageNames[Math.min(stage, 6)];
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, `CH\u0102M S\xD3C \xD4 \u0110\u1EA4T #${this.selectedPlotIndex + 1}`);
+      this.font.drawString(g, `C\xE2y: ${cropName} | Giai \u0111o\u1EA1n: ${stageText}`, mx + 12, my + 34, 0);
+      const actions = [
+        "1. T\u01B0\u1EDBi n\u01B0\u1EDBc b\u1ED5 sung \u0111\u1ED9 \u1EA9m",
+        "2. B\xF3n ph\xE2n (gi\u1EA3m 50% th\u1EDDi gian ch\xEDn)",
+        "3. B\u1EAFt s\xE2u b\u1ECD & l\xE0m c\u1ECF d\u1EA1i",
+        "4. Thu ho\u1EA1ch n\xF4ng s\u1EA3n (n\u1EBFu \u0111\xE3 ch\xEDn)",
+        "5. Cu\u1ED1c \u0111\u1EA5t / Ph\xE1 b\u1ECF c\xE2y"
+      ];
+      let rowY = my + 54;
+      for (let i = 0; i < actions.length; i++) {
+        const isSel = i === this.selectedCropAction;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, actions[i], isSel);
+        rowY += 26;
+      }
+      this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 26, 125, 20, "Th\u1EF1c hi\u1EC7n", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 141, my + mh - 26, 125, 20, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 7. Authentic Chọn Hạt Giống Dialog
+     */
+    paintSeedPickerModal(g, w, h) {
+      const mw = 320;
+      const mh = 250;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "CH\u1ECCN H\u1EA0T GI\u1ED0NG \u0110\u1EC2 GIEO");
       const seeds = Array.from(this.model.seeds.entries()).filter(([_, count]) => count > 0);
       if (seeds.length === 0) {
         this.font.drawString(g, "Kho c\u1EE7a b\u1EA1n ch\u01B0a c\xF3 h\u1EA1t gi\u1ED1ng n\xE0o!", mx + Math.floor(mw / 2), my + 60, 2);
         this.font.drawString(g, "H\xE3y v\xE0o C\u1EEDa H\xE0ng \u0111\u1EC3 mua h\u1EA1t gi\u1ED1ng.", mx + Math.floor(mw / 2), my + 85, 2);
+        this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, "\u0110\xF3ng", "secondary");
         return;
       }
-      let yOff = my + 34;
+      let yOff = my + 36;
       for (const [seedId, count] of seeds) {
         const meta = CROP_DEFINITIONS[seedId];
         const name = meta ? meta.name : `H\u1EA1t #${seedId}`;
-        g.setColor(1976635);
-        g.fillRect(mx + 8, yOff, mw - 16, 28);
-        g.setColor(16436245);
-        this.font.drawString(g, `${name} (C\xF2n: ${count})`, mx + 16, yOff + 7, 0);
-        g.setColor(1483594);
-        g.fillRect(mx + mw - 68, yOff + 4, 54, 20);
-        g.setColor(16777215);
-        this.font.drawString(g, "Gieo", mx + mw - 41, yOff + 6, 2);
-        yOff += 32;
-        if (yOff > my + mh - 34) break;
+        const text = `${name} (C\xF2n l\u1EA1i: ${count})`;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, yOff, mw - 16, 26, text, false, "Gieo h\u1EA1t");
+        yOff += 28;
+        if (yOff > my + mh - 36) break;
       }
+      this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, "\u0110\xF3ng", "secondary");
     }
+    /**
+     * 8. Authentic Cửa Hàng Hạt Giống Dialog
+     */
     paintShopModal(g, w, h) {
-      const mw = Math.min(340, w - 20);
-      const mh = Math.min(270, h - 50);
+      const mw = 340;
+      const mh = 280;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(988970);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(3718648);
-      g.drawRect(mx, my, mw, mh);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, 26);
-      this.font.drawString(g, "\u{1F3EA} C\u1EECA H\xC0NG H\u1EA0T GI\u1ED0NG", mx + Math.floor(mw / 2), my + 6, 2);
-      g.setColor(15680580);
-      g.fillRect(mx + mw - 22, my + 4, 18, 18);
-      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
-      const crops = Object.values(CROP_DEFINITIONS);
-      let yOff = my + 32;
-      for (const c of crops) {
-        g.setColor(1976635);
-        g.fillRect(mx + 8, yOff, mw - 16, 28);
-        g.setColor(16777215);
-        this.font.drawString(g, `${c.name} (${c.growMinutes}p)`, mx + 14, yOff + 7, 0);
-        g.setColor(13273604);
-        g.fillRect(mx + mw - 78, yOff + 4, 68, 20);
-        g.setColor(16777215);
-        this.font.drawString(g, `${c.seedPriceXu} Xu`, mx + mw - 44, yOff + 6, 2);
-        yOff += 32;
-        if (yOff > my + mh - 34) break;
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "C\u1EECA H\xC0NG N\xD4NG TR\u1EA0I");
+      const tabW = Math.floor((mw - 24) / 3);
+      const tabY = my + 32;
+      const tabs = [
+        { id: "seeds", label: "H\u1EA1t gi\u1ED1ng" },
+        { id: "animals", label: "V\u1EADt nu\xF4i" },
+        { id: "fertilizer", label: "Ph\xE2n b\xF3n" }
+      ];
+      for (let i = 0; i < tabs.length; i++) {
+        const t = tabs[i];
+        const isSelected = this.selectedShopTab === t.id;
+        const tx = mx + 12 + i * tabW;
+        g.setColor(isSelected ? 16498468 : 16708551);
+        g.fillRect(tx, tabY, tabW - 4, 20);
+        g.setColor(isSelected ? 14251782 : 7877903);
+        g.drawRect(tx, tabY, tabW - 4, 20);
+        this.font.drawString(g, t.label, tx + Math.floor((tabW - 4) / 2), tabY + 4, 2);
       }
+      let items = [];
+      if (this.selectedShopTab === "seeds") {
+        items = Object.values(CROP_DEFINITIONS).map((c) => ({
+          id: c.id,
+          name: c.name,
+          price: c.seedPriceXu,
+          detail: `${c.growMinutes} ph\xFAt`
+        }));
+      } else if (this.selectedShopTab === "animals") {
+        items = [
+          { id: 1, name: "G\xE0 con", price: 5e3, detail: "L\u1EA5y tr\u1EE9ng" },
+          { id: 2, name: "V\u1ECBt con", price: 4e3, detail: "L\u1EA5y tr\u1EE9ng" },
+          { id: 3, name: "Heo gi\u1ED1ng", price: 1e4, detail: "L\u1EA5y th\u1ECBt" },
+          { id: 4, name: "B\xF2 s\u1EEFa gi\u1ED1ng", price: 2e4, detail: "V\u1EAFt s\u1EEFa" }
+        ];
+      } else {
+        items = [
+          { id: 1, name: "Ph\xE2n b\xF3n lo\u1EA1i 1", price: 500, detail: "-50% th\u1EDDi gian" },
+          { id: 2, name: "Thu\u1ED1c tr\u1EEB s\xE2u", price: 300, detail: "Di\u1EC7t s\xE2u b\u1ECD" },
+          { id: 3, name: "Thu\u1ED1c h\u1ED3i ph\u1EE5c", price: 400, detail: "H\u1ED3i sinh c\xE2y" }
+        ];
+      }
+      let rowY = my + 58;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const isSel = i === this.selectedShopIndex;
+        const text = `${item.name} (${item.detail})`;
+        const priceText = `${item.price.toLocaleString("vi-VN")} Xu`;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 26, text, isSel, priceText);
+        rowY += 28;
+      }
+      const botY = my + mh - 30;
+      g.setColor(16708551);
+      g.fillRect(mx + 12, botY, 70, 22);
+      g.setColor(7877903);
+      g.drawRect(mx + 12, botY, 70, 22);
+      this.font.drawString(g, "-", mx + 20, botY + 4, 2);
+      this.font.drawString(g, `${this.shopQuantity}`, mx + 47, botY + 4, 2);
+      this.font.drawString(g, "+", mx + 74, botY + 4, 2);
+      this.skinPainter.paintAuthenticButton(g, mx + 95, botY, 115, 22, "Mua v\u1EADt ph\u1EA9m", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 110, botY, 98, 22, "\u0110\xF3ng", "secondary");
     }
+    /**
+     * 9. Authentic Nhà Kho Nông Sản Dialog
+     */
     paintWarehouseModal(g, w, h) {
-      const mw = Math.min(320, w - 20);
-      const mh = Math.min(250, h - 60);
+      const mw = 320;
+      const mh = 250;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(988970);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(3718648);
-      g.drawRect(mx, my, mw, mh);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, 26);
-      this.font.drawString(g, "\u{1F4E6} NH\xC0 KHO N\xD4NG S\u1EA2N", mx + Math.floor(mw / 2), my + 6, 2);
-      g.setColor(15680580);
-      g.fillRect(mx + mw - 22, my + 4, 18, 18);
-      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "NH\xC0 KHO N\xD4NG S\u1EA2N");
       const cropEntries = Array.from(this.model.crops.entries()).filter(([_, c]) => c > 0);
       if (cropEntries.length === 0) {
         this.font.drawString(g, "Nh\xE0 kho hi\u1EC7n t\u1EA1i \u0111ang tr\u1ED1ng!", mx + Math.floor(mw / 2), my + 60, 2);
         this.font.drawString(g, "H\xE3y gieo tr\u1ED3ng v\xE0 thu ho\u1EA1ch \u0111\u1EC3 c\xF3 n\xF4ng s\u1EA3n.", mx + Math.floor(mw / 2), my + 85, 2);
+        this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, "\u0110\xF3ng", "secondary");
         return;
       }
-      let yOff = my + 34;
+      let yOff = my + 36;
       for (const [cropId, count] of cropEntries) {
         const meta = CROP_DEFINITIONS[cropId];
         const name = meta ? meta.name : `N\xF4ng s\u1EA3n #${cropId}`;
         const sellTotal = count * (meta ? meta.sellPriceXu : 10);
-        g.setColor(1976635);
-        g.fillRect(mx + 8, yOff, mw - 16, 28);
-        g.setColor(4906624);
-        this.font.drawString(g, `${name}: ${count} c\u1EE7/qu\u1EA3`, mx + 16, yOff + 7, 0);
-        g.setColor(366185);
-        g.fillRect(mx + mw - 76, yOff + 4, 66, 20);
-        g.setColor(16777215);
-        this.font.drawString(g, `B\xE1n: ${sellTotal}`, mx + mw - 43, yOff + 6, 2);
-        yOff += 32;
-        if (yOff > my + mh - 34) break;
+        const text = `${name}: ${count} c\u1EE7/qu\u1EA3`;
+        const priceText = `B\xE1n: ${sellTotal.toLocaleString("vi-VN")} Xu`;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, yOff, mw - 16, 26, text, false, priceText);
+        yOff += 28;
+        if (yOff > my + mh - 36) break;
       }
+      this.skinPainter.paintAuthenticButton(g, mx + Math.floor((mw - 100) / 2), my + mh - 28, 100, 22, "\u0110\xF3ng", "secondary");
     }
+    /**
+     * 10. Authentic Mở Thêm Ô Đất Dialog
+     */
     paintConfirmOpenLandModal(g, w, h) {
       const mw = 280;
-      const mh = 140;
+      const mh = 150;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(988970);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(16436245);
-      g.drawRect(mx, my, mw, mh);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, 24);
-      this.font.drawString(g, "M\u1EDE TH\xCAM \u0110\u1EA4T TR\u1ED2NG", mx + Math.floor(mw / 2), my + 5, 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "M\u1EDE TH\xCAM \u0110\u1EA4T TR\u1ED2NG");
       const plotNum = this.model.landSize + 1;
       this.font.drawString(g, `B\u1EA1n c\xF3 mu\u1ED1n m\u1EDF \xF4 \u0111\u1EA5t th\u1EE9 ${plotNum}?`, mx + Math.floor(mw / 2), my + 45, 2);
       this.font.drawString(g, "Gi\xE1 m\u1EDF: 500 Xu t\u1EEB t\xE0i kho\u1EA3n c\u1EE7a b\u1EA1n", mx + Math.floor(mw / 2), my + 68, 2);
-      g.setColor(1483594);
-      g.fillRect(mx + 20, my + 95, 100, 28);
-      g.setColor(16777215);
-      this.font.drawString(g, "\u0110\u1ED3ng \xFD", mx + 70, my + 102, 2);
-      g.setColor(14427686);
-      g.fillRect(mx + mw - 120, my + 95, 100, 28);
-      g.setColor(16777215);
-      this.font.drawString(g, "H\u1EE7y b\u1ECF", mx + mw - 70, my + 102, 2);
+      this.skinPainter.paintAuthenticButton(g, mx + 16, my + mh - 30, 115, 24, "\u0110\u1ED3ng \xFD", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 131, my + mh - 30, 115, 24, "H\u1EE7y b\u1ECF", "secondary");
     }
-    // --- Pointer & Input Handling ---
+    // =========================================================================
+    // Pointer & Input Handling
+    // =========================================================================
     pointerPressed(screenX, screenY) {
       const w = this.screenW;
       const h = this.screenH;
       if (this.isMenuOpen) {
         this.handleMenuClick(screenX, screenY, w, h);
+        return;
+      }
+      if (this.isKitchenOpen) {
+        this.handleKitchenClick(screenX, screenY, w, h);
+        return;
+      }
+      if (this.isBarnOpen) {
+        this.handleBarnClick(screenX, screenY, w, h);
+        return;
+      }
+      if (this.isStarfruitOpen) {
+        this.handleStarfruitClick(screenX, screenY, w, h);
+        return;
+      }
+      if (this.isPondOpen) {
+        this.handlePondClick(screenX, screenY, w, h);
+        return;
+      }
+      if (this.isCropActionOpen) {
+        this.handleCropActionClick(screenX, screenY, w, h);
         return;
       }
       if (this.controller.isSeedPickerOpen) {
@@ -3661,9 +3839,63 @@ void main() {
       }
       const worldX = screenX + this.cameraX;
       const worldY = screenY + this.cameraY;
-      if (worldX >= 760 && worldX <= 920 && worldY >= 670 && worldY <= 760) {
-        if (this.onExitToWorldMap) {
-          this.onExitToWorldMap();
+      if (worldX >= 820 && worldX <= 960 && worldY >= 620 && worldY <= 740) {
+        const dist = Math.hypot(this.localPlayer.x - 888, this.localPlayer.y - 670);
+        if (dist <= 50) {
+          if (this.onExitToWorldMap) this.onExitToWorldMap();
+        } else {
+          this.localPlayer.targetX = 888;
+          this.localPlayer.targetY = 670;
+          this.feedbackText = "\u0110ang ti\u1EBFn ra C\u1ED5ng N\xF4ng Tr\u1EA1i...";
+          this.feedbackTimer = 50;
+        }
+        return;
+      }
+      if (worldX >= 418 && worldX <= 560 && worldY >= 350 && worldY <= 470) {
+        const dist = Math.hypot(this.localPlayer.x - 502, this.localPlayer.y - 430);
+        if (dist <= 50) {
+          this.isKitchenOpen = true;
+        } else {
+          this.localPlayer.targetX = 502;
+          this.localPlayer.targetY = 430;
+          this.feedbackText = "\u0110ang \u0111\u1EBFn Nh\xE0 B\u1EBFp...";
+          this.feedbackTimer = 50;
+        }
+        return;
+      }
+      if (worldX >= 602 && worldX <= 750 && worldY >= 350 && worldY <= 470) {
+        const dist = Math.hypot(this.localPlayer.x - 691, this.localPlayer.y - 430);
+        if (dist <= 50) {
+          this.isBarnOpen = true;
+        } else {
+          this.localPlayer.targetX = 691;
+          this.localPlayer.targetY = 430;
+          this.feedbackText = "\u0110ang \u0111\u1EBFn Chu\u1ED3ng Nu\xF4i...";
+          this.feedbackTimer = 50;
+        }
+        return;
+      }
+      if (worldX >= 820 && worldX <= 960 && worldY >= 380 && worldY <= 520) {
+        const dist = Math.hypot(this.localPlayer.x - 888, this.localPlayer.y - 480);
+        if (dist <= 60) {
+          this.isStarfruitOpen = true;
+        } else {
+          this.localPlayer.targetX = 888;
+          this.localPlayer.targetY = 480;
+          this.feedbackText = "\u0110ang \u0111\u1EBFn C\xE2y Kh\u1EBF...";
+          this.feedbackTimer = 50;
+        }
+        return;
+      }
+      if (worldX >= 1550 && worldX <= 1850 && worldY >= 520 && worldY <= 740) {
+        const dist = Math.hypot(this.localPlayer.x - 1520, this.localPlayer.y - 580);
+        if (dist <= 80) {
+          this.isPondOpen = true;
+        } else {
+          this.localPlayer.targetX = 1520;
+          this.localPlayer.targetY = 580;
+          this.feedbackText = "\u0110ang \u0111\u1EBFn Ao C\xE1...";
+          this.feedbackTimer = 50;
         }
         return;
       }
@@ -3683,11 +3915,17 @@ void main() {
         const plot = this.model.lands[clickedPlotIdx];
         this.localPlayer.targetX = plot.posX + 24;
         this.localPlayer.targetY = plot.posY + 24;
-        this.controller.handleCellClick(clickedPlotIdx);
+        if (plot.type === -1) {
+          this.controller.focusedCellIndex = clickedPlotIdx;
+          this.controller.isSeedPickerOpen = true;
+        } else if (plot.type >= 0) {
+          this.selectedPlotIndex = clickedPlotIdx;
+          this.isCropActionOpen = true;
+        }
         return;
       }
       this.localPlayer.targetX = Math.max(50, Math.min(1960, worldX));
-      this.localPlayer.targetY = Math.max(460, Math.min(715, worldY));
+      this.localPlayer.targetY = Math.max(420, Math.min(715, worldY));
     }
     findPlotAt(worldX, worldY) {
       for (let i = 0; i < this.model.lands.length; i++) {
@@ -3698,117 +3936,363 @@ void main() {
       }
       return -1;
     }
+    // --- Modal Click Handlers ---
     handleMenuClick(screenX, screenY, w, h) {
-      const items = ["plant", "harvest", "open_land", "shop", "warehouse", "exit"];
-      const mw = 180;
-      const mh = items.length * 28 + 32;
-      const mx = 10;
-      const my = h - mh - 28;
+      const mw = 220;
+      const mh = 260;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
       if (screenX < mx || screenX > mx + mw || screenY < my || screenY > my + mh) {
         this.isMenuOpen = false;
         return;
       }
-      const clickedIdx = Math.floor((screenY - (my + 24)) / 28);
+      if (screenX >= mx + mw - 24 && screenX <= mx + mw && screenY >= my && screenY <= my + 24) {
+        this.isMenuOpen = false;
+        return;
+      }
+      let rowY = my + 32;
+      for (let i = 0; i < 8; i++) {
+        if (screenX >= mx + 8 && screenX <= mx + mw - 8 && screenY >= rowY && screenY <= rowY + 22) {
+          this.selectedMenuIndex = i;
+          this.executeMenuItem(i);
+          return;
+        }
+        rowY += 24;
+      }
+      if (screenX >= mx + 12 && screenX <= mx + 102 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+        this.executeMenuItem(this.selectedMenuIndex);
+        return;
+      }
+      if (screenX >= mx + mw - 102 && screenX <= mx + mw - 12 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+        this.isMenuOpen = false;
+        return;
+      }
+    }
+    executeMenuItem(index) {
       this.isMenuOpen = false;
-      if (clickedIdx === 0) {
-        this.controller.isSeedPickerOpen = true;
-      } else if (clickedIdx === 1) {
-        this.controller.harvestAllMature();
-      } else if (clickedIdx === 2) {
-        this.isConfirmOpenLand = true;
-      } else if (clickedIdx === 3) {
-        this.controller.isShopOpen = true;
-      } else if (clickedIdx === 4) {
-        this.controller.isWarehouseOpen = true;
-      } else if (clickedIdx === 5) {
-        if (this.onExitToWorldMap) this.onExitToWorldMap();
+      switch (index) {
+        case 0:
+          this.controller.isSeedPickerOpen = true;
+          break;
+        case 1:
+          this.controller.harvestAllMature();
+          break;
+        case 2:
+          this.isConfirmOpenLand = true;
+          break;
+        case 3:
+          this.controller.isShopOpen = true;
+          break;
+        case 4:
+          this.controller.isWarehouseOpen = true;
+          break;
+        case 5:
+          this.isKitchenOpen = true;
+          break;
+        case 6:
+          this.isBarnOpen = true;
+          break;
+        case 7:
+          if (this.onExitToWorldMap) this.onExitToWorldMap();
+          break;
+      }
+    }
+    handleKitchenClick(x, y, w, h) {
+      const mw = 320;
+      const mh = 260;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+        this.isKitchenOpen = false;
+        return;
+      }
+      let rowY = my + 52;
+      for (let i = 0; i < 5; i++) {
+        if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 26) {
+          this.selectedKitchenRecipe = i;
+          return;
+        }
+        rowY += 28;
+      }
+      if (x >= mx + 16 && x <= mx + 146 && y >= my + mh - 28 && y <= my + mh - 6) {
+        const recipes = ["C\u01A1m chi\xEAn tr\u1EE9ng", "Canh chua c\xE1 l\xF3c", "N\u01B0\u1EDBc \xE9p d\u01B0a h\u1EA5u", "B\u1EAFp x\xE0o b\u01A1", "Tr\u1EE9ng \u1ED1p la"];
+        this.handler.cookDish(this.selectedKitchenRecipe);
+        this.feedbackText = `\u0110ang n\u1EA5u ${recipes[this.selectedKitchenRecipe]}...`;
+        this.feedbackTimer = 80;
+        this.isKitchenOpen = false;
+        return;
+      }
+      if (x >= mx + mw - 146 && x <= mx + mw - 16 && y >= my + mh - 28 && y <= my + mh - 6) {
+        this.isKitchenOpen = false;
+        return;
+      }
+    }
+    handleBarnClick(x, y, w, h) {
+      const mw = 310;
+      const mh = 250;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+        this.isBarnOpen = false;
+        return;
+      }
+      let rowY = my + 54;
+      for (let i = 0; i < 5; i++) {
+        if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+          this.selectedBarnAction = i;
+          return;
+        }
+        rowY += 26;
+      }
+      if (x >= mx + 16 && x <= mx + 141 && y >= my + mh - 26 && y <= my + mh - 6) {
+        this.handler.doCattleAction(this.selectedBarnAction);
+        const actions = ["Cho \u0103n", "Thu ho\u1EA1ch tr\u1EE9ng/s\u1EEFa", "Ti\xEAm ph\xF2ng", "V\u1EC7 sinh chu\u1ED3ng", "Mua con gi\u1ED1ng"];
+        this.feedbackText = `\u0110\xE3 th\u1EF1c hi\u1EC7n: ${actions[this.selectedBarnAction]}!`;
+        this.feedbackTimer = 80;
+        this.isBarnOpen = false;
+        return;
+      }
+      if (x >= mx + mw - 141 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+        this.isBarnOpen = false;
+        return;
+      }
+    }
+    handleStarfruitClick(x, y, w, h) {
+      const mw = 300;
+      const mh = 240;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+        this.isStarfruitOpen = false;
+        return;
+      }
+      let rowY = my + 56;
+      for (let i = 0; i < 4; i++) {
+        if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+          this.selectedStarfruitAction = i;
+          return;
+        }
+        rowY += 26;
+      }
+      if (x >= mx + 16 && x <= mx + 136 && y >= my + mh - 26 && y <= my + mh - 6) {
+        if (this.selectedStarfruitAction === 0) {
+          this.handler.harvestStarfruit();
+          this.feedbackText = "Thu ho\u1EA1ch kh\u1EBF th\xE0nh c\xF4ng! +500 Xu v\xE0o t\xE0i kho\u1EA3n!";
+          this.feedbackTimer = 80;
+        } else if (this.selectedStarfruitAction === 1) {
+          this.feedbackText = "\u0110\xE3 t\u01B0\u1EDBi n\u01B0\u1EDBc cho c\xE2y kh\u1EBF!";
+          this.feedbackTimer = 60;
+        } else if (this.selectedStarfruitAction === 2) {
+          this.feedbackText = "\u0110\xE3 b\xF3n ph\xE2n cho c\xE2y kh\u1EBF! +100 EXP N\xF4ng Tr\u1EA1i";
+          this.feedbackTimer = 60;
+        } else if (this.selectedStarfruitAction === 3) {
+          this.handler.upgradeStarfruit();
+          this.feedbackText = "\u0110\xE3 g\u1EEDi y\xEAu c\u1EA7u n\xE2ng c\u1EA5p c\xE2y kh\u1EBF l\xEAn C\u1EA5p 2!";
+          this.feedbackTimer = 80;
+        }
+        this.isStarfruitOpen = false;
+        return;
+      }
+      if (x >= mx + mw - 136 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+        this.isStarfruitOpen = false;
+        return;
+      }
+    }
+    handlePondClick(x, y, w, h) {
+      const mw = 300;
+      const mh = 240;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+        this.isPondOpen = false;
+        return;
+      }
+      let rowY = my + 56;
+      for (let i = 0; i < 4; i++) {
+        if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+          this.selectedPondAction = i;
+          return;
+        }
+        rowY += 26;
+      }
+      if (x >= mx + 16 && x <= mx + 136 && y >= my + mh - 26 && y <= my + mh - 6) {
+        this.handler.doFishAction(this.selectedPondAction);
+        const actions = ["Th\u1EA3 c\xE1 gi\u1ED1ng m\u1EDBi", "R\u1EA3i th\u1EE9c \u0103n cho c\xE1", "Thu ho\u1EA1ch c\xE1", "N\xE2ng c\u1EA5p ao c\xE1"];
+        this.feedbackText = `\u0110\xE3 th\u1EF1c hi\u1EC7n: ${actions[this.selectedPondAction]}!`;
+        this.feedbackTimer = 80;
+        this.isPondOpen = false;
+        return;
+      }
+      if (x >= mx + mw - 136 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+        this.isPondOpen = false;
+        return;
+      }
+    }
+    handleCropActionClick(x, y, w, h) {
+      const mw = 310;
+      const mh = 260;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+        this.isCropActionOpen = false;
+        return;
+      }
+      let rowY = my + 54;
+      for (let i = 0; i < 5; i++) {
+        if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 24) {
+          this.selectedCropAction = i;
+          return;
+        }
+        rowY += 26;
+      }
+      if (x >= mx + 16 && x <= mx + 141 && y >= my + mh - 26 && y <= my + mh - 6) {
+        if (this.selectedCropAction === 0) {
+          this.feedbackText = "\u0110\xE3 t\u01B0\u1EDBi n\u01B0\u1EDBc cho \xF4 \u0111\u1EA5t!";
+          this.feedbackTimer = 60;
+        } else if (this.selectedCropAction === 1) {
+          this.feedbackText = "\u0110\xE3 b\xF3n ph\xE2n! R\xFAt ng\u1EAFn th\u1EDDi gian sinh tr\u01B0\u1EDFng!";
+          this.feedbackTimer = 60;
+        } else if (this.selectedCropAction === 2) {
+          this.feedbackText = "\u0110\xE3 b\u1EAFt s\xE2u b\u1ECD v\xE0 l\xE0m s\u1EA1ch c\u1ECF d\u1EA1i!";
+          this.feedbackTimer = 60;
+        } else if (this.selectedCropAction === 3) {
+          this.controller.handleCellClick(this.selectedPlotIndex);
+        } else if (this.selectedCropAction === 4) {
+          this.feedbackText = "\u0110\xE3 cu\u1ED1c \u0111\u1EA5t v\xE0 l\xE0m s\u1EA1ch \xF4 \u0111\u1EA5t!";
+          this.feedbackTimer = 60;
+        }
+        this.isCropActionOpen = false;
+        return;
+      }
+      if (x >= mx + mw - 141 && x <= mx + mw - 16 && y >= my + mh - 26 && y <= my + mh - 6) {
+        this.isCropActionOpen = false;
+        return;
       }
     }
     handleSeedPickerClick(x, y, w, h) {
-      const mw = Math.min(320, w - 20);
-      const mh = Math.min(260, h - 60);
+      const mw = 320;
+      const mh = 250;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
-        this.controller.isSeedPickerOpen = false;
-        return;
-      }
-      if (x < mx || x > mx + mw || y < my || y > my + mh) {
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
         this.controller.isSeedPickerOpen = false;
         return;
       }
       const seeds = Array.from(this.model.seeds.entries()).filter(([_, count]) => count > 0);
-      let yOff = my + 34;
-      for (const [seedId, count] of seeds) {
-        if (y >= yOff && y <= yOff + 28) {
+      let yOff = my + 36;
+      for (const [seedId] of seeds) {
+        if (y >= yOff && y <= yOff + 26) {
           this.controller.selectSeed(seedId);
+          if (this.controller.focusedCellIndex >= 0) {
+            this.handler.plantSeed(this.controller.focusedCellIndex, seedId);
+          }
           return;
         }
-        yOff += 32;
-        if (yOff > my + mh - 34) break;
+        yOff += 28;
+        if (yOff > my + mh - 36) break;
+      }
+      if (y >= my + mh - 28 && y <= my + mh - 6) {
+        this.controller.isSeedPickerOpen = false;
+        return;
       }
     }
     handleShopClick(x, y, w, h) {
-      const mw = Math.min(340, w - 20);
-      const mh = Math.min(270, h - 50);
+      const mw = 340;
+      const mh = 280;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
         this.controller.isShopOpen = false;
         return;
       }
-      if (x < mx || x > mx + mw || y < my || y > my + mh) {
-        this.controller.isShopOpen = false;
-        return;
-      }
-      const crops = Object.values(CROP_DEFINITIONS);
-      let yOff = my + 32;
-      for (const c of crops) {
-        if (y >= yOff && y <= yOff + 28 && x >= mx + mw - 80) {
-          if (this.model.userXu < c.seedPriceXu) {
-            if (this.controller.onActionFeedback) {
-              this.controller.onActionFeedback("B\u1EA1n kh\xF4ng \u0111\u1EE7 Xu \u0111\u1EC3 mua h\u1EA1t gi\u1ED1ng n\xE0y!", "#ef4444");
-            }
-            return;
-          }
-          this.handler.buySeed(c.id, 1, 1);
-          if (this.controller.onActionFeedback) {
-            this.controller.onActionFeedback(`\u0110\xE3 mua 1 h\u1EA1t gi\u1ED1ng ${c.name}!`, "#4ade80");
-          }
+      const tabW = Math.floor((mw - 24) / 3);
+      const tabY = my + 32;
+      if (y >= tabY && y <= tabY + 20) {
+        if (x >= mx + 12 && x < mx + 12 + tabW) {
+          this.selectedShopTab = "seeds";
+          this.selectedShopIndex = 0;
           return;
         }
-        yOff += 32;
-        if (yOff > my + mh - 34) break;
+        if (x >= mx + 12 + tabW && x < mx + 12 + tabW * 2) {
+          this.selectedShopTab = "animals";
+          this.selectedShopIndex = 0;
+          return;
+        }
+        if (x >= mx + 12 + tabW * 2 && x <= mx + mw - 12) {
+          this.selectedShopTab = "fertilizer";
+          this.selectedShopIndex = 0;
+          return;
+        }
+      }
+      let rowY = my + 58;
+      const count = this.selectedShopTab === "seeds" ? 5 : this.selectedShopTab === "animals" ? 4 : 3;
+      for (let i = 0; i < count; i++) {
+        if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 26) {
+          this.selectedShopIndex = i;
+          return;
+        }
+        rowY += 28;
+      }
+      const botY = my + mh - 30;
+      if (y >= botY && y <= botY + 22) {
+        if (x >= mx + 12 && x <= mx + 35) {
+          this.shopQuantity = Math.max(1, this.shopQuantity - 1);
+          return;
+        }
+        if (x >= mx + 55 && x <= mx + 82) {
+          this.shopQuantity = Math.min(99, this.shopQuantity + 1);
+          return;
+        }
+      }
+      if (x >= mx + 95 && x <= mx + 210 && y >= botY && y <= botY + 22) {
+        const itemId = this.selectedShopIndex + 1;
+        this.handler.buySeed(itemId, this.shopQuantity);
+        this.feedbackText = `\u0110\xE3 g\u1EEDi y\xEAu c\u1EA7u mua ${this.shopQuantity} v\u1EADt ph\u1EA9m!`;
+        this.feedbackTimer = 60;
+        return;
+      }
+      if (x >= mx + mw - 110 && x <= mx + mw - 12 && y >= botY && y <= botY + 22) {
+        this.controller.isShopOpen = false;
+        return;
       }
     }
     handleWarehouseClick(x, y, w, h) {
-      const mw = Math.min(320, w - 20);
-      const mh = Math.min(250, h - 60);
+      const mw = 320;
+      const mh = 250;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      if (x >= mx + mw - 25 && x <= mx + mw && y >= my && y <= my + 26) {
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
         this.controller.isWarehouseOpen = false;
         return;
       }
-      if (x < mx || x > mx + mw || y < my || y > my + mh) {
+      const cropEntries = Array.from(this.model.crops.entries()).filter(([_, c]) => c > 0);
+      let yOff = my + 36;
+      for (const [cropId, count] of cropEntries) {
+        if (y >= yOff && y <= yOff + 26) {
+          this.controller.sellProduce(cropId, 1);
+          return;
+        }
+        yOff += 28;
+        if (yOff > my + mh - 36) break;
+      }
+      if (y >= my + mh - 28 && y <= my + mh - 6) {
         this.controller.isWarehouseOpen = false;
         return;
       }
     }
     handleConfirmOpenLandClick(x, y, w, h) {
       const mw = 280;
-      const mh = 140;
+      const mh = 150;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      if (x >= mx + 20 && x <= mx + 120 && y >= my + 95 && y <= my + 125) {
+      if (x >= mx + 16 && x <= mx + 131 && y >= my + mh - 30 && y <= my + mh - 6) {
         this.isConfirmOpenLand = false;
         this.handler.openLand(1);
-        if (this.controller.onActionFeedback) {
-          this.controller.onActionFeedback("\u0110ang g\u1EEDi y\xEAu c\u1EA7u m\u1EDF \xF4 \u0111\u1EA5t l\xEAn m\xE1y ch\u1EE7...", "#facc15");
-        }
+        this.feedbackText = "\u0110ang g\u1EEDi y\xEAu c\u1EA7u m\u1EDF \xF4 \u0111\u1EA5t l\xEAn m\xE1y ch\u1EE7...";
+        this.feedbackTimer = 60;
         return;
       }
-      if (x >= mx + mw - 120 && x <= mx + mw - 20 && y >= my + 95 && y <= my + 125 || x < mx || x > mx + mw || y < my || y > my + mh) {
+      if (x >= mx + mw - 131 && x <= mx + mw - 16 && y >= my + mh - 30 && y <= my + mh - 6) {
         this.isConfirmOpenLand = false;
         return;
       }
@@ -3845,21 +4329,26 @@ void main() {
     // Map dimensions
     MAP_WIDTH = 1296;
     MAP_HEIGHT = 466;
-    // Walkable bounds
-    // Main dirt road: x = 50..1250, y = 300..415
-    // Gate path: x = 395..475, y = 220..300
-    // Store path: x = 720..790, y = 230..300
-    // Lai buon path: x = 110..180, y = 265..300
     // Asset Cache
     spriteCache = /* @__PURE__ */ new Map();
     isAssetsLoaded = false;
     isNight = false;
     // Animation ticks
     animTick = 0;
-    // Active UI
+    // Active Dialog / Modal States
     isMenuOpen = false;
     isShopOpen = false;
     isLaiBuonDialogOpen = false;
+    isFruitStallOpen = false;
+    isFastFoodOpen = false;
+    // Selection states
+    selectedMenuIndex = 0;
+    selectedLaiBuonIndex = 0;
+    selectedShopTab = "seeds";
+    selectedShopItemIndex = 0;
+    shopQuantity = 1;
+    selectedFruitIndex = 0;
+    selectedFastFoodIndex = 0;
     // Floating notifications
     feedbackText = "Ch\xE0o m\u1EEBng b\u1EA1n \u0111\u1EBFn v\u1EDBi C\u1ED5ng N\xF4ng Tr\u1EA1i!";
     feedbackColor = "#facc15";
@@ -3954,7 +4443,9 @@ void main() {
             this.localPlayer.targetX = this.localPlayer.x;
             this.localPlayer.targetY = this.localPlayer.y;
             this.localPlayer.state = "idle";
+            this.checkTriggerZones();
           }
+          this.checkMidWalkTriggers();
         }
         if (this.animTick % 3 === 0) {
           this.localPlayer.frame = (this.localPlayer.frame + 1) % 3;
@@ -3974,26 +4465,44 @@ void main() {
       if (x >= 395 && x <= 475 && y >= 210 && y < 290) return true;
       if (x >= 715 && x <= 790 && y >= 220 && y < 290) return true;
       if (x >= 100 && x <= 180 && y >= 260 && y < 290) return true;
+      if (x >= 890 && x <= 970 && y >= 260 && y < 290) return true;
       return false;
+    }
+    /**
+     * Fast trigger check while walking through doorways
+     */
+    checkMidWalkTriggers() {
+      if (Math.abs(this.localPlayer.x - 434) <= 40 && this.localPlayer.y <= 225) {
+        this.promptEnterFarm();
+        return;
+      }
+      if (Math.abs(this.localPlayer.x - 434) <= 45 && this.localPlayer.y >= 405) {
+        this.promptExitToWorldMap();
+        return;
+      }
     }
     /**
      * Check interactive zones when player stops walking
      */
     checkTriggerZones() {
-      if (Math.abs(this.localPlayer.x - 434) <= 45 && this.localPlayer.y <= 230) {
+      if (Math.abs(this.localPlayer.x - 434) <= 45 && this.localPlayer.y <= 235) {
         this.promptEnterFarm();
         return;
       }
-      if (Math.abs(this.localPlayer.x - 755) <= 40 && this.localPlayer.y <= 240) {
+      if (Math.abs(this.localPlayer.x - 755) <= 45 && this.localPlayer.y <= 245) {
         this.openShop();
         return;
       }
-      if (Math.abs(this.localPlayer.x - 600) <= 50 && Math.abs(this.localPlayer.y - 320) <= 30) {
+      if (Math.abs(this.localPlayer.x - 600) <= 50 && Math.abs(this.localPlayer.y - 310) <= 35) {
+        this.openFruitStall();
+        return;
+      }
+      if (Math.abs(this.localPlayer.x - 140) <= 45 && Math.abs(this.localPlayer.y - 280) <= 35) {
         this.openLaiBuonDialog();
         return;
       }
-      if (Math.abs(this.localPlayer.x - 140) <= 45 && Math.abs(this.localPlayer.y - 280) <= 30) {
-        this.openLaiBuonDialog();
+      if (Math.abs(this.localPlayer.x - 930) <= 50 && Math.abs(this.localPlayer.y - 280) <= 35) {
+        this.openFastFoodDialog();
         return;
       }
       if (Math.abs(this.localPlayer.x - 434) <= 50 && this.localPlayer.y >= 400) {
@@ -4050,6 +4559,10 @@ void main() {
         this.paintLaiBuonDialog(g, w, h);
       } else if (this.isShopOpen) {
         this.paintShopDialog(g, w, h);
+      } else if (this.isFruitStallOpen) {
+        this.paintFruitStallDialog(g, w, h);
+      } else if (this.isFastFoodOpen) {
+        this.paintFastFoodDialog(g, w, h);
       }
     }
     /**
@@ -4060,7 +4573,6 @@ void main() {
       const cloudsImg = this.spriteCache.get(`clouds_${suffix}`);
       if (!cloudsImg) return;
       const cloudW = cloudsImg.getWidth();
-      const cloudH = cloudsImg.getHeight();
       const parallaxX = -Math.floor(this.cameraX * 0.15) % cloudW;
       const startX = parallaxX > 0 ? parallaxX - cloudW : parallaxX;
       const cloudY = Math.max(0, groundBaseY - 30);
@@ -4085,7 +4597,6 @@ void main() {
     }
     /**
      * Paint authentic seamless composite backdrop (Map 23)
-     * Pristine original panorama: Left oak tree, wooden fence, FARM gate, CỬA HÀNG, right twisted tree.
      */
     paintGateBackdrop(g) {
       const backdrop = this.spriteCache.get("backdrop");
@@ -4210,93 +4721,184 @@ void main() {
         this.font.drawString(g, this.feedbackText, Math.floor(w / 2), boxY + 4, 2);
       }
     }
+    // =========================================================================
+    // Authentic 1:1 J2ME Dialogs & Menus
+    // =========================================================================
     /**
-     * Quick Menu Dialog
+     * 1. Authentic Quick Menu
      */
     paintQuickMenu(g, w, h) {
-      const mw = 180;
-      const mh = 140;
+      const mw = 220;
+      const mh = 210;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(988970);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(3718648);
-      g.drawRect(mx, my, mw, mh);
-      this.font.drawString(g, "--- C\u1ED4NG N\xD4NG TR\u1EA0I ---", mx + Math.floor(mw / 2), my + 8, 2);
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "C\u1ED4NG N\xD4NG TR\u1EA0I");
       const items = [
-        "1. V\xE0o N\xF4ng Tr\u1EA1i",
+        "1. V\xE0o N\xF4ng Tr\u1EA1i (Map 25)",
         "2. C\u1EEDa H\xE0ng H\u1EA1t Gi\u1ED1ng",
-        "3. G\u1EB7p L\xE1i Bu\xF4n",
-        "4. V\u1EC1 Th\xE0nh Ph\u1ED1",
-        "5. \u0110\xF3ng Menu"
+        "3. G\u1EB7p L\xE1i Bu\xF4n (lai.buon)",
+        "4. S\u1EA1p Hoa Qu\u1EA3 N\xF4ng S\u1EA3n",
+        "5. Xe Kem & \u0110\u1ED3 \u0102n Nhanh",
+        "6. V\u1EC1 L\u1EA1i Th\xE0nh Ph\u1ED1"
       ];
-      let itemY = my + 30;
-      for (const item of items) {
-        this.font.drawString(g, item, mx + 16, itemY, 0);
-        itemY += 20;
+      let rowY = my + 34;
+      for (let i = 0; i < items.length; i++) {
+        const isSel = i === this.selectedMenuIndex;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, items[i], isSel);
+        rowY += 26;
       }
+      this.skinPainter.paintAuthenticButton(g, mx + 12, my + mh - 26, 90, 20, "Ch\u1ECDn", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 102, my + mh - 26, 90, 20, "\u0110\xF3ng", "secondary");
     }
     /**
-     * NPC lai.buon Dialog
+     * 2. Authentic NPC lai.buon Dialog
      */
     paintLaiBuonDialog(g, w, h) {
-      const dw = 260;
-      const dh = 150;
+      const dw = 300;
+      const dh = 240;
       const dx = Math.floor((w - dw) / 2);
       const dy = Math.floor((h - dh) / 2);
-      g.setColor(988970);
-      g.fillRect(dx, dy, dw, dh);
-      g.setColor(16436245);
-      g.drawRect(dx, dy, dw, dh);
-      this.font.drawString(g, "\u{1F468}\u{1F33E} L\xC1I BU\xD4N N\xD4NG S\u1EA2N", dx + Math.floor(dw / 2), dy + 10, 2);
-      this.font.drawString(g, "Ch\xE0o b\xE0 con! T\xF4i chuy\xEAn thu mua", dx + Math.floor(dw / 2), dy + 35, 2);
-      this.font.drawString(g, "n\xF4ng s\u1EA3n v\xE0 cung c\u1EA5p c\xE1c lo\u1EA1i", dx + Math.floor(dw / 2), dy + 55, 2);
-      this.font.drawString(g, "h\u1EA1t gi\u1ED1ng n\u0103ng su\u1EA5t cao nh\u1EA5t!", dx + Math.floor(dw / 2), dy + 75, 2);
-      g.setColor(1483594);
-      g.fillRect(dx + 20, dy + 105, 100, 26);
-      g.setColor(16777215);
-      this.font.drawString(g, "C\u1EEDa H\xE0ng", dx + 70, dy + 110, 2);
-      g.setColor(4674921);
-      g.fillRect(dx + 140, dy + 105, 100, 26);
-      this.font.drawString(g, "\u0110\xF3ng", dx + 190, dy + 110, 2);
+      this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, "L\xC1I BU\xD4N N\xD4NG S\u1EA2N");
+      this.font.drawString(g, "L\xE1i Bu\xF4n:", dx + 12, dy + 34, 0);
+      this.font.drawString(g, '"Ch\xE0o b\xE0 con! T\xF4i thu mua n\xF4ng s\u1EA3n', dx + 12, dy + 48, 0);
+      this.font.drawString(g, 'v\u1EDBi gi\xE1 t\u1ED1t nh\u1EA5t v\xE0 cung c\u1EA5p ph\xE2n b\xF3n!"', dx + 12, dy + 62, 0);
+      const options = [
+        "1. B\xE1n n\xF4ng s\u1EA3n \u0111\xE3 thu ho\u1EA1ch",
+        "2. B\xE1n t\u1EA5t c\u1EA3 n\xF4ng s\u1EA3n trong kho",
+        "3. Mua ph\xE2n b\xF3n cao c\u1EA5p (500 Xu)"
+      ];
+      let rowY = dy + 82;
+      for (let i = 0; i < options.length; i++) {
+        const isSel = i === this.selectedLaiBuonIndex;
+        this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 24, options[i], isSel);
+        rowY += 26;
+      }
+      this.skinPainter.paintAuthenticButton(g, dx + 16, dy + dh - 26, 120, 20, "Ch\u1ECDn", "primary");
+      this.skinPainter.paintAuthenticButton(g, dx + dw - 136, dy + dh - 26, 120, 20, "\u0110\xF3ng", "secondary");
     }
     /**
-     * Seed Store Dialog
+     * 3. Authentic CỬA HÀNG (Farm Store) Dialog
      */
     paintShopDialog(g, w, h) {
-      const mw = 280;
-      const mh = 220;
+      const mw = 340;
+      const mh = 280;
       const mx = Math.floor((w - mw) / 2);
       const my = Math.floor((h - mh) / 2);
-      g.setColor(988970);
-      g.fillRect(mx, my, mw, mh);
-      g.setColor(3718648);
-      g.drawRect(mx, my, mw, mh);
-      g.setColor(1976635);
-      g.fillRect(mx, my, mw, 26);
-      this.font.drawString(g, "\u{1F3EA} C\u1EECA H\xC0NG H\u1EA0T GI\u1ED0NG", mx + Math.floor(mw / 2), my + 6, 2);
-      g.setColor(15680580);
-      g.fillRect(mx + mw - 22, my + 4, 18, 18);
-      this.font.drawString(g, "X", mx + mw - 13, my + 6, 2);
-      const seeds = [
-        { id: 1, name: "C\xE0 chua", price: 100, exp: 5 },
-        { id: 2, name: "C\xE0 r\u1ED1t", price: 150, exp: 8 },
-        { id: 3, name: "Kh\xF3m", price: 300, exp: 15 },
-        { id: 4, name: "D\u01B0a h\u1EA5u", price: 500, exp: 25 },
-        { id: 5, name: "B\u1EAFp", price: 200, exp: 10 }
+      this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, "C\u1EECA H\xC0NG N\xD4NG TR\u1EA0I");
+      const tabW = Math.floor((mw - 24) / 3);
+      const tabY = my + 32;
+      const tabs = [
+        { id: "seeds", label: "H\u1EA1t gi\u1ED1ng" },
+        { id: "animals", label: "V\u1EADt nu\xF4i" },
+        { id: "fertilizer", label: "Ph\xE2n b\xF3n" }
       ];
-      let rowY = my + 35;
-      for (const seed of seeds) {
-        g.setColor(1976635);
-        g.fillRect(mx + 10, rowY, mw - 20, 30);
-        g.setColor(3359061);
-        g.drawRect(mx + 10, rowY, mw - 20, 30);
-        this.font.drawString(g, `${seed.id}. ${seed.name} (${seed.price} Xu)`, mx + 20, rowY + 8, 0);
-        g.setColor(1483594);
-        g.fillRect(mx + mw - 70, rowY + 4, 52, 22);
-        this.font.drawString(g, "Mua", mx + mw - 44, rowY + 7, 2);
-        rowY += 34;
+      for (let i = 0; i < tabs.length; i++) {
+        const t = tabs[i];
+        const isSelected = this.selectedShopTab === t.id;
+        const tx = mx + 12 + i * tabW;
+        g.setColor(isSelected ? 16498468 : 16708551);
+        g.fillRect(tx, tabY, tabW - 4, 20);
+        g.setColor(isSelected ? 14251782 : 7877903);
+        g.drawRect(tx, tabY, tabW - 4, 20);
+        this.font.drawString(g, t.label, tx + Math.floor((tabW - 4) / 2), tabY + 4, 2);
       }
+      let items = [];
+      if (this.selectedShopTab === "seeds") {
+        items = [
+          { id: 1, name: "C\xE0 chua", price: 100, detail: "5 ph\xFAt" },
+          { id: 2, name: "C\xE0 r\u1ED1t", price: 150, detail: "8 ph\xFAt" },
+          { id: 3, name: "Kh\xF3m (D\u1EE9a)", price: 300, detail: "15 ph\xFAt" },
+          { id: 4, name: "D\u01B0a h\u1EA5u", price: 500, detail: "25 ph\xFAt" },
+          { id: 5, name: "B\u1EAFp (Ng\xF4)", price: 200, detail: "10 ph\xFAt" }
+        ];
+      } else if (this.selectedShopTab === "animals") {
+        items = [
+          { id: 1, name: "G\xE0 con", price: 5e3, detail: "Nu\xF4i l\u1EA5y tr\u1EE9ng" },
+          { id: 2, name: "V\u1ECBt con", price: 4e3, detail: "Nu\xF4i l\u1EA5y tr\u1EE9ng" },
+          { id: 3, name: "Heo gi\u1ED1ng", price: 1e4, detail: "Nu\xF4i l\u1EA5y th\u1ECBt" },
+          { id: 4, name: "B\xF2 s\u1EEFa gi\u1ED1ng", price: 2e4, detail: "V\u1EAFt s\u1EEFa t\u01B0\u01A1i" }
+        ];
+      } else {
+        items = [
+          { id: 1, name: "Ph\xE2n b\xF3n lo\u1EA1i 1", price: 500, detail: "-50% th\u1EDDi gian" },
+          { id: 2, name: "Thu\u1ED1c tr\u1EEB s\xE2u", price: 300, detail: "Di\u1EC7t s\xE2u b\u1ECD" },
+          { id: 3, name: "Thu\u1ED1c h\u1ED3i ph\u1EE5c", price: 400, detail: "H\u1ED3i sinh c\xE2y" }
+        ];
+      }
+      let rowY = my + 58;
+      for (let i = 0; i < items.length; i++) {
+        const item = items[i];
+        const isSel = i === this.selectedShopItemIndex;
+        const text = `${item.name} (${item.detail})`;
+        const priceText = `${item.price.toLocaleString("vi-VN")} Xu`;
+        this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 26, text, isSel, priceText);
+        rowY += 28;
+      }
+      const botY = my + mh - 30;
+      g.setColor(16708551);
+      g.fillRect(mx + 12, botY, 70, 22);
+      g.setColor(7877903);
+      g.drawRect(mx + 12, botY, 70, 22);
+      this.font.drawString(g, "-", mx + 20, botY + 4, 2);
+      this.font.drawString(g, `${this.shopQuantity}`, mx + 47, botY + 4, 2);
+      this.font.drawString(g, "+", mx + 74, botY + 4, 2);
+      this.skinPainter.paintAuthenticButton(g, mx + 95, botY, 115, 22, "Mua v\u1EADt ph\u1EA9m", "primary");
+      this.skinPainter.paintAuthenticButton(g, mx + mw - 110, botY, 98, 22, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 4. Authentic Sạp Hoa Quả (Fruit Stall) Dialog
+     */
+    paintFruitStallDialog(g, w, h) {
+      const dw = 300;
+      const dh = 240;
+      const dx = Math.floor((w - dw) / 2);
+      const dy = Math.floor((h - dh) / 2);
+      this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, "S\u1EA0P HOA QU\u1EA2 & N\xD4NG S\u1EA2N");
+      this.font.drawString(g, "C\xF4 Ch\u1EE7 S\u1EA1p:", dx + 12, dy + 34, 0);
+      this.font.drawString(g, '"Hoa qu\u1EA3 t\u01B0\u01A1i m\u1EDBi h\xE1i, ngon ng\u1ECDt thanh m\xE1t!', dx + 12, dy + 48, 0);
+      this.font.drawString(g, 'B\xE0 con gh\xE9 s\u1EA1p xem gi\xE1 ho\u1EB7c b\xE1n n\xF4ng s\u1EA3n nh\xE9!"', dx + 12, dy + 62, 0);
+      const options = [
+        "1. B\xE1n D\u01B0a h\u1EA5u t\u01B0\u01A1i (500 Xu/qu\u1EA3)",
+        "2. B\xE1n C\xE0 chua m\u1ECDng (150 Xu/qu\u1EA3)",
+        "3. B\xE1n C\xE0 r\u1ED1t t\u01B0\u01A1i (200 Xu/c\u1EE7)",
+        "4. B\xE1n B\u1EAFp ng\u1ECDt (250 Xu/b\u1EAFp)"
+      ];
+      let rowY = dy + 82;
+      for (let i = 0; i < options.length; i++) {
+        const isSel = i === this.selectedFruitIndex;
+        this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 24, options[i], isSel);
+        rowY += 26;
+      }
+      this.skinPainter.paintAuthenticButton(g, dx + 16, dy + dh - 26, 120, 20, "B\xE1n h\xE0ng", "primary");
+      this.skinPainter.paintAuthenticButton(g, dx + dw - 136, dy + dh - 26, 120, 20, "\u0110\xF3ng", "secondary");
+    }
+    /**
+     * 5. Authentic Xe Kem Đồ Ăn Nhanh Dialog
+     */
+    paintFastFoodDialog(g, w, h) {
+      const dw = 300;
+      const dh = 250;
+      const dx = Math.floor((w - dw) / 2);
+      const dy = Math.floor((h - dh) / 2);
+      this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, "XE KEM & \u0110\u1ED2 \u0102N NHANH");
+      this.font.drawString(g, "Th\u1EF1c \u0111\u01A1n n\u1EA1p l\u1EA1i n\u0103ng l\u01B0\u1EE3ng cho n\xF4ng d\xE2n:", dx + 12, dy + 34, 0);
+      const menu = [
+        { name: "1. Kem \u1ED1c qu\u1EBF", price: 50, energy: "+20 N\u0103ng l\u01B0\u1EE3ng" },
+        { name: "2. Kem ly d\xE2u t\xE2y", price: 100, energy: "+40 N\u0103ng l\u01B0\u1EE3ng" },
+        { name: "3. B\xE1nh m\xEC th\u1ECBt gi\xF2n", price: 200, energy: "+80 N\u0103ng l\u01B0\u1EE3ng" },
+        { name: "4. N\u01B0\u1EDBc m\xEDa ng\u1ECDt m\xE1t", price: 50, energy: "+25 N\u0103ng l\u01B0\u1EE3ng" }
+      ];
+      let rowY = dy + 54;
+      for (let i = 0; i < menu.length; i++) {
+        const item = menu[i];
+        const isSel = i === this.selectedFastFoodIndex;
+        const text = `${item.name} (${item.energy})`;
+        const priceText = `${item.price} Xu`;
+        this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 26, text, isSel, priceText);
+        rowY += 28;
+      }
+      this.skinPainter.paintAuthenticButton(g, dx + 16, dy + dh - 26, 120, 20, "Mua \u0103n ngay", "primary");
+      this.skinPainter.paintAuthenticButton(g, dx + dw - 136, dy + dh - 26, 120, 20, "\u0110\xF3ng", "secondary");
     }
     // =========================================================================
     // User Input & Interaction Handling
@@ -4305,60 +4907,23 @@ void main() {
       const w = this.screenW;
       const h = this.screenH;
       if (this.isLaiBuonDialogOpen) {
-        const dw = 260;
-        const dh = 150;
-        const dx = Math.floor((w - dw) / 2);
-        const dy = Math.floor((h - dh) / 2);
-        if (x >= dx + 20 && x <= dx + 120 && y >= dy + 105 && y <= dy + 131) {
-          this.isLaiBuonDialogOpen = false;
-          this.isShopOpen = true;
-          return;
-        }
-        if (x >= dx + 140 && x <= dx + 240 && y >= dy + 105 && y <= dy + 131) {
-          this.isLaiBuonDialogOpen = false;
-          return;
-        }
+        this.handleLaiBuonClick(x, y, w, h);
         return;
       }
       if (this.isShopOpen) {
-        const mw = 280;
-        const mh = 220;
-        const mx = Math.floor((w - mw) / 2);
-        const my = Math.floor((h - mh) / 2);
-        if (x >= mx + mw - 26 && x <= mx + mw && y >= my && y <= my + 26) {
-          this.isShopOpen = false;
-          return;
-        }
-        let rowY = my + 35;
-        for (let i = 1; i <= 5; i++) {
-          if (x >= mx + mw - 70 && x <= mx + mw - 18 && y >= rowY + 4 && y <= rowY + 26) {
-            if (this.controller) {
-              this.controller.buySeed(i, 1);
-              this.feedbackText = `\u0110\xE3 g\u1EEDi y\xEAu c\u1EA7u mua h\u1EA1t gi\u1ED1ng #${i}`;
-              this.feedbackTimer = 60;
-            }
-            return;
-          }
-          rowY += 34;
-        }
+        this.handleShopClick(x, y, w, h);
+        return;
+      }
+      if (this.isFruitStallOpen) {
+        this.handleFruitStallClick(x, y, w, h);
+        return;
+      }
+      if (this.isFastFoodOpen) {
+        this.handleFastFoodClick(x, y, w, h);
         return;
       }
       if (this.isMenuOpen) {
-        const mw = 180;
-        const mh = 140;
-        const mx = Math.floor((w - mw) / 2);
-        const my = Math.floor((h - mh) / 2);
-        const clickedIdx = Math.floor((y - (my + 30)) / 20);
-        this.isMenuOpen = false;
-        if (clickedIdx === 0) {
-          this.promptEnterFarm();
-        } else if (clickedIdx === 1) {
-          this.openShop();
-        } else if (clickedIdx === 2) {
-          this.openLaiBuonDialog();
-        } else if (clickedIdx === 3) {
-          this.promptExitToWorldMap();
-        }
+        this.handleMenuClick(x, y, w, h);
         return;
       }
       if (x >= 6 && x <= 32 && y >= 6 && y <= 28) {
@@ -4369,51 +4934,298 @@ void main() {
       const worldX = x + this.cameraX;
       const worldY = y + this.cameraY - groundBaseY;
       if (Math.abs(worldX - 434) < 55 && worldY <= 260 && worldY >= 140) {
-        this.localPlayer.targetX = 434;
-        this.localPlayer.targetY = 220;
-        this.feedbackText = "\u0110ang ti\u1EBFn v\xE0o c\u1ED5ng N\xF4ng Tr\u1EA1i...";
-        this.feedbackTimer = 50;
+        const dist = Math.hypot(this.localPlayer.x - 434, this.localPlayer.y - 220);
+        if (dist <= 45) {
+          this.promptEnterFarm();
+        } else {
+          this.localPlayer.targetX = 434;
+          this.localPlayer.targetY = 220;
+          this.feedbackText = "\u0110ang ti\u1EBFn v\xE0o c\u1ED5ng N\xF4ng Tr\u1EA1i...";
+          this.feedbackTimer = 50;
+        }
         return;
       }
       if (Math.abs(worldX - 755) < 55 && worldY <= 265 && worldY >= 140) {
-        this.localPlayer.targetX = 755;
-        this.localPlayer.targetY = 230;
-        this.feedbackText = "\u0110ang \u0111i \u0111\u1EBFn C\u1EEDa H\xE0ng...";
-        this.feedbackTimer = 50;
+        const dist = Math.hypot(this.localPlayer.x - 755, this.localPlayer.y - 230);
+        if (dist <= 45) {
+          this.openShop();
+        } else {
+          this.localPlayer.targetX = 755;
+          this.localPlayer.targetY = 230;
+          this.feedbackText = "\u0110ang \u0111i \u0111\u1EBFn C\u1EEDa H\xE0ng...";
+          this.feedbackTimer = 50;
+        }
         return;
       }
-      if (worldX >= 500 && worldX <= 690 && worldY >= 180 && worldY <= 340) {
-        this.localPlayer.targetX = 600;
-        this.localPlayer.targetY = 320;
-        this.feedbackText = "\u0110ang \u0111\u1EBFn s\u1EA1p h\xE0ng n\xF4ng s\u1EA3n...";
-        this.feedbackTimer = 50;
+      if (worldX >= 500 && worldX <= 670 && worldY >= 160 && worldY <= 320) {
+        const dist = Math.hypot(this.localPlayer.x - 600, this.localPlayer.y - 310);
+        if (dist <= 50) {
+          this.openFruitStall();
+        } else {
+          this.localPlayer.targetX = 600;
+          this.localPlayer.targetY = 310;
+          this.feedbackText = "\u0110ang \u0111\u1EBFn s\u1EA1p hoa qu\u1EA3 n\xF4ng s\u1EA3n...";
+          this.feedbackTimer = 50;
+        }
         return;
       }
       if (Math.abs(worldX - 140) < 55 && worldY <= 300 && worldY >= 200) {
-        this.localPlayer.targetX = 140;
-        this.localPlayer.targetY = 270;
-        this.feedbackText = "\u0110ang g\u1EB7p L\xE1i Bu\xF4n...";
-        this.feedbackTimer = 50;
+        const dist = Math.hypot(this.localPlayer.x - 140, this.localPlayer.y - 275);
+        if (dist <= 50) {
+          this.openLaiBuonDialog();
+        } else {
+          this.localPlayer.targetX = 140;
+          this.localPlayer.targetY = 275;
+          this.feedbackText = "\u0110ang g\u1EB7p L\xE1i Bu\xF4n...";
+          this.feedbackTimer = 50;
+        }
         return;
       }
       if (worldX >= 860 && worldX <= 990 && worldY >= 160 && worldY <= 300) {
-        this.localPlayer.targetX = 930;
-        this.localPlayer.targetY = 280;
-        this.feedbackText = "Xe kem & \u0111\u1ED3 \u0103n nhanh";
-        this.feedbackTimer = 50;
+        const dist = Math.hypot(this.localPlayer.x - 930, this.localPlayer.y - 280);
+        if (dist <= 50) {
+          this.openFastFoodDialog();
+        } else {
+          this.localPlayer.targetX = 930;
+          this.localPlayer.targetY = 280;
+          this.feedbackText = "\u0110ang \u0111\u1EBFn xe kem & \u0111\u1ED3 \u0103n nhanh...";
+          this.feedbackTimer = 50;
+        }
         return;
       }
       if (Math.abs(worldX - 434) < 60 && worldY >= 380) {
-        this.localPlayer.targetX = 434;
-        this.localPlayer.targetY = 410;
-        this.feedbackText = "\u0110ang ra ngo\xE0i Th\xE0nh Ph\u1ED1...";
-        this.feedbackTimer = 50;
+        const dist = Math.hypot(this.localPlayer.x - 434, this.localPlayer.y - 410);
+        if (dist <= 50) {
+          this.promptExitToWorldMap();
+        } else {
+          this.localPlayer.targetX = 434;
+          this.localPlayer.targetY = 410;
+          this.feedbackText = "\u0110ang ra ngo\xE0i Th\xE0nh Ph\u1ED1...";
+          this.feedbackTimer = 50;
+        }
         return;
       }
       const clampedX = Math.max(50, Math.min(worldX, 1250));
       const clampedY = Math.max(300, Math.min(worldY, 410));
       this.localPlayer.targetX = clampedX;
       this.localPlayer.targetY = clampedY;
+    }
+    // --- Modal Click Handlers ---
+    handleLaiBuonClick(x, y, w, h) {
+      const dw = 300;
+      const dh = 240;
+      const dx = Math.floor((w - dw) / 2);
+      const dy = Math.floor((h - dh) / 2);
+      if (x >= dx + dw - 24 && x <= dx + dw && y >= dy && y <= dy + 24) {
+        this.isLaiBuonDialogOpen = false;
+        return;
+      }
+      let rowY = dy + 82;
+      for (let i = 0; i < 3; i++) {
+        if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 24) {
+          this.selectedLaiBuonIndex = i;
+          return;
+        }
+        rowY += 26;
+      }
+      if (x >= dx + 16 && x <= dx + 136 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+        if (this.selectedLaiBuonIndex === 0) {
+          if (this.controller) {
+            this.controller.isWarehouseOpen = true;
+            this.isLaiBuonDialogOpen = false;
+          }
+        } else if (this.selectedLaiBuonIndex === 1) {
+          if (this.controller) {
+            this.controller.sellAllHarvested();
+            this.feedbackText = "\u0110\xE3 b\xE1n t\u1EA5t c\u1EA3 n\xF4ng s\u1EA3n cho L\xE1i Bu\xF4n!";
+            this.feedbackTimer = 80;
+            this.isLaiBuonDialogOpen = false;
+          }
+        } else if (this.selectedLaiBuonIndex === 2) {
+          if (this.controller) {
+            this.controller.buySeed(10, 1);
+            this.feedbackText = "\u0110\xE3 mua 1 bao ph\xE2n b\xF3n cao c\u1EA5p!";
+            this.feedbackTimer = 80;
+          }
+        }
+        return;
+      }
+      if (x >= dx + dw - 136 && x <= dx + dw - 16 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+        this.isLaiBuonDialogOpen = false;
+        return;
+      }
+    }
+    handleShopClick(x, y, w, h) {
+      const mw = 340;
+      const mh = 280;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+        this.isShopOpen = false;
+        return;
+      }
+      const tabW = Math.floor((mw - 24) / 3);
+      const tabY = my + 32;
+      if (y >= tabY && y <= tabY + 20) {
+        if (x >= mx + 12 && x < mx + 12 + tabW) {
+          this.selectedShopTab = "seeds";
+          this.selectedShopItemIndex = 0;
+          return;
+        }
+        if (x >= mx + 12 + tabW && x < mx + 12 + tabW * 2) {
+          this.selectedShopTab = "animals";
+          this.selectedShopItemIndex = 0;
+          return;
+        }
+        if (x >= mx + 12 + tabW * 2 && x <= mx + mw - 12) {
+          this.selectedShopTab = "fertilizer";
+          this.selectedShopItemIndex = 0;
+          return;
+        }
+      }
+      let rowY = my + 58;
+      const itemCount = this.selectedShopTab === "seeds" ? 5 : this.selectedShopTab === "animals" ? 4 : 3;
+      for (let i = 0; i < itemCount; i++) {
+        if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 26) {
+          this.selectedShopItemIndex = i;
+          return;
+        }
+        rowY += 28;
+      }
+      const botY = my + mh - 30;
+      if (y >= botY && y <= botY + 22) {
+        if (x >= mx + 12 && x <= mx + 35) {
+          this.shopQuantity = Math.max(1, this.shopQuantity - 1);
+          return;
+        }
+        if (x >= mx + 55 && x <= mx + 82) {
+          this.shopQuantity = Math.min(99, this.shopQuantity + 1);
+          return;
+        }
+      }
+      if (x >= mx + 95 && x <= mx + 210 && y >= botY && y <= botY + 22) {
+        if (this.controller) {
+          const itemId = this.selectedShopItemIndex + 1;
+          this.controller.buySeed(itemId, this.shopQuantity);
+          this.feedbackText = `\u0110\xE3 g\u1EEDi y\xEAu c\u1EA7u mua ${this.shopQuantity} v\u1EADt ph\u1EA9m!`;
+          this.feedbackTimer = 60;
+        }
+        return;
+      }
+      if (x >= mx + mw - 110 && x <= mx + mw - 12 && y >= botY && y <= botY + 22) {
+        this.isShopOpen = false;
+        return;
+      }
+    }
+    handleFruitStallClick(x, y, w, h) {
+      const dw = 300;
+      const dh = 240;
+      const dx = Math.floor((w - dw) / 2);
+      const dy = Math.floor((h - dh) / 2);
+      if (x >= dx + dw - 24 && x <= dx + dw && y >= dy && y <= dy + 24) {
+        this.isFruitStallOpen = false;
+        return;
+      }
+      let rowY = dy + 82;
+      for (let i = 0; i < 4; i++) {
+        if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 24) {
+          this.selectedFruitIndex = i;
+          return;
+        }
+        rowY += 26;
+      }
+      if (x >= dx + 16 && x <= dx + 136 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+        if (this.controller) {
+          const cropId = this.selectedFruitIndex === 0 ? 4 : this.selectedFruitIndex === 1 ? 1 : this.selectedFruitIndex === 2 ? 2 : 5;
+          this.controller.sellProduce(cropId, 1);
+          this.feedbackText = "\u0110\xE3 b\xE1n 1 ph\u1EA7n n\xF4ng s\u1EA3n v\xE0o s\u1EA1p hoa qu\u1EA3!";
+          this.feedbackTimer = 60;
+        }
+        return;
+      }
+      if (x >= dx + dw - 136 && x <= dx + dw - 16 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+        this.isFruitStallOpen = false;
+        return;
+      }
+    }
+    handleFastFoodClick(x, y, w, h) {
+      const dw = 300;
+      const dh = 250;
+      const dx = Math.floor((w - dw) / 2);
+      const dy = Math.floor((h - dh) / 2);
+      if (x >= dx + dw - 24 && x <= dx + dw && y >= dy && y <= dy + 24) {
+        this.isFastFoodOpen = false;
+        return;
+      }
+      let rowY = dy + 54;
+      for (let i = 0; i < 4; i++) {
+        if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 26) {
+          this.selectedFastFoodIndex = i;
+          return;
+        }
+        rowY += 28;
+      }
+      if (x >= dx + 16 && x <= dx + 136 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+        const items = ["Kem \u1ED1c qu\u1EBF", "Kem ly d\xE2u", "B\xE1nh m\xEC th\u1ECBt", "N\u01B0\u1EDBc m\xEDa"];
+        this.feedbackText = `\u0110\xE3 th\u01B0\u1EDFng th\u1EE9c ${items[this.selectedFastFoodIndex]}! H\u1ED3i ph\u1EE5c n\u0103ng l\u01B0\u1EE3ng!`;
+        this.feedbackTimer = 80;
+        this.isFastFoodOpen = false;
+        return;
+      }
+      if (x >= dx + dw - 136 && x <= dx + dw - 16 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+        this.isFastFoodOpen = false;
+        return;
+      }
+    }
+    handleMenuClick(screenX, screenY, w, h) {
+      const mw = 220;
+      const mh = 210;
+      const mx = Math.floor((w - mw) / 2);
+      const my = Math.floor((h - mh) / 2);
+      if (screenX < mx || screenX > mx + mw || screenY < my || screenY > my + mh) {
+        this.isMenuOpen = false;
+        return;
+      }
+      let rowY = my + 34;
+      for (let i = 0; i < 6; i++) {
+        if (screenX >= mx + 8 && screenX <= mx + mw - 8 && screenY >= rowY && screenY <= rowY + 24) {
+          this.selectedMenuIndex = i;
+          this.executeMenuItem(i);
+          return;
+        }
+        rowY += 26;
+      }
+      if (screenX >= mx + 12 && screenX <= mx + 102 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+        this.executeMenuItem(this.selectedMenuIndex);
+        return;
+      }
+      if (screenX >= mx + mw - 102 && screenX <= mx + mw - 12 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+        this.isMenuOpen = false;
+        return;
+      }
+    }
+    executeMenuItem(index) {
+      this.isMenuOpen = false;
+      switch (index) {
+        case 0:
+          this.promptEnterFarm();
+          break;
+        case 1:
+          this.openShop();
+          break;
+        case 2:
+          this.openLaiBuonDialog();
+          break;
+        case 3:
+          this.openFruitStall();
+          break;
+        case 4:
+          this.openFastFoodDialog();
+          break;
+        case 5:
+          this.promptExitToWorldMap();
+          break;
+      }
     }
     keyPressed(keyCode) {
       const step = 20;
@@ -4478,15 +5290,21 @@ void main() {
       const py = this.localPlayer.y;
       const distGate = Math.hypot(px - 434, py - 220);
       const distStore = Math.hypot(px - 755, py - 230);
-      const distLaiBuon = Math.hypot(px - 140, py - 270);
+      const distFruit = Math.hypot(px - 600, py - 310);
+      const distLaiBuon = Math.hypot(px - 140, py - 275);
+      const distXeKem = Math.hypot(px - 930, py - 280);
       const distExit = Math.hypot(px - 434, py - 410);
-      const minDist = Math.min(distGate, distStore, distLaiBuon, distExit);
+      const minDist = Math.min(distGate, distStore, distFruit, distLaiBuon, distXeKem, distExit);
       if (minDist === distGate && distGate < 120) {
         this.promptEnterFarm();
       } else if (minDist === distStore && distStore < 120) {
         this.openShop();
+      } else if (minDist === distFruit && distFruit < 120) {
+        this.openFruitStall();
       } else if (minDist === distLaiBuon && distLaiBuon < 120) {
         this.openLaiBuonDialog();
+      } else if (minDist === distXeKem && distXeKem < 120) {
+        this.openFastFoodDialog();
       } else if (minDist === distExit && distExit < 100) {
         this.promptExitToWorldMap();
       } else {
@@ -4514,6 +5332,12 @@ void main() {
     }
     openLaiBuonDialog() {
       this.isLaiBuonDialogOpen = true;
+    }
+    openFruitStall() {
+      this.isFruitStallOpen = true;
+    }
+    openFastFoodDialog() {
+      this.isFastFoodOpen = true;
     }
   };
 
@@ -5536,6 +6360,99 @@ void main() {
         }
       }
     }
+    // =========================================================================
+    // Authentic Avatar 2.5.8 J2ME Dialog & Menu Renderer (1:1 Fidelity)
+    // =========================================================================
+    /**
+     * Paints an authentic J2ME warm-cream parchment window with double border,
+     * dark wood header pill, and optional [X] close button.
+     */
+    paintAuthenticDialog(g, x, y, w, h, title) {
+      g.setColor(0);
+      g.fillRect(x + 4, y + 4, w, h);
+      g.setColor(16708551);
+      g.fillRect(x, y, w, h);
+      g.setColor(16776171);
+      g.fillRect(x + 4, y + 28, w - 8, h - 32);
+      g.setColor(4528643);
+      g.drawRect(x, y, w - 1, h - 1);
+      g.drawRect(x + 1, y + 1, w - 3, h - 3);
+      g.setColor(14251782);
+      g.drawRect(x + 3, y + 3, w - 7, h - 7);
+      const headerH = 24;
+      g.setColor(7877903);
+      g.fillRect(x + 4, y + 4, w - 8, headerH);
+      g.setColor(16096779);
+      g.drawRect(x + 4, y + 4, w - 9, headerH);
+      if (this.font) {
+        this.font.drawString(g, title.toUpperCase(), x + Math.floor(w / 2), y + 7, 2);
+      }
+      g.setColor(14427686);
+      g.fillRect(x + w - 22, y + 6, 16, 16);
+      g.setColor(16708338);
+      g.drawRect(x + w - 22, y + 6, 15, 15);
+      if (this.font) {
+        this.font.drawString(g, "X", x + w - 14, y + 8, 2);
+      }
+    }
+    /**
+     * Paints a menu option item row.
+     * Highlighted rows use golden amber background with red bullet indicator.
+     */
+    paintAuthenticOption(g, x, y, w, h, text, isSelected = false, extraInfo) {
+      if (isSelected) {
+        g.setColor(16498468);
+        g.fillRect(x, y, w, h);
+        g.setColor(14251782);
+        g.drawRect(x, y, w - 1, h - 1);
+        g.setColor(14427686);
+        const midY = y + Math.floor(h / 2);
+        g.fillArc(x + 6, midY - 3, 6, 6, 0, 360);
+        if (this.font) {
+          this.font.drawString(g, text, x + 16, y + Math.floor((h - 12) / 2), 0);
+          if (extraInfo) {
+            this.font.drawString(g, extraInfo, x + w - 10, y + Math.floor((h - 12) / 2), 1);
+          }
+        }
+      } else {
+        g.setColor(16639626);
+        g.drawLine(x + 4, y + h - 1, x + w - 4, y + h - 1);
+        if (this.font) {
+          this.font.drawString(g, text, x + 10, y + Math.floor((h - 12) / 2), 0);
+          if (extraInfo) {
+            this.font.drawString(g, extraInfo, x + w - 10, y + Math.floor((h - 12) / 2), 1);
+          }
+        }
+      }
+    }
+    /**
+     * Paints an authentic button with J2ME tactile styling.
+     */
+    paintAuthenticButton(g, x, y, w, h, text, variant = "primary", isFocused = false) {
+      let bg = 14251782;
+      let border = 9584654;
+      let textCol = 16777215;
+      if (variant === "secondary") {
+        bg = 7877903;
+        border = 4528643;
+      } else if (variant === "danger") {
+        bg = 14427686;
+        border = 10033947;
+      }
+      if (isFocused) {
+        bg = 16096779;
+        border = 16708551;
+      }
+      g.setColor(bg);
+      g.fillRect(x, y, w, h);
+      g.setColor(border);
+      g.drawRect(x, y, w - 1, h - 1);
+      g.setColor(16708551);
+      g.drawLine(x + 1, y + 1, x + w - 2, y + 1);
+      if (this.font) {
+        this.font.drawString(g, text, x + Math.floor(w / 2), y + Math.floor((h - 12) / 2), 2);
+      }
+    }
   };
 
   // packages/game-client/src/renderer/BitmapFont.ts
@@ -6456,6 +7373,39 @@ void main() {
       msg.writer().writeByte(animalType);
       msg.writer().writeShort(quantity);
       console.log(`[Network] Sending Buy Animal: Type=${animalType}, Qty=${quantity}`);
+      this.sendMessage(msg);
+    }
+    sendCooking(recipeId, option = 0) {
+      const msg = new import_protocol.Message(import_protocol.Cmd.COOKING);
+      msg.writer().writeByte(recipeId);
+      msg.writer().writeByte(option);
+      console.log(`[Network] Sending Cooking: Recipe=${recipeId}, Option=${option}`);
+      this.sendMessage(msg);
+    }
+    sendCattleAction(userId, action) {
+      const msg = new import_protocol.Message(import_protocol.Cmd.UPDATE_FARM_CATTLE);
+      msg.writer().writeInt(userId);
+      msg.writer().writeByte(action);
+      console.log(`[Network] Sending Cattle Action: User=${userId}, Action=${action}`);
+      this.sendMessage(msg);
+    }
+    sendFishAction(userId, action) {
+      const msg = new import_protocol.Message(import_protocol.Cmd.UPDATE_FARM_FISH);
+      msg.writer().writeInt(userId);
+      msg.writer().writeByte(action);
+      console.log(`[Network] Sending Fish Action: User=${userId}, Action=${action}`);
+      this.sendMessage(msg);
+    }
+    sendHarvestStarfruit(userId) {
+      const msg = new import_protocol.Message(import_protocol.Cmd.HARVEST_STARFRUIT);
+      msg.writer().writeInt(userId);
+      console.log(`[Network] Sending Harvest Starfruit: User=${userId}`);
+      this.sendMessage(msg);
+    }
+    sendUpgradeStarfruit(userId) {
+      const msg = new import_protocol.Message(import_protocol.Cmd.UPDATE_STARFRUIL);
+      msg.writer().writeInt(userId);
+      console.log(`[Network] Sending Upgrade Starfruit: User=${userId}`);
       this.sendMessage(msg);
     }
     // --- House & Furniture System (Nhà ở & Nội thất) ---

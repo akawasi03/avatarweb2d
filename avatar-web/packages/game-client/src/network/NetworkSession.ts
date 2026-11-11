@@ -904,6 +904,44 @@ export class NetworkSession {
     this.sendMessage(msg);
   }
 
+  public sendCooking(recipeId: number, option = 0): void {
+    const msg = new Message(Cmd.COOKING);
+    msg.writer().writeByte(recipeId);
+    msg.writer().writeByte(option);
+    console.log(`[Network] Sending Cooking: Recipe=${recipeId}, Option=${option}`);
+    this.sendMessage(msg);
+  }
+
+  public sendCattleAction(userId: number, action: number): void {
+    const msg = new Message(Cmd.UPDATE_FARM_CATTLE);
+    msg.writer().writeInt(userId);
+    msg.writer().writeByte(action);
+    console.log(`[Network] Sending Cattle Action: User=${userId}, Action=${action}`);
+    this.sendMessage(msg);
+  }
+
+  public sendFishAction(userId: number, action: number): void {
+    const msg = new Message(Cmd.UPDATE_FARM_FISH);
+    msg.writer().writeInt(userId);
+    msg.writer().writeByte(action);
+    console.log(`[Network] Sending Fish Action: User=${userId}, Action=${action}`);
+    this.sendMessage(msg);
+  }
+
+  public sendHarvestStarfruit(userId: number): void {
+    const msg = new Message(Cmd.HARVEST_STARFRUIT);
+    msg.writer().writeInt(userId);
+    console.log(`[Network] Sending Harvest Starfruit: User=${userId}`);
+    this.sendMessage(msg);
+  }
+
+  public sendUpgradeStarfruit(userId: number): void {
+    const msg = new Message(Cmd.UPDATE_STARFRUIL);
+    msg.writer().writeInt(userId);
+    console.log(`[Network] Sending Upgrade Starfruit: User=${userId}`);
+    this.sendMessage(msg);
+  }
+
   // --- House & Furniture System (Nhà ở & Nội thất) ---
 
   public sendBuyItemHouse(itemId: number, x: number, y: number, type = 0): void {

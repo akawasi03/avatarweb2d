@@ -9,9 +9,11 @@
  * - NPC lai.buon with conical hat (nón lá), áo bà ba, fishing rod, and red flower emblem.
  * - Authentic Wooden "FARM" Gate with animated downward yellow "Vào" arrow.
  * - "CỬA HÀNG" (Farm Shop) building with animated downward yellow "Vào" arrow.
+ * - "Sạp Hoa Quả" (Fruit & Vegetable Stall) with animated downward yellow "Vào" arrow.
  * - "Xe Kem Đồ Ăn Nhanh" (fast food / ice-cream cart) scenery on the right.
  * - Bottom exit with animated downward yellow "Vào" arrow back to World Map.
  * - Interactive walking, click-to-move, camera tracking, and classic softkeys.
+ * - Authentic 1:1 J2ME Dialog skin (warm parchment, dark wood header, golden highlight).
  */
 
 import { Graphics, Image } from '@avatar/j2me-compat';
@@ -55,12 +57,6 @@ export class FarmGateScreen extends GameScreen {
   public readonly MAP_WIDTH = 1296;
   public readonly MAP_HEIGHT = 466;
 
-  // Walkable bounds
-  // Main dirt road: x = 50..1250, y = 300..415
-  // Gate path: x = 395..475, y = 220..300
-  // Store path: x = 720..790, y = 230..300
-  // Lai buon path: x = 110..180, y = 265..300
-
   // Asset Cache
   private spriteCache: Map<string, Image> = new Map();
   public isAssetsLoaded = false;
@@ -69,10 +65,21 @@ export class FarmGateScreen extends GameScreen {
   // Animation ticks
   private animTick = 0;
 
-  // Active UI
+  // Active Dialog / Modal States
   public isMenuOpen = false;
   public isShopOpen = false;
   public isLaiBuonDialogOpen = false;
+  public isFruitStallOpen = false;
+  public isFastFoodOpen = false;
+
+  // Selection states
+  public selectedMenuIndex = 0;
+  public selectedLaiBuonIndex = 0;
+  public selectedShopTab: 'seeds' | 'animals' | 'fertilizer' = 'seeds';
+  public selectedShopItemIndex = 0;
+  public shopQuantity = 1;
+  public selectedFruitIndex = 0;
+  public selectedFastFoodIndex = 0;
 
   // Floating notifications
   private feedbackText: string = 'Chào mừng bạn đến với Cổng Nông Trại!';
@@ -191,7 +198,11 @@ export class FarmGateScreen extends GameScreen {
           this.localPlayer.targetX = this.localPlayer.x;
           this.localPlayer.targetY = this.localPlayer.y;
           this.localPlayer.state = 'idle';
+          this.checkTriggerZones();
         }
+
+        // Mid-walk trigger check (seamless entry when touching threshold)
+        this.checkMidWalkTriggers();
       }
 
       // Animate walk frames (0, 1, 2)
@@ -226,8 +237,28 @@ export class FarmGateScreen extends GameScreen {
     // 5. Grass area in front of NPC lai.buon
     if (x >= 100 && x <= 180 && y >= 260 && y < 290) return true;
 
+    // 6. Grass path in front of Xe Kem
+    if (x >= 890 && x <= 970 && y >= 260 && y < 290) return true;
+
     // Non-walkable lawns and structures
     return false;
+  }
+
+  /**
+   * Fast trigger check while walking through doorways
+   */
+  private checkMidWalkTriggers(): void {
+    // 1. Passing through FARM gate arch threshold
+    if (Math.abs(this.localPlayer.x - 434) <= 40 && this.localPlayer.y <= 225) {
+      this.promptEnterFarm();
+      return;
+    }
+
+    // 2. Passing through Bottom Exit threshold
+    if (Math.abs(this.localPlayer.x - 434) <= 45 && this.localPlayer.y >= 405) {
+      this.promptExitToWorldMap();
+      return;
+    }
   }
 
   /**
@@ -235,30 +266,36 @@ export class FarmGateScreen extends GameScreen {
    */
   private checkTriggerZones(): void {
     // 1. Inside FARM Gate
-    if (Math.abs(this.localPlayer.x - 434) <= 45 && this.localPlayer.y <= 230) {
+    if (Math.abs(this.localPlayer.x - 434) <= 45 && this.localPlayer.y <= 235) {
       this.promptEnterFarm();
       return;
     }
 
     // 2. Inside CỬA HÀNG Store Entrance
-    if (Math.abs(this.localPlayer.x - 755) <= 40 && this.localPlayer.y <= 240) {
+    if (Math.abs(this.localPlayer.x - 755) <= 45 && this.localPlayer.y <= 245) {
       this.openShop();
       return;
     }
 
-    // 3. Beside Fruit Stall (x = 600, y = 320)
-    if (Math.abs(this.localPlayer.x - 600) <= 50 && Math.abs(this.localPlayer.y - 320) <= 30) {
+    // 3. Beside Fruit Stall (x = 600, y = 310)
+    if (Math.abs(this.localPlayer.x - 600) <= 50 && Math.abs(this.localPlayer.y - 310) <= 35) {
+      this.openFruitStall();
+      return;
+    }
+
+    // 4. Beside NPC lai.buon (x = 140, y = 280)
+    if (Math.abs(this.localPlayer.x - 140) <= 45 && Math.abs(this.localPlayer.y - 280) <= 35) {
       this.openLaiBuonDialog();
       return;
     }
 
-    // 4. Beside NPC lai.buon
-    if (Math.abs(this.localPlayer.x - 140) <= 45 && Math.abs(this.localPlayer.y - 280) <= 30) {
-      this.openLaiBuonDialog();
+    // 5. Beside Xe Kem (x = 930, y = 280)
+    if (Math.abs(this.localPlayer.x - 930) <= 50 && Math.abs(this.localPlayer.y - 280) <= 35) {
+      this.openFastFoodDialog();
       return;
     }
 
-    // 4. At Bottom Exit to City
+    // 6. At Bottom Exit to City
     if (Math.abs(this.localPlayer.x - 434) <= 50 && this.localPlayer.y >= 400) {
       this.promptExitToWorldMap();
       return;
@@ -334,16 +371,20 @@ export class FarmGateScreen extends GameScreen {
     // Restore Camera Translation
     g.translate(this.cameraX, this.cameraY - groundBaseY);
 
-    // 9. Paint HUD (Menu, Player Info, Xu, Softkeys)
+    // 9. Paint HUD (Menu, Player Info, Xu, Feedback)
     this.paintHUD(g, w, h);
 
-    // 10. Paint Dialogs / Menus if open
+    // 10. Paint Dialogs / Menus if open (Authentic 1:1 J2ME design)
     if (this.isMenuOpen) {
       this.paintQuickMenu(g, w, h);
     } else if (this.isLaiBuonDialogOpen) {
       this.paintLaiBuonDialog(g, w, h);
     } else if (this.isShopOpen) {
       this.paintShopDialog(g, w, h);
+    } else if (this.isFruitStallOpen) {
+      this.paintFruitStallDialog(g, w, h);
+    } else if (this.isFastFoodOpen) {
+      this.paintFastFoodDialog(g, w, h);
     }
   }
 
@@ -356,7 +397,6 @@ export class FarmGateScreen extends GameScreen {
     if (!cloudsImg) return;
 
     const cloudW = cloudsImg.getWidth();
-    const cloudH = cloudsImg.getHeight();
     const parallaxX = -Math.floor(this.cameraX * 0.15) % cloudW;
     const startX = parallaxX > 0 ? parallaxX - cloudW : parallaxX;
     const cloudY = Math.max(0, groundBaseY - 30);
@@ -386,7 +426,6 @@ export class FarmGateScreen extends GameScreen {
 
   /**
    * Paint authentic seamless composite backdrop (Map 23)
-   * Pristine original panorama: Left oak tree, wooden fence, FARM gate, CỬA HÀNG, right twisted tree.
    */
   private paintGateBackdrop(g: Graphics): void {
     const backdrop = this.spriteCache.get('backdrop');
@@ -403,25 +442,21 @@ export class FarmGateScreen extends GameScreen {
    * 4. Xe Kem Đồ Ăn Nhanh (ID 842) on the lawn to the right of CỬA HÀNG
    */
   private paintScenery(g: Graphics): void {
-    // 1. Gate arch (ID 831) at the entrance to Farm
     const gateArch = this.spriteCache.get('gateArch');
     if (gateArch) {
       g.drawImage(gateArch, 341, 146, 0);
     }
 
-    // 2. Fruit & Vegetable Stall (ID 1214) between FARM gate and CỬA HÀNG
     const fruitStall = this.spriteCache.get('fruitStall');
     if (fruitStall) {
       g.drawImage(fruitStall, 518, 140, 0);
     }
 
-    // 3. CỬA HÀNG building (ID 835)
     const shop = this.spriteCache.get('shopBuilding');
     if (shop) {
       g.drawImage(shop, 658, 144, 0);
     }
 
-    // 4. Xe Kem Đồ Ăn Nhanh (ID 842) on the lawn to the right of CỬA HÀNG
     const xeKem = this.spriteCache.get('xeKem');
     if (xeKem) {
       g.drawImage(xeKem, 888, 176, 0);
@@ -554,116 +589,232 @@ export class FarmGateScreen extends GameScreen {
     }
   }
 
+  // =========================================================================
+  // Authentic 1:1 J2ME Dialogs & Menus
+  // =========================================================================
+
   /**
-   * Quick Menu Dialog
+   * 1. Authentic Quick Menu
    */
   private paintQuickMenu(g: Graphics, w: number, h: number): void {
-    const mw = 180;
-    const mh = 140;
+    const mw = 220;
+    const mh = 210;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    g.setColor(0x0F172A);
-    g.fillRect(mx, my, mw, mh);
-    g.setColor(0x38BDF8);
-    g.drawRect(mx, my, mw, mh);
-
-    this.font.drawString(g, '--- CỔNG NÔNG TRẠI ---', mx + Math.floor(mw / 2), my + 8, 2);
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'CỔNG NÔNG TRẠI');
 
     const items = [
-      '1. Vào Nông Trại',
+      '1. Vào Nông Trại (Map 25)',
       '2. Cửa Hàng Hạt Giống',
-      '3. Gặp Lái Buôn',
-      '4. Về Thành Phố',
-      '5. Đóng Menu'
+      '3. Gặp Lái Buôn (lai.buon)',
+      '4. Sạp Hoa Quả Nông Sản',
+      '5. Xe Kem & Đồ Ăn Nhanh',
+      '6. Về Lại Thành Phố'
     ];
 
-    let itemY = my + 30;
-    for (const item of items) {
-      this.font.drawString(g, item, mx + 16, itemY, 0);
-      itemY += 20;
+    let rowY = my + 34;
+    for (let i = 0; i < items.length; i++) {
+      const isSel = i === this.selectedMenuIndex;
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 24, items[i], isSel);
+      rowY += 26;
     }
+
+    // Action buttons
+    this.skinPainter.paintAuthenticButton(g, mx + 12, my + mh - 26, 90, 20, 'Chọn', 'primary');
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 102, my + mh - 26, 90, 20, 'Đóng', 'secondary');
   }
 
   /**
-   * NPC lai.buon Dialog
+   * 2. Authentic NPC lai.buon Dialog
    */
   private paintLaiBuonDialog(g: Graphics, w: number, h: number): void {
-    const dw = 260;
-    const dh = 150;
+    const dw = 300;
+    const dh = 240;
     const dx = Math.floor((w - dw) / 2);
     const dy = Math.floor((h - dh) / 2);
 
-    g.setColor(0x0F172A);
-    g.fillRect(dx, dy, dw, dh);
-    g.setColor(0xFACC15);
-    g.drawRect(dx, dy, dw, dh);
+    this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, 'LÁI BUÔN NÔNG SẢN');
 
-    this.font.drawString(g, '👨🌾 LÁI BUÔN NÔNG SẢN', dx + Math.floor(dw / 2), dy + 10, 2);
-    this.font.drawString(g, 'Chào bà con! Tôi chuyên thu mua', dx + Math.floor(dw / 2), dy + 35, 2);
-    this.font.drawString(g, 'nông sản và cung cấp các loại', dx + Math.floor(dw / 2), dy + 55, 2);
-    this.font.drawString(g, 'hạt giống năng suất cao nhất!', dx + Math.floor(dw / 2), dy + 75, 2);
+    // Speech bubble info
+    this.font.drawString(g, 'Lái Buôn:', dx + 12, dy + 34, 0);
+    this.font.drawString(g, '"Chào bà con! Tôi thu mua nông sản', dx + 12, dy + 48, 0);
+    this.font.drawString(g, 'với giá tốt nhất và cung cấp phân bón!"', dx + 12, dy + 62, 0);
 
-    // Action button: Vào Cửa Hàng
-    g.setColor(0x16A34A);
-    g.fillRect(dx + 20, dy + 105, 100, 26);
-    g.setColor(0xFFFFFF);
-    this.font.drawString(g, 'Cửa Hàng', dx + 70, dy + 110, 2);
+    const options = [
+      '1. Bán nông sản đã thu hoạch',
+      '2. Bán tất cả nông sản trong kho',
+      '3. Mua phân bón cao cấp (500 Xu)'
+    ];
 
-    // Close button
-    g.setColor(0x475569);
-    g.fillRect(dx + 140, dy + 105, 100, 26);
-    this.font.drawString(g, 'Đóng', dx + 190, dy + 110, 2);
+    let rowY = dy + 82;
+    for (let i = 0; i < options.length; i++) {
+      const isSel = i === this.selectedLaiBuonIndex;
+      this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 24, options[i], isSel);
+      rowY += 26;
+    }
+
+    // Action buttons
+    this.skinPainter.paintAuthenticButton(g, dx + 16, dy + dh - 26, 120, 20, 'Chọn', 'primary');
+    this.skinPainter.paintAuthenticButton(g, dx + dw - 136, dy + dh - 26, 120, 20, 'Đóng', 'secondary');
   }
 
   /**
-   * Seed Store Dialog
+   * 3. Authentic CỬA HÀNG (Farm Store) Dialog
    */
   private paintShopDialog(g: Graphics, w: number, h: number): void {
-    const mw = 280;
-    const mh = 220;
+    const mw = 340;
+    const mh = 280;
     const mx = Math.floor((w - mw) / 2);
     const my = Math.floor((h - mh) / 2);
 
-    g.setColor(0x0F172A);
-    g.fillRect(mx, my, mw, mh);
-    g.setColor(0x38BDF8);
-    g.drawRect(mx, my, mw, mh);
+    this.skinPainter.paintAuthenticDialog(g, mx, my, mw, mh, 'CỬA HÀNG NÔNG TRẠI');
 
-    g.setColor(0x1E293B);
-    g.fillRect(mx, my, mw, 26);
-    this.font.drawString(g, '🏪 CỬA HÀNG HẠT GIỐNG', mx + Math.floor(mw / 2), my + 6, 2);
+    // Tabs: [ Hạt giống ] [ Vật nuôi ] [ Phân bón ]
+    const tabW = Math.floor((mw - 24) / 3);
+    const tabY = my + 32;
 
-    // Close [X]
-    g.setColor(0xEF4444);
-    g.fillRect(mx + mw - 22, my + 4, 18, 18);
-    this.font.drawString(g, 'X', mx + mw - 13, my + 6, 2);
-
-    // Seeds list
-    const seeds = [
-      { id: 1, name: 'Cà chua', price: 100, exp: 5 },
-      { id: 2, name: 'Cà rốt', price: 150, exp: 8 },
-      { id: 3, name: 'Khóm', price: 300, exp: 15 },
-      { id: 4, name: 'Dưa hấu', price: 500, exp: 25 },
-      { id: 5, name: 'Bắp', price: 200, exp: 10 }
+    const tabs: Array<{ id: 'seeds' | 'animals' | 'fertilizer'; label: string }> = [
+      { id: 'seeds', label: 'Hạt giống' },
+      { id: 'animals', label: 'Vật nuôi' },
+      { id: 'fertilizer', label: 'Phân bón' }
     ];
 
-    let rowY = my + 35;
-    for (const seed of seeds) {
-      g.setColor(0x1E293B);
-      g.fillRect(mx + 10, rowY, mw - 20, 30);
-      g.setColor(0x334155);
-      g.drawRect(mx + 10, rowY, mw - 20, 30);
+    for (let i = 0; i < tabs.length; i++) {
+      const t = tabs[i];
+      const isSelected = this.selectedShopTab === t.id;
+      const tx = mx + 12 + i * tabW;
 
-      this.font.drawString(g, `${seed.id}. ${seed.name} (${seed.price} Xu)`, mx + 20, rowY + 8, 0);
-
-      // Buy button
-      g.setColor(0x16A34A);
-      g.fillRect(mx + mw - 70, rowY + 4, 52, 22);
-      this.font.drawString(g, 'Mua', mx + mw - 44, rowY + 7, 2);
-
-      rowY += 34;
+      g.setColor(isSelected ? 0xFBBF24 : 0xFEF3C7);
+      g.fillRect(tx, tabY, tabW - 4, 20);
+      g.setColor(isSelected ? 0xD97706 : 0x78350F);
+      g.drawRect(tx, tabY, tabW - 4, 20);
+      this.font.drawString(g, t.label, tx + Math.floor((tabW - 4) / 2), tabY + 4, 2);
     }
+
+    // Item List
+    let items: Array<{ id: number; name: string; price: number; detail: string }> = [];
+
+    if (this.selectedShopTab === 'seeds') {
+      items = [
+        { id: 1, name: 'Cà chua', price: 100, detail: '5 phút' },
+        { id: 2, name: 'Cà rốt', price: 150, detail: '8 phút' },
+        { id: 3, name: 'Khóm (Dứa)', price: 300, detail: '15 phút' },
+        { id: 4, name: 'Dưa hấu', price: 500, detail: '25 phút' },
+        { id: 5, name: 'Bắp (Ngô)', price: 200, detail: '10 phút' }
+      ];
+    } else if (this.selectedShopTab === 'animals') {
+      items = [
+        { id: 1, name: 'Gà con', price: 5000, detail: 'Nuôi lấy trứng' },
+        { id: 2, name: 'Vịt con', price: 4000, detail: 'Nuôi lấy trứng' },
+        { id: 3, name: 'Heo giống', price: 10000, detail: 'Nuôi lấy thịt' },
+        { id: 4, name: 'Bò sữa giống', price: 20000, detail: 'Vắt sữa tươi' }
+      ];
+    } else {
+      items = [
+        { id: 1, name: 'Phân bón loại 1', price: 500, detail: '-50% thời gian' },
+        { id: 2, name: 'Thuốc trừ sâu', price: 300, detail: 'Diệt sâu bọ' },
+        { id: 3, name: 'Thuốc hồi phục', price: 400, detail: 'Hồi sinh cây' }
+      ];
+    }
+
+    let rowY = my + 58;
+    for (let i = 0; i < items.length; i++) {
+      const item = items[i];
+      const isSel = i === this.selectedShopItemIndex;
+      const text = `${item.name} (${item.detail})`;
+      const priceText = `${item.price.toLocaleString('vi-VN')} Xu`;
+
+      this.skinPainter.paintAuthenticOption(g, mx + 8, rowY, mw - 16, 26, text, isSel, priceText);
+      rowY += 28;
+    }
+
+    // Bottom Quantity & Action Buttons
+    const botY = my + mh - 30;
+
+    // Quantity selector: [ - ] [ 1 ] [ + ]
+    g.setColor(0xFEF3C7);
+    g.fillRect(mx + 12, botY, 70, 22);
+    g.setColor(0x78350F);
+    g.drawRect(mx + 12, botY, 70, 22);
+
+    this.font.drawString(g, '-', mx + 20, botY + 4, 2);
+    this.font.drawString(g, `${this.shopQuantity}`, mx + 47, botY + 4, 2);
+    this.font.drawString(g, '+', mx + 74, botY + 4, 2);
+
+    // Buy Button
+    this.skinPainter.paintAuthenticButton(g, mx + 95, botY, 115, 22, 'Mua vật phẩm', 'primary');
+
+    // Close Button
+    this.skinPainter.paintAuthenticButton(g, mx + mw - 110, botY, 98, 22, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 4. Authentic Sạp Hoa Quả (Fruit Stall) Dialog
+   */
+  private paintFruitStallDialog(g: Graphics, w: number, h: number): void {
+    const dw = 300;
+    const dh = 240;
+    const dx = Math.floor((w - dw) / 2);
+    const dy = Math.floor((h - dh) / 2);
+
+    this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, 'SẠP HOA QUẢ & NÔNG SẢN');
+
+    this.font.drawString(g, 'Cô Chủ Sạp:', dx + 12, dy + 34, 0);
+    this.font.drawString(g, '"Hoa quả tươi mới hái, ngon ngọt thanh mát!', dx + 12, dy + 48, 0);
+    this.font.drawString(g, 'Bà con ghé sạp xem giá hoặc bán nông sản nhé!"', dx + 12, dy + 62, 0);
+
+    const options = [
+      '1. Bán Dưa hấu tươi (500 Xu/quả)',
+      '2. Bán Cà chua mọng (150 Xu/quả)',
+      '3. Bán Cà rốt tươi (200 Xu/củ)',
+      '4. Bán Bắp ngọt (250 Xu/bắp)'
+    ];
+
+    let rowY = dy + 82;
+    for (let i = 0; i < options.length; i++) {
+      const isSel = i === this.selectedFruitIndex;
+      this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 24, options[i], isSel);
+      rowY += 26;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, dx + 16, dy + dh - 26, 120, 20, 'Bán hàng', 'primary');
+    this.skinPainter.paintAuthenticButton(g, dx + dw - 136, dy + dh - 26, 120, 20, 'Đóng', 'secondary');
+  }
+
+  /**
+   * 5. Authentic Xe Kem Đồ Ăn Nhanh Dialog
+   */
+  private paintFastFoodDialog(g: Graphics, w: number, h: number): void {
+    const dw = 300;
+    const dh = 250;
+    const dx = Math.floor((w - dw) / 2);
+    const dy = Math.floor((h - dh) / 2);
+
+    this.skinPainter.paintAuthenticDialog(g, dx, dy, dw, dh, 'XE KEM & ĐỒ ĂN NHANH');
+
+    this.font.drawString(g, 'Thực đơn nạp lại năng lượng cho nông dân:', dx + 12, dy + 34, 0);
+
+    const menu = [
+      { name: '1. Kem ốc quế', price: 50, energy: '+20 Năng lượng' },
+      { name: '2. Kem ly dâu tây', price: 100, energy: '+40 Năng lượng' },
+      { name: '3. Bánh mì thịt giòn', price: 200, energy: '+80 Năng lượng' },
+      { name: '4. Nước mía ngọt mát', price: 50, energy: '+25 Năng lượng' }
+    ];
+
+    let rowY = dy + 54;
+    for (let i = 0; i < menu.length; i++) {
+      const item = menu[i];
+      const isSel = i === this.selectedFastFoodIndex;
+      const text = `${item.name} (${item.energy})`;
+      const priceText = `${item.price} Xu`;
+
+      this.skinPainter.paintAuthenticOption(g, dx + 8, rowY, dw - 16, 26, text, isSel, priceText);
+      rowY += 28;
+    }
+
+    this.skinPainter.paintAuthenticButton(g, dx + 16, dy + dh - 26, 120, 20, 'Mua ăn ngay', 'primary');
+    this.skinPainter.paintAuthenticButton(g, dx + dw - 136, dy + dh - 26, 120, 20, 'Đóng', 'secondary');
   }
 
   // =========================================================================
@@ -676,140 +827,396 @@ export class FarmGateScreen extends GameScreen {
 
     // 1. Check Dialog Interactions
     if (this.isLaiBuonDialogOpen) {
-      const dw = 260;
-      const dh = 150;
-      const dx = Math.floor((w - dw) / 2);
-      const dy = Math.floor((h - dh) / 2);
-      // Click "Cửa Hàng"
-      if (x >= dx + 20 && x <= dx + 120 && y >= dy + 105 && y <= dy + 131) {
-        this.isLaiBuonDialogOpen = false;
-        this.isShopOpen = true;
-        return;
-      }
-      // Click "Đóng"
-      if (x >= dx + 140 && x <= dx + 240 && y >= dy + 105 && y <= dy + 131) {
-        this.isLaiBuonDialogOpen = false;
-        return;
-      }
+      this.handleLaiBuonClick(x, y, w, h);
       return;
     }
 
     if (this.isShopOpen) {
-      const mw = 280;
-      const mh = 220;
-      const mx = Math.floor((w - mw) / 2);
-      const my = Math.floor((h - mh) / 2);
-      // Close button [X]
-      if (x >= mx + mw - 26 && x <= mx + mw && y >= my && y <= my + 26) {
-        this.isShopOpen = false;
-        return;
-      }
-      // Buy buttons
-      let rowY = my + 35;
-      for (let i = 1; i <= 5; i++) {
-        if (x >= mx + mw - 70 && x <= mx + mw - 18 && y >= rowY + 4 && y <= rowY + 26) {
-          if (this.controller) {
-            this.controller.buySeed(i, 1);
-            this.feedbackText = `Đã gửi yêu cầu mua hạt giống #${i}`;
-            this.feedbackTimer = 60;
-          }
-          return;
-        }
-        rowY += 34;
-      }
+      this.handleShopClick(x, y, w, h);
+      return;
+    }
+
+    if (this.isFruitStallOpen) {
+      this.handleFruitStallClick(x, y, w, h);
+      return;
+    }
+
+    if (this.isFastFoodOpen) {
+      this.handleFastFoodClick(x, y, w, h);
       return;
     }
 
     if (this.isMenuOpen) {
-      const mw = 180;
-      const mh = 140;
-      const mx = Math.floor((w - mw) / 2);
-      const my = Math.floor((h - mh) / 2);
-      const clickedIdx = Math.floor((y - (my + 30)) / 20);
-      this.isMenuOpen = false;
-
-      if (clickedIdx === 0) {
-        this.promptEnterFarm();
-      } else if (clickedIdx === 1) {
-        this.openShop();
-      } else if (clickedIdx === 2) {
-        this.openLaiBuonDialog();
-      } else if (clickedIdx === 3) {
-        this.promptExitToWorldMap();
-      }
+      this.handleMenuClick(x, y, w, h);
       return;
     }
 
-    // 2. Top Left Hamburger Menu Button
+    // 2. Top Left Hamburger Menu Button [ = ]
     if (x >= 6 && x <= 32 && y >= 6 && y <= 28) {
       this.isMenuOpen = !this.isMenuOpen;
       return;
     }
 
-    // 4. World Space Taps / Clicks
+    // 3. World Space Taps / Clicks
     const groundBaseY = Math.max(0, h - this.MAP_HEIGHT);
     const worldX = x + this.cameraX;
     const worldY = y + this.cameraY - groundBaseY;
 
-    // A. Click on / near "FARM" gate -> Walk and Enter
+    // A. Click on / near "FARM" gate arch -> Walk and Enter
     if (Math.abs(worldX - 434) < 55 && worldY <= 260 && worldY >= 140) {
-      this.localPlayer.targetX = 434;
-      this.localPlayer.targetY = 220;
-      this.feedbackText = 'Đang tiến vào cổng Nông Trại...';
-      this.feedbackTimer = 50;
+      const dist = Math.hypot(this.localPlayer.x - 434, this.localPlayer.y - 220);
+      if (dist <= 45) {
+        this.promptEnterFarm();
+      } else {
+        this.localPlayer.targetX = 434;
+        this.localPlayer.targetY = 220;
+        this.feedbackText = 'Đang tiến vào cổng Nông Trại...';
+        this.feedbackTimer = 50;
+      }
       return;
     }
 
     // B. Click on / near "CỬA HÀNG" store -> Walk and Open
     if (Math.abs(worldX - 755) < 55 && worldY <= 265 && worldY >= 140) {
-      this.localPlayer.targetX = 755;
-      this.localPlayer.targetY = 230;
-      this.feedbackText = 'Đang đi đến Cửa Hàng...';
-      this.feedbackTimer = 50;
+      const dist = Math.hypot(this.localPlayer.x - 755, this.localPlayer.y - 230);
+      if (dist <= 45) {
+        this.openShop();
+      } else {
+        this.localPlayer.targetX = 755;
+        this.localPlayer.targetY = 230;
+        this.feedbackText = 'Đang đi đến Cửa Hàng...';
+        this.feedbackTimer = 50;
+      }
       return;
     }
 
-    // C. Click on / near Fruit & Vegetable Stall -> Walk and Talk with Lái Buôn
-    if (worldX >= 500 && worldX <= 690 && worldY >= 180 && worldY <= 340) {
-      this.localPlayer.targetX = 600;
-      this.localPlayer.targetY = 320;
-      this.feedbackText = 'Đang đến sạp hàng nông sản...';
-      this.feedbackTimer = 50;
+    // C. Click on / near Fruit & Vegetable Stall -> Walk and Open Stall
+    if (worldX >= 500 && worldX <= 670 && worldY >= 160 && worldY <= 320) {
+      const dist = Math.hypot(this.localPlayer.x - 600, this.localPlayer.y - 310);
+      if (dist <= 50) {
+        this.openFruitStall();
+      } else {
+        this.localPlayer.targetX = 600;
+        this.localPlayer.targetY = 310;
+        this.feedbackText = 'Đang đến sạp hoa quả nông sản...';
+        this.feedbackTimer = 50;
+      }
       return;
     }
 
     // D. Click on / near NPC lai.buon -> Walk and Talk
     if (Math.abs(worldX - 140) < 55 && worldY <= 300 && worldY >= 200) {
-      this.localPlayer.targetX = 140;
-      this.localPlayer.targetY = 270;
-      this.feedbackText = 'Đang gặp Lái Buôn...';
-      this.feedbackTimer = 50;
+      const dist = Math.hypot(this.localPlayer.x - 140, this.localPlayer.y - 275);
+      if (dist <= 50) {
+        this.openLaiBuonDialog();
+      } else {
+        this.localPlayer.targetX = 140;
+        this.localPlayer.targetY = 275;
+        this.feedbackText = 'Đang gặp Lái Buôn...';
+        this.feedbackTimer = 50;
+      }
       return;
     }
 
     // E. Click on / near Xe Kem / Fast Food Cart -> Walk to cart
     if (worldX >= 860 && worldX <= 990 && worldY >= 160 && worldY <= 300) {
-      this.localPlayer.targetX = 930;
-      this.localPlayer.targetY = 280;
-      this.feedbackText = 'Xe kem & đồ ăn nhanh';
-      this.feedbackTimer = 50;
+      const dist = Math.hypot(this.localPlayer.x - 930, this.localPlayer.y - 280);
+      if (dist <= 50) {
+        this.openFastFoodDialog();
+      } else {
+        this.localPlayer.targetX = 930;
+        this.localPlayer.targetY = 280;
+        this.feedbackText = 'Đang đến xe kem & đồ ăn nhanh...';
+        this.feedbackTimer = 50;
+      }
       return;
     }
 
-    // D. Click on / near Bottom Exit Arrow -> Walk and Exit
+    // F. Click on / near Bottom Exit Arrow -> Walk and Exit
     if (Math.abs(worldX - 434) < 60 && worldY >= 380) {
-      this.localPlayer.targetX = 434;
-      this.localPlayer.targetY = 410;
-      this.feedbackText = 'Đang ra ngoài Thành Phố...';
-      this.feedbackTimer = 50;
+      const dist = Math.hypot(this.localPlayer.x - 434, this.localPlayer.y - 410);
+      if (dist <= 50) {
+        this.promptExitToWorldMap();
+      } else {
+        this.localPlayer.targetX = 434;
+        this.localPlayer.targetY = 410;
+        this.feedbackText = 'Đang ra ngoài Thành Phố...';
+        this.feedbackTimer = 50;
+      }
       return;
     }
 
-    // E. General Walk-to Click
+    // G. General Walk-to Click
     const clampedX = Math.max(50, Math.min(worldX, 1250));
     const clampedY = Math.max(300, Math.min(worldY, 410));
     this.localPlayer.targetX = clampedX;
     this.localPlayer.targetY = clampedY;
+  }
+
+  // --- Modal Click Handlers ---
+
+  private handleLaiBuonClick(x: number, y: number, w: number, h: number): void {
+    const dw = 300;
+    const dh = 240;
+    const dx = Math.floor((w - dw) / 2);
+    const dy = Math.floor((h - dh) / 2);
+
+    // Close button [X]
+    if (x >= dx + dw - 24 && x <= dx + dw && y >= dy && y <= dy + 24) {
+      this.isLaiBuonDialogOpen = false;
+      return;
+    }
+
+    // Options selection
+    let rowY = dy + 82;
+    for (let i = 0; i < 3; i++) {
+      if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 24) {
+        this.selectedLaiBuonIndex = i;
+        return;
+      }
+      rowY += 26;
+    }
+
+    // Action button [ Chọn ]
+    if (x >= dx + 16 && x <= dx + 136 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+      if (this.selectedLaiBuonIndex === 0) {
+        // Bán nông sản
+        if (this.controller) {
+          this.controller.isWarehouseOpen = true;
+          this.isLaiBuonDialogOpen = false;
+        }
+      } else if (this.selectedLaiBuonIndex === 1) {
+        // Bán tất cả
+        if (this.controller) {
+          this.controller.sellAllHarvested();
+          this.feedbackText = 'Đã bán tất cả nông sản cho Lái Buôn!';
+          this.feedbackTimer = 80;
+          this.isLaiBuonDialogOpen = false;
+        }
+      } else if (this.selectedLaiBuonIndex === 2) {
+        // Mua phân bón
+        if (this.controller) {
+          this.controller.buySeed(10, 1); // Buy fertilizer item
+          this.feedbackText = 'Đã mua 1 bao phân bón cao cấp!';
+          this.feedbackTimer = 80;
+        }
+      }
+      return;
+    }
+
+    // Close button [ Đóng ]
+    if (x >= dx + dw - 136 && x <= dx + dw - 16 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+      this.isLaiBuonDialogOpen = false;
+      return;
+    }
+  }
+
+  private handleShopClick(x: number, y: number, w: number, h: number): void {
+    const mw = 340;
+    const mh = 280;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    // Close button [X]
+    if (x >= mx + mw - 24 && x <= mx + mw && y >= my && y <= my + 24) {
+      this.isShopOpen = false;
+      return;
+    }
+
+    // Tabs
+    const tabW = Math.floor((mw - 24) / 3);
+    const tabY = my + 32;
+    if (y >= tabY && y <= tabY + 20) {
+      if (x >= mx + 12 && x < mx + 12 + tabW) {
+        this.selectedShopTab = 'seeds';
+        this.selectedShopItemIndex = 0;
+        return;
+      }
+      if (x >= mx + 12 + tabW && x < mx + 12 + tabW * 2) {
+        this.selectedShopTab = 'animals';
+        this.selectedShopItemIndex = 0;
+        return;
+      }
+      if (x >= mx + 12 + tabW * 2 && x <= mx + mw - 12) {
+        this.selectedShopTab = 'fertilizer';
+        this.selectedShopItemIndex = 0;
+        return;
+      }
+    }
+
+    // Items list selection
+    let rowY = my + 58;
+    const itemCount = this.selectedShopTab === 'seeds' ? 5 : (this.selectedShopTab === 'animals' ? 4 : 3);
+    for (let i = 0; i < itemCount; i++) {
+      if (x >= mx + 8 && x <= mx + mw - 8 && y >= rowY && y <= rowY + 26) {
+        this.selectedShopItemIndex = i;
+        return;
+      }
+      rowY += 28;
+    }
+
+    // Quantity selector: [ - ] [ 1 ] [ + ]
+    const botY = my + mh - 30;
+    if (y >= botY && y <= botY + 22) {
+      if (x >= mx + 12 && x <= mx + 35) {
+        this.shopQuantity = Math.max(1, this.shopQuantity - 1);
+        return;
+      }
+      if (x >= mx + 55 && x <= mx + 82) {
+        this.shopQuantity = Math.min(99, this.shopQuantity + 1);
+        return;
+      }
+    }
+
+    // Buy Button
+    if (x >= mx + 95 && x <= mx + 210 && y >= botY && y <= botY + 22) {
+      if (this.controller) {
+        const itemId = this.selectedShopItemIndex + 1;
+        this.controller.buySeed(itemId, this.shopQuantity);
+        this.feedbackText = `Đã gửi yêu cầu mua ${this.shopQuantity} vật phẩm!`;
+        this.feedbackTimer = 60;
+      }
+      return;
+    }
+
+    // Close Button
+    if (x >= mx + mw - 110 && x <= mx + mw - 12 && y >= botY && y <= botY + 22) {
+      this.isShopOpen = false;
+      return;
+    }
+  }
+
+  private handleFruitStallClick(x: number, y: number, w: number, h: number): void {
+    const dw = 300;
+    const dh = 240;
+    const dx = Math.floor((w - dw) / 2);
+    const dy = Math.floor((h - dh) / 2);
+
+    if (x >= dx + dw - 24 && x <= dx + dw && y >= dy && y <= dy + 24) {
+      this.isFruitStallOpen = false;
+      return;
+    }
+
+    let rowY = dy + 82;
+    for (let i = 0; i < 4; i++) {
+      if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 24) {
+        this.selectedFruitIndex = i;
+        return;
+      }
+      rowY += 26;
+    }
+
+    // Action button [ Bán hàng ]
+    if (x >= dx + 16 && x <= dx + 136 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+      if (this.controller) {
+        const cropId = this.selectedFruitIndex === 0 ? 4 : (this.selectedFruitIndex === 1 ? 1 : (this.selectedFruitIndex === 2 ? 2 : 5));
+        this.controller.sellProduce(cropId, 1);
+        this.feedbackText = 'Đã bán 1 phần nông sản vào sạp hoa quả!';
+        this.feedbackTimer = 60;
+      }
+      return;
+    }
+
+    // Close button
+    if (x >= dx + dw - 136 && x <= dx + dw - 16 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+      this.isFruitStallOpen = false;
+      return;
+    }
+  }
+
+  private handleFastFoodClick(x: number, y: number, w: number, h: number): void {
+    const dw = 300;
+    const dh = 250;
+    const dx = Math.floor((w - dw) / 2);
+    const dy = Math.floor((h - dh) / 2);
+
+    if (x >= dx + dw - 24 && x <= dx + dw && y >= dy && y <= dy + 24) {
+      this.isFastFoodOpen = false;
+      return;
+    }
+
+    let rowY = dy + 54;
+    for (let i = 0; i < 4; i++) {
+      if (x >= dx + 8 && x <= dx + dw - 8 && y >= rowY && y <= rowY + 26) {
+        this.selectedFastFoodIndex = i;
+        return;
+      }
+      rowY += 28;
+    }
+
+    // Buy Button [ Mua ăn ngay ]
+    if (x >= dx + 16 && x <= dx + 136 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+      const items = ['Kem ốc quế', 'Kem ly dâu', 'Bánh mì thịt', 'Nước mía'];
+      this.feedbackText = `Đã thưởng thức ${items[this.selectedFastFoodIndex]}! Hồi phục năng lượng!`;
+      this.feedbackTimer = 80;
+      this.isFastFoodOpen = false;
+      return;
+    }
+
+    // Close Button
+    if (x >= dx + dw - 136 && x <= dx + dw - 16 && y >= dy + dh - 28 && y <= dy + dh - 6) {
+      this.isFastFoodOpen = false;
+      return;
+    }
+  }
+
+  private handleMenuClick(screenX: number, screenY: number, w: number, h: number): void {
+    const mw = 220;
+    const mh = 210;
+    const mx = Math.floor((w - mw) / 2);
+    const my = Math.floor((h - mh) / 2);
+
+    if (screenX < mx || screenX > mx + mw || screenY < my || screenY > my + mh) {
+      this.isMenuOpen = false;
+      return;
+    }
+
+    // Click on option rows
+    let rowY = my + 34;
+    for (let i = 0; i < 6; i++) {
+      if (screenX >= mx + 8 && screenX <= mx + mw - 8 && screenY >= rowY && screenY <= rowY + 24) {
+        this.selectedMenuIndex = i;
+        this.executeMenuItem(i);
+        return;
+      }
+      rowY += 26;
+    }
+
+    // Click [ Chọn ]
+    if (screenX >= mx + 12 && screenX <= mx + 102 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+      this.executeMenuItem(this.selectedMenuIndex);
+      return;
+    }
+
+    // Click [ Đóng ]
+    if (screenX >= mx + mw - 102 && screenX <= mx + mw - 12 && screenY >= my + mh - 26 && screenY <= my + mh - 6) {
+      this.isMenuOpen = false;
+      return;
+    }
+  }
+
+  private executeMenuItem(index: number): void {
+    this.isMenuOpen = false;
+    switch (index) {
+      case 0:
+        this.promptEnterFarm();
+        break;
+      case 1:
+        this.openShop();
+        break;
+      case 2:
+        this.openLaiBuonDialog();
+        break;
+      case 3:
+        this.openFruitStall();
+        break;
+      case 4:
+        this.openFastFoodDialog();
+        break;
+      case 5:
+        this.promptExitToWorldMap();
+        break;
+    }
   }
 
   public keyPressed(keyCode: number): void {
@@ -868,17 +1275,23 @@ export class FarmGateScreen extends GameScreen {
     // Distances
     const distGate = Math.hypot(px - 434, py - 220);
     const distStore = Math.hypot(px - 755, py - 230);
-    const distLaiBuon = Math.hypot(px - 140, py - 270);
+    const distFruit = Math.hypot(px - 600, py - 310);
+    const distLaiBuon = Math.hypot(px - 140, py - 275);
+    const distXeKem = Math.hypot(px - 930, py - 280);
     const distExit = Math.hypot(px - 434, py - 410);
 
-    const minDist = Math.min(distGate, distStore, distLaiBuon, distExit);
+    const minDist = Math.min(distGate, distStore, distFruit, distLaiBuon, distXeKem, distExit);
 
     if (minDist === distGate && distGate < 120) {
       this.promptEnterFarm();
     } else if (minDist === distStore && distStore < 120) {
       this.openShop();
+    } else if (minDist === distFruit && distFruit < 120) {
+      this.openFruitStall();
     } else if (minDist === distLaiBuon && distLaiBuon < 120) {
       this.openLaiBuonDialog();
+    } else if (minDist === distXeKem && distXeKem < 120) {
+      this.openFastFoodDialog();
     } else if (minDist === distExit && distExit < 100) {
       this.promptExitToWorldMap();
     } else {
@@ -910,5 +1323,13 @@ export class FarmGateScreen extends GameScreen {
 
   public openLaiBuonDialog(): void {
     this.isLaiBuonDialogOpen = true;
+  }
+
+  public openFruitStall(): void {
+    this.isFruitStallOpen = true;
+  }
+
+  public openFastFoodDialog(): void {
+    this.isFastFoodOpen = true;
   }
 }

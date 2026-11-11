@@ -202,4 +202,52 @@ export class FarmActionController {
       this.onActionFeedback(`Đã gửi yêu cầu mua hạt giống #${seedId}`, '#facc15');
     }
   }
+
+  public sellProduce(cropId: number, count: number = 1): void {
+    const curCrops = this.model.crops.get(cropId) || 0;
+    if (curCrops <= 0) {
+      if (this.onActionFeedback) {
+        this.onActionFeedback('Bạn không có loại nông sản này trong kho để bán!', '#ef4444');
+      }
+      return;
+    }
+    const sellCount = Math.min(count, curCrops);
+    const meta = CROP_DEFINITIONS[cropId];
+    const unitPrice = meta ? meta.sellPriceXu : 20;
+    const totalXu = sellCount * unitPrice;
+
+    // Local decrement & Xu update pending server refresh
+    this.model.crops.set(cropId, curCrops - sellCount);
+    this.model.userXu += totalXu;
+
+    if (this.onActionFeedback) {
+      this.onActionFeedback(`Đã bán ${sellCount} nông sản, nhận được ${totalXu.toLocaleString('vi-VN')} Xu!`, '#4ade80');
+    }
+  }
+
+  public sellAllHarvested(): void {
+    let totalXu = 0;
+    let totalItems = 0;
+
+    for (const [cropId, count] of this.model.crops.entries()) {
+      if (count > 0) {
+        const meta = CROP_DEFINITIONS[cropId];
+        const unitPrice = meta ? meta.sellPriceXu : 20;
+        totalXu += count * unitPrice;
+        totalItems += count;
+        this.model.crops.set(cropId, 0);
+      }
+    }
+
+    if (totalItems > 0) {
+      this.model.userXu += totalXu;
+      if (this.onActionFeedback) {
+        this.onActionFeedback(`Đã bán toàn bộ ${totalItems} nông sản, thu về ${totalXu.toLocaleString('vi-VN')} Xu!`, '#4ade80');
+      }
+    } else {
+      if (this.onActionFeedback) {
+        this.onActionFeedback('Kho nông sản đang trống, không có gì để bán!', '#94a3b8');
+      }
+    }
+  }
 }
